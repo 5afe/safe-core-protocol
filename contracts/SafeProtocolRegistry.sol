@@ -14,8 +14,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     error CannotFlagComponent(address component);
     error CannotAddComponent(address component);
 
-    constructor() {
-        // TODO: Set owner in constructor
+    constructor(address initialOwner) {
+        _transferOwnership(initialOwner);
     }
 
     function check(address component) external view returns (uint256 listedAt, uint256 flaggedAt) {

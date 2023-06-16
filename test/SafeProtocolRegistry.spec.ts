@@ -2,17 +2,21 @@ import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("SafeProtocolRegistry", async () => {
+    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
+
     async function deployContractFixture() {
-        const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry");
+        [deployer, owner, user1, user2]= await ethers.getSigners();
+        const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         return { safeProtocolRegistry };
     }
 
     it("Should allow to add a component only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.addComponent(AddressZero);
-        await expect(safeProtocolRegistry.addComponent(AddressZero)).to.be.revertedWithCustomError(
+        await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
+        await expect(safeProtocolRegistry.connect(owner).addComponent(AddressZero)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
             "CannotAddComponent",
         );
@@ -20,7 +24,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should not allow to flag non-listed component", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.flagComponent(AddressZero)).to.be.revertedWithCustomError(
+        await expect(safeProtocolRegistry.connect(owner).flagComponent(AddressZero)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
             "CannotFlagComponent",
         );
