@@ -2,7 +2,9 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "fmt:sol": "prettier 'contracts/**/*.sol' -w",
+    "fmt:ts": "prettier 'test/**/*.ts' -w",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'"
   },
