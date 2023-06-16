@@ -1,6 +1,4 @@
-# safe-protocol
-
-## Safe protocol specification
+# Safe protocol
 
 This project is an implementation of [Safe protocol specification](https://github.com/5afe/safe-protocol-specs)
 
