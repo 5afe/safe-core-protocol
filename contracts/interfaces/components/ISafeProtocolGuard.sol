@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.18;
 import "../../external/interfaces/ISafe.sol";
-import "../ISafeRootAccess.sol";
 import "../../libraries/DataTypes.sol";
 
 interface ISafeProtocolGuard {
