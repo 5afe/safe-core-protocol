@@ -40,6 +40,6 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert CannotFlagComponent(component);
         }
         // TODO: Find a better way to do this
-        listedComponents[component] = ComponentInfo(componentInfo.listedAt, componentInfo.flaggedAt);
+        listedComponents[component] = ComponentInfo(componentInfo.listedAt, 1);
     }
 }

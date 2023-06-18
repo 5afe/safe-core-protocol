@@ -13,7 +13,7 @@ describe("SafeProtocolRegistry", async () => {
         return { safeProtocolRegistry };
     }
 
-    it("Should allow to add a component only once", async () => {
+    it("Should allow add a component only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
         await expect(safeProtocolRegistry.connect(owner).addComponent(AddressZero)).to.be.revertedWithCustomError(
@@ -28,6 +28,21 @@ describe("SafeProtocolRegistry", async () => {
             safeProtocolRegistry,
             "CannotFlagComponent",
         );
+    });
+
+    it("Should allow only owner to flag a component", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
+
+        await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith(
+            "Ownable: caller is not the owner"
+        );
+
+        expect(await safeProtocolRegistry.connect(owner).flagComponent(AddressZero));
+
+        const [listedAt, flaggedAt] = await safeProtocolRegistry.check(AddressZero);
+        expect(flaggedAt).to.be.equal(1);
+
     });
 
     it("Should return (0,0) for non-listed component", async () => {
