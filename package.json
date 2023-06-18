@@ -2,7 +2,9 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "fmt:sol": "prettier 'contracts/**/*.sol' -w",
+    "fmt:ts": "prettier 'test/**/*.ts' -w",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'"
   },
@@ -12,6 +14,7 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^1.0.0",
+    "@openzeppelin/contracts": "^4.9.1",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
     "@types/chai": "^4.2.0",
