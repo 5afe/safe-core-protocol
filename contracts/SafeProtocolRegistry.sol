@@ -7,8 +7,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => ComponentInfo) listedComponents;
 
     struct ComponentInfo {
-        uint256 listedAt;
-        uint256 flaggedAt;
+        uint64 listedAt;
+        uint64 flaggedAt;
     }
 
     error CannotFlagComponent(address component);
@@ -18,7 +18,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         _transferOwnership(initialOwner);
     }
 
-    function check(address component) external view returns (uint256 listedAt, uint256 flaggedAt) {
+    function check(address component) external view returns (uint64 listedAt, uint64 flaggedAt) {
         ComponentInfo memory componentInfo = listedComponents[component];
         listedAt = componentInfo.listedAt;
         flaggedAt = componentInfo.flaggedAt;
@@ -30,7 +30,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         if (componentInfo.listedAt != 0) {
             revert CannotAddComponent(component);
         }
-        listedComponents[component] = ComponentInfo(block.timestamp, 0);
+        listedComponents[component] = ComponentInfo(uint64(block.timestamp), 0);
     }
 
     function flagComponent(address component) external onlyOwner {
@@ -40,6 +40,6 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert CannotFlagComponent(component);
         }
         // TODO: Find a better way to do this
-        listedComponents[component] = ComponentInfo(componentInfo.listedAt, 1);
+        listedComponents[component] = ComponentInfo(componentInfo.listedAt, uint64(block.timestamp));
     }
 }
