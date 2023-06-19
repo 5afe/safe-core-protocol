@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import "../../external/interfaces/ISafe.sol";
-import "../../libraries/DataTypes.sol";
+import "../external/interfaces/ISafe.sol";
+import "../DataTypes.sol";
 
 /**
  * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement
@@ -57,7 +57,7 @@ interface ISafeProtocolGuard {
      */
     function preCheck(
         ISafe safe,
-        DataTypes.SafeTransaction calldata tx,
+        SafeTransaction calldata tx,
         uint256 executionType,
         bytes calldata executionMeta
     ) external returns (bytes memory preCheckData);
@@ -74,7 +74,7 @@ interface ISafeProtocolGuard {
      */
     function preCheckRootAccess(
         ISafe safe,
-        DataTypes.SafeRootAccess calldata rootAccess,
+        SafeRootAccess calldata rootAccess,
         uint256 executionType,
         bytes calldata executionMeta
     ) external returns (bytes memory preCheckData);
