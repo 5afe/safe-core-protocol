@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import "../external/interfaces/ISafe.sol";
+import "./accounts/ISafe.sol";
 import "../DataTypes.sol";
 
 /**
@@ -9,18 +9,16 @@ import "../DataTypes.sol";
  *         TODO: Add more explaination.
  */
 interface ISafeProtocolFallbackMethod {
-
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
-     * @param data Arbitrary length bytes 
+     * @param data Arbitrary length bytes
      * @return result Arbitrary length bytes containing result of the operation
      */
     function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external returns (bytes memory result);
 }
-
 
 /**
  * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement in case when handling static calls
@@ -28,18 +26,16 @@ interface ISafeProtocolFallbackMethod {
  *         TODO: Add more explaination.
  */
 interface ISafeProtocolStaticFallbackMethod {
-    
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
-     * @param data Arbitrary length bytes 
+     * @param data Arbitrary length bytes
      * @return result Arbitrary length bytes containing result of the operation
      */
     function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external view returns (bytes memory result);
 }
-
 
 /**
  * @title ISafeProtocolGuard - An interface that a Safe guard should implement
@@ -64,7 +60,7 @@ interface ISafeProtocolGuard {
 
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled and
-     *         transaction requies tool access. 
+     *         transaction requies tool access.
      *         TODO: Add more explaination and update description of each param.
      * @param safe ISafe
      * @param rootAccess DataTypes.SafeRootAccess
