@@ -19,6 +19,9 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     error CannotFlagComponent(address component);
     error CannotAddComponent(address component);
 
+    event ComponentAdded(address component);
+    event ComponentFlagged(address component);
+
     constructor(address initialOwner) {
         _transferOwnership(initialOwner);
     }
@@ -48,6 +51,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert CannotAddComponent(component);
         }
         listedComponents[component] = ComponentInfo(uint64(block.timestamp), 0);
+        emit ComponentAdded(component);
     }
 
     /**
@@ -64,5 +68,6 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         }
         // TODO: Determint whether there exists a more gas efficient way to update component info.
         listedComponents[component] = ComponentInfo(componentInfo.listedAt, uint64(block.timestamp));
+        emit ComponentFlagged(component);
     }
 }
