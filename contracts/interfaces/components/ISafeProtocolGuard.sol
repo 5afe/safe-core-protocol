@@ -5,7 +5,7 @@ import "../../libraries/DataTypes.sol";
 
 /**
  * @title ISafeProtocolGuard - An interface that a Safe guard should implement
- * @notice In Safe protocol, a guard can deny transactions based in the logic it implements.
+ * @notice In Safe protocol, a guard can approve or deny transactions based on the logic it implements.
  *         TODO: Add more explaination.
  */
 interface ISafeProtocolGuard {
