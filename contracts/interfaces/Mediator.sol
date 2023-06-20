@@ -14,19 +14,19 @@ interface ISafeProtocolMediator {
      * @notice TODO
      * @param safe Instance of a Safe account
      * @param transaction SafeTransaction instance containing payload information about the transaction
-     * @return success boolean indicating status of execution.
-     * @return data Arbitrary length bytes data returned upon the successful execution.
-     *         Empty if the call failed.
+     * @return success boolean indicating status of execution. This varialbe will be true only if all the actions are succueesfully executed.
+     * @return data Array of bytes types returned upon the successful execution of all the actions. Size of array will be same as size of actions
+     *         in case of succcessful execution. Empty if the call failed.
      */
-    function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external view returns (bool success, bytes memory data);
+    function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external view returns (bool success, bytes[] memory data);
 
     /**
      * @notice TODO
      * @param safe Instance of a Safe account
      * @param rootAccess SafeTransaction instance containing payload information about the transaction
-     * @return success boolean indicating status of execution.
-     * @return data Arbitrary length bytes data returned upon the successful execution.
-     *         Empty if the call failed.
+     * @return success boolean indicating status of execution. This varialbe will be true only if all the actions are succueesfully executed.
+     * @return data Arbitrary length bytes data returned upon the successful execution. Size of array will be same as size of actions
+     *         in case of succcessful execution. Empty if the call failed.
      */
-    function executeRootAccess(ISafe safe, SafeRootAccess calldata rootAccess) external view returns (bool success, bytes memory data);
+    function executeRootAccess(ISafe safe, SafeRootAccess calldata rootAccess) external view returns (bool success, bytes[] memory data);
 }
