@@ -5,7 +5,7 @@
     "coverage": "hardhat coverage",
     "fmt:sol": "prettier 'contracts/**/*.sol' -w",
     "fmt:ts": "prettier 'test/**/*.ts' -w",
-    "lint": "yarn lint:sol && yarn lint:ts",
+    "lint": "yarn lint:sol",
     "lint:sol": "solhint 'contracts/**/*.sol'"
   },
   "devDependencies": {
