@@ -13,7 +13,7 @@ abstract contract BaseTestModule is ISafeProtocolModule {
 }
 
 contract TestModule is BaseTestModule {
-    function executeFromModule(ISafe safe, address payable to, uint256 value,bytes calldata data) external {
+    function executeFromModule(ISafe safe, address payable to, uint256 value, bytes calldata data) external {
         safe.execTransactionFromModule(to, value, data, 0);
     }
 }
