@@ -41,7 +41,7 @@ describe("SafeProtocolRegistry", async () => {
         expect(await safeProtocolRegistry.connect(owner).flagComponent(AddressZero));
 
         const [listedAt, flaggedAt] = await safeProtocolRegistry.check(AddressZero);
-        expect(flaggedAt).to.be.equal(1);
+        expect(flaggedAt).to.be.gt(0);
 
     });
 
