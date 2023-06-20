@@ -10,11 +10,10 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @notice
  */
 contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
-
     constructor(address initalOwner) {
         _transferOwnership(initalOwner);
     }
-    
+
     /**
      * @notice TODO
      * @param safe TODO
