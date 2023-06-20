@@ -8,7 +8,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
      * @dev TODO: Determint whether there exists a more gas efficient way to store component info based on the way component information is accessed.
      *      For simplicity, currently using a struct.
      */
-    mapping(address => ComponentInfo) listedComponents;
+    mapping(address => ComponentInfo) public listedComponents;
 
     struct ComponentInfo {
         uint64 listedAt;
