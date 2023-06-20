@@ -13,12 +13,12 @@ interface ISafeProtocolMediator {
     /**
      * @notice TODO
      * @param safe Instance of a Safe account
-     * @param tx SafeTransaction instance containing payload information about the transaction
+     * @param transaction SafeTransaction instance containing payload information about the transaction
      * @return success boolean indicating status of execution.
      * @return data Arbitrary length bytes data returned upon the successful execution.
      *         Empty if the call failed.
      */
-    function executeTransaction(ISafe safe, SafeTransaction calldata tx) external view returns (bool success, bytes memory data);
+    function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external view returns (bool success, bytes memory data);
 
     /**
      * @notice TODO
