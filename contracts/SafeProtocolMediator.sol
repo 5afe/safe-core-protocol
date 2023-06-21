@@ -4,8 +4,8 @@ import {ISafeProtocolMediator} from "./interfaces/Mediator.sol";
 import {ISafeProtocolModule} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
-import "./DataTypes.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title TODO
