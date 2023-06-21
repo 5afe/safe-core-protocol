@@ -12,9 +12,8 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @notice TODO
  */
 contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
+    mapping(address => uint) public nonces;
 
-    mapping (address => uint) public nonces;
-    
     event ActionsExecuted(address safe, bytes32 metaHash);
     event RootAccessActionsExecuted(address safe, bytes32 metaHash);
 
@@ -39,14 +38,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         // TODO: Check for re-entrancy attacks
         // TODO: Validate metahash
 
-        if(ISafeProtocolModule(msg.sender).requiresRootAccess()){
+        if (ISafeProtocolModule(msg.sender).requiresRootAccess()) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        if(nonces[msg.sender] != transaction.nonce){
+        if (nonces[msg.sender] != transaction.nonce) {
             revert InvalidNonce(msg.sender, transaction.nonce);
         }
-        
+
         nonces[msg.sender]++;
 
         data = new bytes[](transaction.actions.length);
@@ -65,24 +64,21 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @return success TODO
      * @return data TODO
      */
-    function executeRootAccess(
-        ISafe safe,
-        SafeRootAccess calldata rootAccess
-    ) external override returns (bool success, bytes memory data) {
+    function executeRootAccess(ISafe safe, SafeRootAccess calldata rootAccess) external override returns (bool success, bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
         // TODO: Set data variable or update documentation
         // TODO: Check for re-entrancy attacks
         // TODO: Validate metahash
 
         // Re-confirm if this check if needed and correct.
-        if(!ISafeProtocolModule(msg.sender).requiresRootAccess()){
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess()) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        if(nonces[msg.sender] != rootAccess.nonce){
+        if (nonces[msg.sender] != rootAccess.nonce) {
             revert InvalidNonce(msg.sender, rootAccess.nonce);
         }
-        
+
         nonces[msg.sender]++;
         data = "";
         success = safe.execTransactionFromModule(safeProtocolAction.to, safeProtocolAction.value, safeProtocolAction.data, 1);
