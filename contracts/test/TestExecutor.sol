@@ -15,6 +15,7 @@ contract TestExecutor is ISafe {
         bytes memory response;
         (success, response) = to.call{value: value}(data);
         if (!success) {
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 revert(add(response, 0x20), mload(response))
             }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import "./Accounts.sol";
-import "../DataTypes.sol";
+import {ISafe} from "./Accounts.sol";
+import {SafeRootAccess, SafeTransaction} from "../DataTypes.sol";
 
 /**
  * @title ISafeProtocolMediator interface that a Mediator should implement
