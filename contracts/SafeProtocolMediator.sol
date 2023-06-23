@@ -12,25 +12,24 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @notice TODO
  */
 contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
-    mapping(address => uint) public nonces;
-
+    /**
+     * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
+     *         address (Safe address) => address (component address) => EnabledMoudleInfo
+     */
+    mapping(address => mapping(address => MoudleAccessInfo)) public enabledComponents;
     struct MoudleAccessInfo {
         bool enabled;
         bool rootAddressGranted;
         // TODO: Add deadline for validity
     }
 
-    /**
-     * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
-     *         address (Safe address) => address (component address) => EnabledMoudleInfo
-     */
-    mapping(address => mapping(address => MoudleAccessInfo)) public enabledComponents;
-
+    // Events
     event ActionsExecuted(address safe, bytes32 metaHash);
     event RootAccessActionsExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
 
+    // Errors
     error InvalidNonce(address sender, uint256 nonce);
     error ModuleRequiresRootAccess(address sender);
     error MoudleNotEnabled(address module);
@@ -70,12 +69,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             revert ModuleEnabledOnlyForRootAccess(msg.sender);
         }
 
-        if (nonces[msg.sender] != transaction.nonce) {
-            revert InvalidNonce(msg.sender, transaction.nonce);
-        }
-
-        nonces[msg.sender]++;
-
         data = new bytes[](transaction.actions.length);
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
@@ -111,11 +104,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        if (nonces[msg.sender] != rootAccess.nonce) {
-            revert InvalidNonce(msg.sender, rootAccess.nonce);
-        }
-
-        nonces[msg.sender]++;
         data = "";
         success = safe.execTransactionFromModule(safeProtocolAction.to, safeProtocolAction.value, safeProtocolAction.data, 1);
     }
