@@ -14,7 +14,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     mapping(address => uint) public nonces;
 
-    struct EnabledMoudleInfo {
+    struct MoudleAccessInfo {
         bool enabled;
         bool rootAddressGranted;
         // TODO: Add deadline for validity
@@ -24,10 +24,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
      */
-    mapping(address => mapping(address => EnabledMoudleInfo)) public enabledComponents;
+    mapping(address => mapping(address => MoudleAccessInfo)) public enabledComponents;
 
     event ActionsExecuted(address safe, bytes32 metaHash);
     event RootAccessActionsExecuted(address safe, bytes32 metaHash);
+    event ModuleEnabled(address safe, address module, bool allowRootAccess);
+    event ModuleDisabled(address safe, address module);
 
     error InvalidNonce(address sender, uint256 nonce);
     error ModuleRequiresRootAccess(address sender);
@@ -126,10 +128,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     function enableModule(ISafeProtocolModule module, bool allowRootAccess) external {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
+        //       Should it be allowed to enable a module twice with different allowRootAccess flag?
         if (allowRootAccess != module.requiresRootAccess()) {
             revert ModuleAccessMismatch(address(module), module.requiresRootAccess(), allowRootAccess);
         }
-        enabledComponents[msg.sender][address(module)] = EnabledMoudleInfo(true, allowRootAccess);
+        enabledComponents[msg.sender][address(module)] = MoudleAccessInfo(true, allowRootAccess);
+
+        emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
     }
 
     /**
@@ -138,6 +143,18 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      */
     function disableModule(ISafeProtocolModule module) external {
         // TODO: Validate if caller is a Safe
-        enabledComponents[msg.sender][address(module)] = EnabledMoudleInfo(false, false);
+        //       Should it be allowed to disable a non-enabled module?
+
+        enabledComponents[msg.sender][address(module)] = MoudleAccessInfo(false, false);
+        emit ModuleDisabled(msg.sender, address(module));
+    }
+
+    /**
+     * @notice A view only function to get information about safe and a module
+     * @param safe Address of a safe
+     * @param module Address of a module
+     */
+    function getModuleInfo(address safe, address module) external view returns(MoudleAccessInfo memory enabled) {
+        return enabledComponents[safe][module];
     }
 }
