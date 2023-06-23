@@ -106,7 +106,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        if(!enabledComponents[address(safe)][msg.sender].rootAddressGranted){
+        if (!enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
             // TODO: Need new error type?
             revert ModuleRequiresRootAccess(msg.sender);
         }
@@ -154,7 +154,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @param safe Address of a safe
      * @param module Address of a module
      */
-    function getModuleInfo(address safe, address module) external view returns(MoudleAccessInfo memory enabled) {
+    function getModuleInfo(address safe, address module) external view returns (MoudleAccessInfo memory enabled) {
         return enabledComponents[safe][module];
     }
 }
