@@ -138,8 +138,8 @@ describe("SafeProtocolMediator", async () => {
                 expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
 
                 await expect(tx)
-                    .to.emit(safeProtocolMediator, "ActionsExecuted")
-                    .withArgs(await safe.getAddress(), safeTx.metaHash);
+                    .to.emit(safeProtocolMediator, "ActionExecuted")
+                    .withArgs(await safe.getAddress(), safeTx.metaHash, 0);
             });
 
             it("Should fail to process a SafeTransaction", async function () {
