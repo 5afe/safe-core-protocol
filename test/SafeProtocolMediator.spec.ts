@@ -295,5 +295,31 @@ describe("SafeProtocolMediator", async () => {
                 "ModuleRequiresRootAccess",
             );
         });
+
+        it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
+            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
+
+            // Enable module
+            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+            // TODO: Replace with builder function
+            const safeTx = {
+                action: {
+                    to: await testDelegateCallReceiver.getAddress(),
+                    value: hre.ethers.parseEther("1"),
+                    data: "0x",
+                },
+                nonce: 1,
+                metaHash: hre.ethers.randomBytes(32),
+            };
+
+            await expect( module.executeFromModule(safeProtocolMediator, safe, safeTx))
+                .to.emit(safeProtocolMediator, "RootAccessActionExecutionFailed")
+                .withArgs(await safe.getAddress(), safeTx.metaHash);
+        });
     });
 });

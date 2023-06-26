@@ -86,6 +86,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
                 // Return empty array on failed execution
                 data = new bytes[](transaction.actions.length);
                 emit ActionExecutionFailed(address(safe), transaction.metaHash, i);
+                break;
             }
             data[i] = resultData;
         }
@@ -129,6 +130,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         );
         if (success) {
             emit RootAccessActionExecuted(address(safe), rootAccess.metaHash);
+        } else {
+            emit RootAccessActionExecutionFailed(address(safe), rootAccess.metaHash);
         }
     }
 
