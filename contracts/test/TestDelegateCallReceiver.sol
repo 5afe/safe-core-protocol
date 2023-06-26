@@ -2,13 +2,14 @@
 pragma solidity ^0.8.18;
 
 contract TestDelegateCallReceiver {
-    address immutable ethReceiver;
+    address public immutable ethReceiver;
 
     constructor(address _ethReceiver) {
         ethReceiver = _ethReceiver;
     }
 
     receive() external payable {
+        // solhint-disable-next-line no-unused-vars
         (bool success, bytes memory data) = ethReceiver.call{value: address(this).balance}("");
         if (!success) {
             revert("Failed to send eth");

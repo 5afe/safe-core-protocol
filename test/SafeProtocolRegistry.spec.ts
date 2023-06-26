@@ -24,9 +24,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should not allow non-owner to add a component", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.connect(user1).addComponent(AddressZero)).to.be.revertedWith(
-            "Ownable: caller is not the owner"
-        );
+        await expect(safeProtocolRegistry.connect(user1).addComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should not allow to flag non-listed component", async () => {
@@ -56,8 +54,9 @@ describe("SafeProtocolRegistry", async () => {
         await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
 
         await safeProtocolRegistry.connect(owner).flagComponent(AddressZero);
-        await expect( safeProtocolRegistry.connect(owner).flagComponent(AddressZero)).to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagComponent").withArgs(AddressZero);
-
+        await expect(safeProtocolRegistry.connect(owner).flagComponent(AddressZero))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagComponent")
+            .withArgs(AddressZero);
     });
 
     it("Should return (0,0) for non-listed component", async () => {

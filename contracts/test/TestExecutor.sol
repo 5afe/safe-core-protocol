@@ -43,6 +43,7 @@ contract TestExecutor is ISafe {
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data); // solhint-disable-next-line no-inline-assembly
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             // Load free memory location
             let ptr := mload(0x40)
