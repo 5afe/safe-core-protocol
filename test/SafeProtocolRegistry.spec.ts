@@ -8,7 +8,7 @@ describe("SafeProtocolRegistry", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
 
     async function deployContractFixture() {
-        [deployer, owner, user1, user2]= await ethers.getSigners();
+        [deployer, owner, user1, user2] = await ethers.getSigners();
         const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         return { safeProtocolRegistry };
     }
@@ -34,15 +34,12 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
 
-        await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith(
-            "Ownable: caller is not the owner"
-        );
+        await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
 
         expect(await safeProtocolRegistry.connect(owner).flagComponent(AddressZero));
 
         const [listedAt, flaggedAt] = await safeProtocolRegistry.check(AddressZero);
         expect(flaggedAt).to.be.gt(0);
-
     });
 
     it("Should return (0,0) for non-listed component", async () => {

@@ -12,6 +12,10 @@ abstract contract BaseTestModule is ISafeProtocolModule {
     bool public requiresRootAccess = false;
 
     function metaProvider() external view override returns (uint256 providerType, bytes memory location) {}
+
+    function setRequiresRootAccess(bool _requiresRootAccess) external {
+        requiresRootAccess = _requiresRootAccess;
+    }
 }
 
 contract TestModule is BaseTestModule {
