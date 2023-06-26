@@ -80,6 +80,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
                 safeProtocolAction.data,
                 0
             );
+
+            // Need to revisit the approach below. If some actions fail, the transaction stiil succeeds.
+            // With current approach, even if one action fails, `data` will be empty bytes even for successful
+            // actions.
             if (!isActionSuccessful) {
                 success = false;
                 // Return empty array on failed execution
@@ -90,8 +94,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
                 data[i] = resultData;
             }
         }
-
-        if (success) {}
     }
 
     /**
