@@ -30,11 +30,11 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event ModuleDisabled(address safe, address module);
 
     // Errors
-    error InvalidNonce(address sender, uint256 nonce);
     error ModuleRequiresRootAccess(address sender);
     error MoudleNotEnabled(address module);
     error ModuleEnabledOnlyForRootAccess(address module);
     error ModuleAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
+    error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
 
     constructor(address initalOwner) {
         _transferOwnership(initalOwner);
@@ -70,12 +70,24 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         }
 
         data = new bytes[](transaction.actions.length);
+        success = true;
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
             //TODO: Set data variable or update documentation
-            safe.execTransactionFromModule(safeProtocolAction.to, safeProtocolAction.value, safeProtocolAction.data, 0);
+            bool isActionSuccessful = safe.execTransactionFromModule(
+                safeProtocolAction.to,
+                safeProtocolAction.value,
+                safeProtocolAction.data,
+                0
+            );
+            if (!isActionSuccessful) {
+                success = false;
+            }
         }
-        success = true;
+
+        if (success) {
+            emit ActionsExecuted(address(safe), transaction.metaHash);
+        }
     }
 
     /**
