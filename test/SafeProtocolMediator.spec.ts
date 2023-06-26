@@ -83,23 +83,23 @@ describe("SafeProtocolMediator", async () => {
         it("Should not allow non-enabled module to execute tx from a safe", async()=>{
             const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
             const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                   // TODO: Replace with builder function
+        const safeTx = {
+            actions: [
+                {
+                to: user2.address,
+                value: hre.ethers.parseEther("1"),
+                data: "0x",
+                }
+            ],
+            nonce: 1,
+            metaHash: hre.ethers.randomBytes(32),
+        };
 
-            // TODO: Replace with builder function
-            const safeTx = {
-                actions: [
-                  {
-                    to: user2.address,
-                    value: hre.ethers.parseEther("1"),
-                    data: "0x",
-                  }
-                ],
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-              };              
-              await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(safeProtocolMediator, "MoudleNotEnabled");
+            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(safeProtocolMediator, "MoudleNotEnabled");
         })
 
-        it("should process a SafeTransaction", async function () {
+        it("Should process a SafeTransaction", async function () {
             const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
             // Enable module
@@ -107,33 +107,64 @@ describe("SafeProtocolMediator", async () => {
             const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
             await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-            // TODO: Replace with builder function
-            const safeTx = {
-              actions: [
-                {
-                  to: user2.address,
-                  value: hre.ethers.parseEther("1"),
-                  data: "0x",
-                }
-              ],
-              nonce: 1,
-              metaHash: hre.ethers.randomBytes(32),
-            };
-
             const amount = hre.ethers.parseEther("1");
             await(await deployer.sendTransaction({
                 to: await safe.getAddress(),
                 value: amount,
             })).wait();
-            
+                    // TODO: Replace with builder function
+        const safeTx = {
+            actions: [
+                {
+                to: user2.address,
+                value: hre.ethers.parseEther("1"),
+                data: "0x",
+                }
+            ],
+            nonce: 1,
+            metaHash: hre.ethers.randomBytes(32),
+        };
+
             const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
             const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
             await tx.wait();
             const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
 
             expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
+            expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+
             await expect(tx).to.emit(safeProtocolMediator, "ActionsExecuted").withArgs(await safe.getAddress(), safeTx.metaHash);
           });
+
+          it("Should fail to process a SafeTransaction", async function () {
+            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+            // Enable module
+            const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+            const safeTx = {
+                actions: [
+                    {
+                    to: user2.address,
+                    value: hre.ethers.parseEther("1"),
+                    data: "0x",
+                    }
+                ],
+                nonce: 1,
+                metaHash: hre.ethers.randomBytes(32),
+            };
+            const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+            const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
+            const txr = await tx.wait();
+            const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+            expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore));
+
+            console.log(txr);
+
+            await expect(tx).to.emit(safeProtocolMediator, "ActionExecutionFailed").withArgs(await safe.getAddress(), safeTx.metaHash, 0);
+          });
+    
         });
     
 });

@@ -28,13 +28,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event RootAccessActionsExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
+    event ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
     error MoudleNotEnabled(address module);
     error ModuleEnabledOnlyForRootAccess(address module);
     error ModuleAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
-    error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
 
     constructor(address initalOwner) {
         _transferOwnership(initalOwner);
@@ -82,6 +82,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             );
             if (!isActionSuccessful) {
                 success = false;
+                emit ActionExecutionFailed(address(safe), transaction.metaHash, i);
             }
         }
 
