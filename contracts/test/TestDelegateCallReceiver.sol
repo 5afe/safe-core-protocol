@@ -18,6 +18,6 @@ contract TestDelegateCallReceiver {
 
 contract TestDelegateCallReverter {
     receive() external payable {
-            revert();
+        revert();
     }
 }

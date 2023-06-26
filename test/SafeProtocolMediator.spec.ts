@@ -78,248 +78,318 @@ describe("SafeProtocolMediator", async () => {
             return { safeProtocolMediator, safe };
         }
 
-        it("Should not allow non-enabled module to execute tx from a safe", async () => {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
-            const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            // TODO: Replace with builder function
-            const safeTx = {
-                actions: [
-                    {
+        describe("Module with non-root access", async () => {
+            it("Should not allow non-enabled module to execute tx from a safe", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "MoudleNotEnabled",
+                );
+            });
+
+            it("Should process a SafeTransaction", async function () {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
+                await tx.wait();
+                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+
+                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
+                expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+
+                await expect(tx)
+                    .to.emit(safeProtocolMediator, "ActionsExecuted")
+                    .withArgs(await safe.getAddress(), safeTx.metaHash);
+            });
+
+            it("Should fail to process a SafeTransaction", async function () {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
+                const txr = await tx.wait();
+                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore));
+
+                await expect(tx)
+                    .to.emit(safeProtocolMediator, "ActionExecutionFailed")
+                    .withArgs(await safe.getAddress(), safeTx.metaHash, 0);
+            });
+
+            it("Should not process a SafeTransaction when executing non-root access from root access module", async function () {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                await module.setRequiresRootAccess(true);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleRequiresRootAccess",
+                );
+            });
+
+            it("Should emit ModuleRequiresRootAccess for a non-root access module", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                // Required to set module to indicate that it does requires root access.
+                await module.setRequiresRootAccess(true);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                // Reset root access flag
+                await module.setRequiresRootAccess(false);
+
+                // TODO: Replace with builder function
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleEnabledOnlyForRootAccess")
+                    .withArgs(await module.getAddress());
+            });
+        });
+
+        describe("Module with root access", async () => {
+            it("Should run a transaction from root access enabled module", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+                const testDelegateCallReceiver = await (
+                    await hre.ethers.getContractFactory("TestDelegateCallReceiver")
+                ).deploy(user2.address);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
+                        to: await testDelegateCallReceiver.getAddress(),
+                        value: hre.ethers.parseEther("1"),
+                        data: "0x",
+                    },
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
+                await tx.wait();
+                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+
+                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
+                expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+
+                await expect(tx)
+                    .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
+                    .withArgs(await safe.getAddress(), safeTx.metaHash);
+            });
+
+            it("Should not allow non-enabled module to execute root tx from a safe", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
                         to: user2.address,
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
-                ],
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
 
-            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "MoudleNotEnabled",
-            );
-        });
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "MoudleNotEnabled",
+                );
+            });
 
-        it("Should process a SafeTransaction", async function () {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+            it("Should revert with ModuleRequiresRootAccess", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                const testDelegateCallReceiver = await (
+                    await hre.ethers.getContractFactory("TestDelegateCallReceiver")
+                ).deploy(user2.address);
 
-            const amount = hre.ethers.parseEther("1");
-            await (
-                await deployer.sendTransaction({
-                    to: await safe.getAddress(),
-                    value: amount,
-                })
-            ).wait();
-            // TODO: Replace with builder function
-            const safeTx = {
-                actions: [
-                    {
-                        to: user2.address,
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                await module.setRequiresRootAccess(false);
+
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
+                        to: await testDelegateCallReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
-                ],
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
 
-            const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
-            const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
-            await tx.wait();
-            const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleRequiresRootAccess",
+                );
+            });
 
-            expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
-            expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+            it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-            await expect(tx)
-                .to.emit(safeProtocolMediator, "ActionsExecuted")
-                .withArgs(await safe.getAddress(), safeTx.metaHash);
-        });
+                const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
 
-        it("Should fail to process a SafeTransaction", async function () {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-            const safeTx = {
-                actions: [
-                    {
-                        to: user2.address,
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
+                        to: await testDelegateCallReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
-                ],
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
-            const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
-            const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
-            const txr = await tx.wait();
-            const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
-            expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore));
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
 
-            await expect(tx)
-                .to.emit(safeProtocolMediator, "ActionExecutionFailed")
-                .withArgs(await safe.getAddress(), safeTx.metaHash, 0);
-        });
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx))
+                    .to.emit(safeProtocolMediator, "RootAccessActionExecutionFailed")
+                    .withArgs(await safe.getAddress(), safeTx.metaHash);
+            });
 
-        it("Should not process a SafeTransaction when executing non-root access from root access module", async function () {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+            it("Should emit ModuleRequiresRootAccess for a root access module", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
 
-            await module.setRequiresRootAccess(true);
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                // Required to set module to indicate that it does not require root access
+                await module.setRequiresRootAccess(false);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-            const amount = hre.ethers.parseEther("1");
-            await (
-                await deployer.sendTransaction({
-                    to: await safe.getAddress(),
-                    value: amount,
-                })
-            ).wait();
-            // TODO: Replace with builder function
-            const safeTx = {
-                actions: [
-                    {
-                        to: user2.address,
+                // Set root access flag back to true
+                await module.setRequiresRootAccess(true);
+
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
+                        to: await testDelegateCallReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
-                ],
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
 
-            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "ModuleRequiresRootAccess",
-            );
-        });
-
-        it("Should run a transaction from root access enabled module", async () => {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
-
-            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReceiver")).deploy(user2.address);
-
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-
-            const amount = hre.ethers.parseEther("1");
-            await (
-                await deployer.sendTransaction({
-                    to: await safe.getAddress(),
-                    value: amount,
-                })
-            ).wait();
-            // TODO: Replace with builder function
-            const safeTx = {
-                action: {
-                    to: await testDelegateCallReceiver.getAddress(),
-                    value: hre.ethers.parseEther("1"),
-                    data: "0x",
-                },
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
-
-            const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
-            const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
-            await tx.wait();
-            const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
-
-            expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
-            expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
-
-            await expect(tx)
-                .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
-                .withArgs(await safe.getAddress(), safeTx.metaHash);
-        });
-
-        it("Should not allow non-enabled module to execute root tx from a safe", async () => {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
-            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
-            // TODO: Replace with builder function
-            const safeTx = {
-                action: {
-                    to: user2.address,
-                    value: hre.ethers.parseEther("1"),
-                    data: "0x",
-                },
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
-
-            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "MoudleNotEnabled",
-            );
-        });
-
-        it("Should revert with ModuleRequiresRootAccess", async () => {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
-
-            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReceiver")).deploy(user2.address);
-
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-
-            await module.setRequiresRootAccess(false);
-
-            // TODO: Replace with builder function
-            const safeTx = {
-                action: {
-                    to: await testDelegateCallReceiver.getAddress(),
-                    value: hre.ethers.parseEther("1"),
-                    data: "0x",
-                },
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
-
-            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "ModuleRequiresRootAccess",
-            );
-        });
-
-        it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
-            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
-
-            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
-
-            // Enable module
-            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-
-            // TODO: Replace with builder function
-            const safeTx = {
-                action: {
-                    to: await testDelegateCallReceiver.getAddress(),
-                    value: hre.ethers.parseEther("1"),
-                    data: "0x",
-                },
-                nonce: 1,
-                metaHash: hre.ethers.randomBytes(32),
-            };
-
-            await expect( module.executeFromModule(safeProtocolMediator, safe, safeTx))
-                .to.emit(safeProtocolMediator, "RootAccessActionExecutionFailed")
-                .withArgs(await safe.getAddress(), safeTx.metaHash);
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleRequiresRootAccess")
+                    .withArgs(await module.getAddress());
+            });
         });
     });
 });

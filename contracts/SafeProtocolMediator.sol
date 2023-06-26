@@ -74,7 +74,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         success = true;
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
-            //TODO: Set data variable or update documentation
             (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
@@ -108,7 +107,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         SafeRootAccess calldata rootAccess
     ) external override onlyEnabledModule(safe) returns (bool success, bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
-        // TODO: Set data variable or update documentation
         // TODO: Check for re-entrancy attacks
         // TODO: Validate metahash
 
