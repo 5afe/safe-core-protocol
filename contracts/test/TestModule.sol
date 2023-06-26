@@ -3,6 +3,8 @@ pragma solidity ^0.8.18;
 
 import {ISafe} from "../interfaces/Accounts.sol";
 import {ISafeProtocolModule} from "../interfaces/Components.sol";
+import {ISafeProtocolMediator} from "../interfaces/Mediator.sol";
+import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 
 abstract contract BaseTestModule is ISafeProtocolModule {
     string public name = "";
@@ -13,8 +15,12 @@ abstract contract BaseTestModule is ISafeProtocolModule {
 }
 
 contract TestModule is BaseTestModule {
-    function executeFromModule(ISafe safe, address payable to, uint256 value, bytes calldata data) external {
-        safe.execTransactionFromModule(to, value, data, 0);
+    function executeFromModule(
+        ISafeProtocolMediator mediator,
+        ISafe safe,
+        SafeTransaction calldata safetx
+    ) external returns (bool success, bytes[] memory data) {
+        (success, data) = mediator.executeTransaction(safe, safetx);
     }
 }
 
@@ -23,7 +29,11 @@ contract TestModuleWithRootAccess is BaseTestModule {
         requiresRootAccess = true;
     }
 
-    function executeFromModule(ISafe safe, address payable to, uint256 value, bytes calldata data) external {
-        safe.execTransactionFromModule(to, value, data, 1);
+    function executeFromModule(
+        ISafeProtocolMediator mediator,
+        ISafe safe,
+        SafeRootAccess calldata safeRootAccesstx
+    ) external returns (bool success, bytes memory data) {
+        (success, data) = mediator.executeRootAccess(safe, safeRootAccesstx);
     }
 }
