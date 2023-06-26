@@ -29,6 +29,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
     event ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
+    event RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
@@ -74,7 +75,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
             //TODO: Set data variable or update documentation
-            bool isActionSuccessful = safe.execTransactionFromModule(
+            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
@@ -82,8 +83,11 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             );
             if (!isActionSuccessful) {
                 success = false;
+                // Return empty array on failed execution
+                data = new bytes[](transaction.actions.length);
                 emit ActionExecutionFailed(address(safe), transaction.metaHash, i);
             }
+            data[i] = resultData;
         }
 
         if (success) {
@@ -117,8 +121,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        data = "";
-        success = safe.execTransactionFromModule(safeProtocolAction.to, safeProtocolAction.value, safeProtocolAction.data, 1);
+        (success, data) = safe.execTransactionFromModuleReturnData(
+            safeProtocolAction.to,
+            safeProtocolAction.value,
+            safeProtocolAction.data,
+            1
+        );
         if (success) {
             emit RootAccessActionExecuted(address(safe), rootAccess.metaHash);
         }

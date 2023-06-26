@@ -266,5 +266,34 @@ describe("SafeProtocolMediator", async () => {
                 "MoudleNotEnabled",
             );
         });
+
+        it("Should revert with ModuleRequiresRootAccess", async () => {
+            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReceiver")).deploy(user2.address);
+
+            // Enable module
+            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+            await module.setRequiresRootAccess(false);
+
+            // TODO: Replace with builder function
+            const safeTx = {
+                action: {
+                    to: await testDelegateCallReceiver.getAddress(),
+                    value: hre.ethers.parseEther("1"),
+                    data: "0x",
+                },
+                nonce: 1,
+                metaHash: hre.ethers.randomBytes(32),
+            };
+
+            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                safeProtocolMediator,
+                "ModuleRequiresRootAccess",
+            );
+        });
     });
 });
