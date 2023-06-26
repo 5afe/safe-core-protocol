@@ -246,5 +246,25 @@ describe("SafeProtocolMediator", async () => {
                 .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
                 .withArgs(await safe.getAddress(), safeTx.metaHash);
         });
+
+        it("Should not allow non-enabled module to execute root tx from a safe", async () => {
+            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+            // TODO: Replace with builder function
+            const safeTx = {
+                action: {
+                    to: user2.address,
+                    value: hre.ethers.parseEther("1"),
+                    data: "0x",
+                },
+                nonce: 1,
+                metaHash: hre.ethers.randomBytes(32),
+            };
+
+            await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                safeProtocolMediator,
+                "MoudleNotEnabled",
+            );
+        });
     });
 });
