@@ -25,7 +25,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
 
     // Events
     event ActionsExecuted(address safe, bytes32 metaHash);
-    event RootAccessActionsExecuted(address safe, bytes32 metaHash);
+    event RootAccessActionExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
     event ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
@@ -119,6 +119,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
 
         data = "";
         success = safe.execTransactionFromModule(safeProtocolAction.to, safeProtocolAction.value, safeProtocolAction.data, 1);
+        if (success) {
+            emit RootAccessActionExecuted(address(safe), rootAccess.metaHash);
+        }
     }
 
     /**

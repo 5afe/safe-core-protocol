@@ -205,5 +205,46 @@ describe("SafeProtocolMediator", async () => {
                 "ModuleRequiresRootAccess",
             );
         });
+
+        it("Should run a transaction from root access enabled module", async () => {
+            const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+
+            const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReceiver")).deploy(user2.address);
+
+            // Enable module
+            const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+            const amount = hre.ethers.parseEther("1");
+            await (
+                await deployer.sendTransaction({
+                    to: await safe.getAddress(),
+                    value: amount,
+                })
+            ).wait();
+            // TODO: Replace with builder function
+            const safeTx = {
+                action: {
+                    to: await testDelegateCallReceiver.getAddress(),
+                    value: hre.ethers.parseEther("1"),
+                    data: "0x",
+                },
+                nonce: 1,
+                metaHash: hre.ethers.randomBytes(32),
+            };
+
+            const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+            const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
+            await tx.wait();
+            const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+
+            expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
+            expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+
+            await expect(tx)
+                .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
+                .withArgs(await safe.getAddress(), safeTx.metaHash);
+        });
     });
 });
