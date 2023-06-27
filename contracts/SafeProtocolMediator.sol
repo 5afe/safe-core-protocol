@@ -7,8 +7,9 @@ import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 
 /**
- * @title TODO
- * @notice TODO
+ * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
+ *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
+ *        TODO: Add more description on behaviour of the contract.
  */
 contract SafeProtocolMediator is ISafeProtocolMediator {
     /**
@@ -44,17 +45,18 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     }
 
     /**
-     * @notice TODO
-     * @param safe TODO
-     * @param transaction TODO
-     * @return data TODO
+     * @notice This function executes a delegate call on a safe if the module is enabled and
+     *         root access it granted.
+     * @param safe A Safe instance
+     * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
+     *                    Users can add logic to validate metahash through a transaction guard.
+     * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
         // TODO: Check for re-entrancy attacks
-        // TODO: Validate metahash
 
         if (ISafeProtocolModule(msg.sender).requiresRootAccess()) {
             revert ModuleRequiresRootAccess(msg.sender);
@@ -101,15 +103,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
         // TODO: Check for re-entrancy attacks
 
-        // Re-confirm if this check if needed and correct.
-        if (!ISafeProtocolModule(msg.sender).requiresRootAccess()) {
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
-        if (!enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
-            // TODO: Need new error type?
-            revert ModuleRequiresRootAccess(msg.sender);
-        }
         bool success;
         (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
