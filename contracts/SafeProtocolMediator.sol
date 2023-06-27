@@ -58,14 +58,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
         // TODO: Check for re-entrancy attacks
 
-        if (ISafeProtocolModule(msg.sender).requiresRootAccess()) {
-            revert ModuleRequiresRootAccess(msg.sender);
-        }
-
-        if (enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
-            revert ModuleEnabledOnlyForRootAccess(msg.sender);
-        }
-
         data = new bytes[](transaction.actions.length);
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
