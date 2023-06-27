@@ -87,10 +87,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     }
 
     /**
-     * @notice TODO
-     * @param safe TODO
-     * @param rootAccess TODO
-     * @return data TODO
+     * @notice This function executes a delegate call on a safe if the module is enabled and
+     *         root access it granted.
+     * @param safe A Safe instance
+     * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
+     *                   Users can add logic to validate metahash through a transaction guard.
+     * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
         ISafe safe,
@@ -98,7 +100,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     ) external override onlyEnabledModule(safe) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
         // TODO: Check for re-entrancy attacks
-        // TODO: Validate metahash
 
         // Re-confirm if this check if needed and correct.
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess()) {
