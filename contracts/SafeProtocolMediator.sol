@@ -12,6 +12,8 @@ import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.s
  *        TODO: Add more description on behaviour of the contract.
  */
 contract SafeProtocolMediator is ISafeProtocolMediator {
+    address internal constant SENTINEL_MODULES = address(0x1);
+
     /**
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
@@ -20,6 +22,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     struct ModuleAccessInfo {
         bool enabled;
         bool rootAddressGranted;
+        address nextModulePointer;
         // TODO: Add deadline for validity
     }
 
@@ -37,6 +40,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
     error ModuleAlreadyEnabled(address safe, address module);
+    error InvalidModuleAddress(address module);
+    error InvalidPrevModuleAddress(address module);
+    error InvalidPageSize(uint256 pageSize);
 
     modifier onlyEnabledModule(ISafe safe) {
         if (!enabledComponents[address(safe)][msg.sender].enabled) {
@@ -119,19 +125,34 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module ISafeProtocolModule A module that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enableModule(ISafeProtocolModule module, bool allowRootAccess) external {
+    function enableModule(address module, bool allowRootAccess) external {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
 
-        if (enabledComponents[msg.sender][address(module)].enabled) {
-            revert ModuleAlreadyEnabled(msg.sender, address(module));
+        if (enabledComponents[msg.sender][module].enabled) {
+            revert ModuleAlreadyEnabled(msg.sender, module);
         }
 
-        bool requiresRootAccess = module.requiresRootAccess();
+        bool requiresRootAccess = ISafeProtocolModule(module).requiresRootAccess();
         if (allowRootAccess != requiresRootAccess) {
-            revert ModuleAccessMismatch(address(module), requiresRootAccess, allowRootAccess);
+            revert ModuleAccessMismatch(module, requiresRootAccess, allowRootAccess);
         }
-        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(true, allowRootAccess);
+
+        if (module == address(0) || module == SENTINEL_MODULES) {
+            revert InvalidModuleAddress(module);
+        }
+
+        if (enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
+            // The circular linked list has not been initialised yet for msg.sender. So, do it now.
+            enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, SENTINEL_MODULES);
+        }
+
+        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(
+            true,
+            allowRootAccess,
+            enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer
+        );
+        enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, address(module));
 
         emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
     }
@@ -140,12 +161,21 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @notice Disable a module. This function should be called by Safe.
      * @param module Module to be disabled
      */
-    function disableModule(ISafeProtocolModule module) external {
+    function disableModule(address prevModule, address module) external {
         // TODO: Validate if caller is a Safe
         //       Should it be allowed to disable a non-enabled module?
+        if (module == address(0) || module == SENTINEL_MODULES) {
+            revert InvalidModuleAddress(module);
+        }
 
-        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(false, false);
-        emit ModuleDisabled(msg.sender, address(module));
+        if (enabledComponents[msg.sender][prevModule].nextModulePointer != module) {
+            revert InvalidPrevModuleAddress(prevModule);
+        }
+
+        enabledComponents[msg.sender][prevModule] = enabledComponents[msg.sender][module];
+
+        enabledComponents[msg.sender][module] = ModuleAccessInfo(false, false, address(0));
+        emit ModuleDisabled(msg.sender, module);
     }
 
     /**
@@ -155,5 +185,69 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      */
     function getModuleInfo(address safe, address module) external view returns (ModuleAccessInfo memory enabled) {
         return enabledComponents[safe][module];
+    }
+
+    /**
+     * @notice Returns if an module is enabled
+     * @return True if the module is enabled
+     */
+    function isModuleEnabled(address safe, address module) public view returns (bool) {
+        return SENTINEL_MODULES != module && enabledComponents[safe][module].enabled;
+    }
+
+    /**
+     * @notice Returns an array of modules enabled for a Safe address.
+     *         If all entries fit into a single page, the next pointer will be 0x1.
+     *         If another page is present, next will be the last element of the returned array.
+     * @param start Start of the page. Has to be a module or start pointer (0x1 address)
+     * @param pageSize Maximum number of modules that should be returned. Has to be > 0
+     * @return array Array of modules.
+     * @return next Start of the next page.
+     */
+    function getModulesPaginated(
+        address start,
+        uint256 pageSize,
+        address safe
+    ) external view returns (address[] memory array, address next) {
+        if (!(start == SENTINEL_MODULES || isModuleEnabled(safe, start))) {
+            revert InvalidModuleAddress(start);
+        }
+
+        if (pageSize == 0) {
+            revert InvalidPageSize(pageSize);
+        }
+        // Init array with max page size
+        array = new address[](pageSize);
+
+        // Populate return array
+        uint256 moduleCount = 0;
+        next = enabledComponents[safe][start].nextModulePointer;
+        while (next != address(0) && next != SENTINEL_MODULES && moduleCount < pageSize) {
+            array[moduleCount] = next;
+            next = enabledComponents[safe][next].nextModulePointer;
+            moduleCount++;
+        }
+
+        // This check is required because the enabled module list might not be initialised yet. e.g. no enabled modules for a safe ever before
+        if (moduleCount == 0) {
+            next = SENTINEL_MODULES;
+        }
+
+        /**
+          Because of the argument validation, we can assume that the loop will always iterate over the valid module list values
+          and the `next` variable will either be an enabled module or a sentinel address (signalling the end). 
+          
+          If we haven't reached the end inside the loop, we need to set the next pointer to the last element of the modules array
+          because the `next` variable (which is a module by itself) acting as a pointer to the start of the next page is neither 
+          included to the current page, nor will it be included in the next one if you pass it as a start.
+        */
+        if (next != SENTINEL_MODULES && moduleCount != 0) {
+            next = array[moduleCount - 1];
+        }
+        // Set correct size of returned array
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            mstore(array, moduleCount)
+        }
     }
 }
