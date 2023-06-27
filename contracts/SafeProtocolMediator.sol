@@ -28,14 +28,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event RootAccessActionExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
-    event ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
-    event RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
     error MoudleNotEnabled(address module);
     error ModuleEnabledOnlyForRootAccess(address module);
     error ModuleAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
+    error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
+    error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
 
     constructor(address initalOwner) {
         _transferOwnership(initalOwner);
@@ -52,13 +52,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @notice TODO
      * @param safe TODO
      * @param transaction TODO
-     * @return success TODO
      * @return data TODO
      */
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledModule(safe) returns (bool success, bytes[] memory data) {
+    ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
         // TODO: Check for re-entrancy attacks
         // TODO: Validate metahash
 
@@ -71,7 +70,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         }
 
         data = new bytes[](transaction.actions.length);
-        success = true;
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
             (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
@@ -85,10 +83,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             // With current approach, even if one action fails, `data` will be empty bytes even for successful
             // actions.
             if (!isActionSuccessful) {
-                success = false;
-                // Return empty array on failed execution
-                data = new bytes[](transaction.actions.length);
-                emit ActionExecutionFailed(address(safe), transaction.metaHash, i);
+                revert ActionExecutionFailed(address(safe), transaction.metaHash, i);
             } else {
                 emit ActionExecuted(address(safe), transaction.metaHash, i);
                 data[i] = resultData;
@@ -100,13 +95,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @notice TODO
      * @param safe TODO
      * @param rootAccess TODO
-     * @return success TODO
      * @return data TODO
      */
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledModule(safe) returns (bool success, bytes memory data) {
+    ) external override onlyEnabledModule(safe) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
         // TODO: Check for re-entrancy attacks
         // TODO: Validate metahash
@@ -120,7 +114,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             // TODO: Need new error type?
             revert ModuleRequiresRootAccess(msg.sender);
         }
-
+        bool success;
         (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
@@ -130,7 +124,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         if (success) {
             emit RootAccessActionExecuted(address(safe), rootAccess.metaHash);
         } else {
-            emit RootAccessActionExecutionFailed(address(safe), rootAccess.metaHash);
+            revert RootAccessActionExecutionFailed(address(safe), rootAccess.metaHash);
         }
     }
 

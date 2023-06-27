@@ -23,8 +23,8 @@ contract TestModule is BaseTestModule {
         ISafeProtocolMediator mediator,
         ISafe safe,
         SafeTransaction calldata safetx
-    ) external returns (bool success, bytes[] memory data) {
-        (success, data) = mediator.executeTransaction(safe, safetx);
+    ) external returns (bytes[] memory data) {
+        (data) = mediator.executeTransaction(safe, safetx);
     }
 }
 
@@ -37,7 +37,7 @@ contract TestModuleWithRootAccess is BaseTestModule {
         ISafeProtocolMediator mediator,
         ISafe safe,
         SafeRootAccess calldata safeRootAccesstx
-    ) external returns (bool success, bytes memory data) {
-        (success, data) = mediator.executeRootAccess(safe, safeRootAccesstx);
+    ) external returns (bytes memory data) {
+        (data) = mediator.executeRootAccess(safe, safeRootAccesstx);
     }
 }

@@ -161,14 +161,13 @@ describe("SafeProtocolMediator", async () => {
                     metaHash: hre.ethers.randomBytes(32),
                 };
                 const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
-                const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
-                const txr = await tx.wait();
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ActionExecutionFailed",
+                );
                 const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
                 expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore));
-
-                await expect(tx)
-                    .to.emit(safeProtocolMediator, "ActionExecutionFailed")
-                    .withArgs(await safe.getAddress(), safeTx.metaHash, 0);
             });
 
             it("Should not process a SafeTransaction when executing non-root access from root access module", async function () {
@@ -355,9 +354,10 @@ describe("SafeProtocolMediator", async () => {
                     metaHash: hre.ethers.randomBytes(32),
                 };
 
-                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx))
-                    .to.emit(safeProtocolMediator, "RootAccessActionExecutionFailed")
-                    .withArgs(await safe.getAddress(), safeTx.metaHash);
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "RootAccessActionExecutionFailed",
+                );
             });
 
             it("Should emit ModuleRequiresRootAccess for a root access module", async () => {
