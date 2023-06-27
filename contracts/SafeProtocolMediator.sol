@@ -126,8 +126,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         if (enabledComponents[msg.sender][address(module)].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, address(module));
         }
-        if (allowRootAccess != module.requiresRootAccess()) {
-            revert ModuleAccessMismatch(address(module), module.requiresRootAccess(), allowRootAccess);
+
+        bool requiresRootAccess = module.requiresRootAccess();
+        if (allowRootAccess != requiresRootAccess) {
+            revert ModuleAccessMismatch(address(module), requiresRootAccess, allowRootAccess);
         }
         enabledComponents[msg.sender][address(module)] = MoudleAccessInfo(true, allowRootAccess);
 
