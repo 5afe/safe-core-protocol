@@ -10,7 +10,7 @@ describe("SafeProtocolMediator", async () => {
 
     async function deployContractFixture() {
         [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address);
+        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
         return { safeProtocolMediator };
     }
 
@@ -27,7 +27,7 @@ describe("SafeProtocolMediator", async () => {
         async function deployContractsFixture() {
             // TODO: Reuse parent fixture
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address);
+            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
             const safe = await hre.ethers.deployContract("TestExecutor");
             const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
             return { safeProtocolMediator, safe, module };
@@ -71,7 +71,7 @@ describe("SafeProtocolMediator", async () => {
     describe("Execute transaction from module", async () => {
         async function deployContractsFixture() {
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address);
+            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
             const safe = await hre.ethers.deployContract("TestExecutor");
             await safe.setModule(await safeProtocolMediator.getAddress());
 

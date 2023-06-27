@@ -5,13 +5,12 @@ import {ISafeProtocolModule} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
-import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title TODO
  * @notice TODO
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
+contract SafeProtocolMediator is ISafeProtocolMediator {
     /**
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
@@ -36,10 +35,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     error ModuleAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
     error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
-
-    constructor(address initalOwner) {
-        _transferOwnership(initalOwner);
-    }
 
     modifier onlyEnabledModule(ISafe safe) {
         if (!enabledComponents[address(safe)][msg.sender].enabled) {
