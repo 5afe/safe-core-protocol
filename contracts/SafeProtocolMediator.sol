@@ -16,8 +16,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
      */
-    mapping(address => mapping(address => MoudleAccessInfo)) public enabledComponents;
-    struct MoudleAccessInfo {
+    mapping(address => mapping(address => ModuleAccessInfo)) public enabledComponents;
+    struct ModuleAccessInfo {
         bool enabled;
         bool rootAddressGranted;
         // TODO: Add deadline for validity
@@ -131,7 +131,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         if (allowRootAccess != requiresRootAccess) {
             revert ModuleAccessMismatch(address(module), requiresRootAccess, allowRootAccess);
         }
-        enabledComponents[msg.sender][address(module)] = MoudleAccessInfo(true, allowRootAccess);
+        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(true, allowRootAccess);
 
         emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
     }
@@ -144,7 +144,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         // TODO: Validate if caller is a Safe
         //       Should it be allowed to disable a non-enabled module?
 
-        enabledComponents[msg.sender][address(module)] = MoudleAccessInfo(false, false);
+        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(false, false);
         emit ModuleDisabled(msg.sender, address(module));
     }
 
@@ -153,7 +153,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param safe Address of a safe
      * @param module Address of a module
      */
-    function getModuleInfo(address safe, address module) external view returns (MoudleAccessInfo memory enabled) {
+    function getModuleInfo(address safe, address module) external view returns (ModuleAccessInfo memory enabled) {
         return enabledComponents[safe][module];
     }
 }
