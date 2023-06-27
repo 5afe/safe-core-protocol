@@ -36,6 +36,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     error ModuleAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
     error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
+    error ModuleAlreadyEnabled(address safe, address module);
 
     modifier onlyEnabledModule(ISafe safe) {
         if (!enabledComponents[address(safe)][msg.sender].enabled) {
@@ -121,7 +122,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     function enableModule(ISafeProtocolModule module, bool allowRootAccess) external {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
-        //       Should it be allowed to enable a module twice with different allowRootAccess flag?
+
+        if (enabledComponents[msg.sender][address(module)].enabled) {
+            revert ModuleAlreadyEnabled(msg.sender, address(module));
+        }
         if (allowRootAccess != module.requiresRootAccess()) {
             revert ModuleAccessMismatch(address(module), module.requiresRootAccess(), allowRootAccess);
         }

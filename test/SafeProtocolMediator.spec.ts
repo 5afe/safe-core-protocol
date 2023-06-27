@@ -65,6 +65,19 @@ describe("SafeProtocolMediator", async () => {
             // TODO: Check for emitted events and param values
             expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([false, false]);
         });
+
+        it("Should not allow enabling module if already enabled", async () => {
+            const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+            await safe.setModule(await safeProtocolMediator.getAddress());
+            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([true, false]);
+
+            await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
+                safeProtocolMediator,
+                "ModuleAlreadyEnabled",
+            );
+        });
     });
 
     describe("Execute transaction from module", async () => {
