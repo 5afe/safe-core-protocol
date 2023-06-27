@@ -2,7 +2,6 @@ import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import BigNumber from "bignumber.js";
 import { TestModule } from "../typechain-types";
 
 describe("SafeProtocolMediator", async () => {
@@ -129,13 +128,13 @@ describe("SafeProtocolMediator", async () => {
                     metaHash: hre.ethers.randomBytes(32),
                 };
 
-                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const balanceBefore = await hre.ethers.provider.getBalance(user2.address);
                 const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
-                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const balanceAfter = await hre.ethers.provider.getBalance(user2.address);
 
-                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
-                expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(await hre.ethers.provider.getBalance(await safe.getAddress())).to.eql(0n);
 
                 await expect(tx)
                     .to.emit(safeProtocolMediator, "ActionExecuted")
@@ -160,14 +159,14 @@ describe("SafeProtocolMediator", async () => {
                     nonce: 1,
                     metaHash: hre.ethers.randomBytes(32),
                 };
-                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const balanceBefore = await hre.ethers.provider.getBalance(user2.address);
 
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "ActionExecutionFailed",
                 );
-                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
-                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore));
+                const balanceAfter = await hre.ethers.provider.getBalance(user2.address);
+                expect(balanceAfter).to.eql(balanceBefore);
             });
 
             it("Should not process a SafeTransaction when executing non-root access from root access module", async function () {
@@ -269,13 +268,13 @@ describe("SafeProtocolMediator", async () => {
                     metaHash: hre.ethers.randomBytes(32),
                 };
 
-                const balanceBefore = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const balanceBefore = await hre.ethers.provider.getBalance(user2.address);
                 const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
-                const balanceAfter = (await hre.ethers.provider.getBalance(user2.address)).toString();
+                const balanceAfter = await hre.ethers.provider.getBalance(user2.address);
 
-                expect(BigNumber(balanceAfter)).to.eql(BigNumber(balanceBefore).plus(amount.toString()));
-                expect((await hre.ethers.provider.getBalance(await safe.getAddress())).toString()).to.eql("0");
+                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(await hre.ethers.provider.getBalance(await safe.getAddress())).to.eql(0n);
 
                 await expect(tx)
                     .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
