@@ -45,7 +45,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
     error ModuleAlreadyEnabled(address safe, address module);
     error InvalidModuleAddress(address module);
-    error ModuleCannotBeEnabled(address module, uint64 listedAt, uint64 flaggedAt);
+    error ModuleNotPermitted(address module, uint64 listedAt, uint64 flaggedAt);
     error InvalidPrevModuleAddress(address module);
     error ZeroPageSizeNotAllowed();
 
@@ -59,6 +59,15 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     modifier noZeroOrSentinelModule(address module) {
         if (module == address(0) || module == SENTINEL_MODULES) {
             revert InvalidModuleAddress(module);
+        }
+        _;
+    }
+
+    modifier onlyPermittedModule(address module) {
+        // Only allow registered and non-flagged modules
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
+        if (listedAt == 0 || flaggedAt != 0) {
+            revert ModuleNotPermitted(module, listedAt, flaggedAt);
         }
         _;
     }
@@ -79,7 +88,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
+    ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
         // TODO: Check for re-entrancy attacks
 
         data = new bytes[](transaction.actions.length);
@@ -116,7 +125,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledModule(safe) returns (bytes memory data) {
+    ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
         // TODO: Check for re-entrancy attacks
 
@@ -143,15 +152,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @param module ISafeProtocolModule A module that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
+    function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) onlyPermittedModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
-
-        // Only allow registered and non-flagged modules
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
-        if (listedAt == 0 || flaggedAt != 0) {
-            revert ModuleCannotBeEnabled(module, listedAt, flaggedAt);
-        }
 
         if (enabledComponents[msg.sender][module].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, module);

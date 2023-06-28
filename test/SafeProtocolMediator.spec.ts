@@ -2,7 +2,6 @@ import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { TestModule } from "../typechain-types";
 import { ZeroAddress } from "ethers";
 
 describe("SafeProtocolMediator", async () => {
@@ -53,7 +52,7 @@ describe("SafeProtocolMediator", async () => {
             return { safeProtocolMediator, safe, module, safeProtocolRegistry };
         }
 
-        describe("Enabling module reverts with ModuleCannotBeEnabled", async () => {
+        describe("Enabling module reverts with ModuleNotPermitted", async () => {
             it("Should not allow a Safe to enable module if not added as a component in registry", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
@@ -61,7 +60,7 @@ describe("SafeProtocolMediator", async () => {
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [moduleAddress, false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleCannotBeEnabled")
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleNotPermitted")
                     .withArgs(moduleAddress, 0, 0);
             });
 
@@ -73,7 +72,7 @@ describe("SafeProtocolMediator", async () => {
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
-                    "ModuleCannotBeEnabled",
+                    "ModuleNotPermitted",
                 );
             });
         });
@@ -400,6 +399,43 @@ describe("SafeProtocolMediator", async () => {
                 const balanceAfter = await hre.ethers.provider.getBalance(user2.address);
                 expect(balanceAfter).to.eql(balanceBefore);
             });
+
+            it("Should not process a SafeTransaction if module is not permitted", async function () {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    actions: [
+                        {
+                            to: user2.address,
+                            value: hre.ethers.parseEther("1"),
+                            data: "0x",
+                        },
+                    ],
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+
+                await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleNotPermitted",
+                );
+            });
         });
 
         describe("Module with root access", async () => {
@@ -446,6 +482,44 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx)
                     .to.emit(safeProtocolMediator, "RootAccessActionExecuted")
                     .withArgs(await safe.getAddress(), safeTx.metaHash);
+            });
+
+            it("Should not allow a transaction from root access if module is flagged", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+
+                const testDelegateCallReceiver = await (
+                    await hre.ethers.getContractFactory("TestDelegateCallReceiver")
+                ).deploy(user2.address);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                // TODO: Replace with builder function
+                const safeTx = {
+                    action: {
+                        to: await testDelegateCallReceiver.getAddress(),
+                        value: hre.ethers.parseEther("1"),
+                        data: "0x",
+                    },
+                    nonce: 1,
+                    metaHash: hre.ethers.randomBytes(32),
+                };
+                await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleNotPermitted",
+                );
             });
 
             it("Should not allow non-enabled module to execute root tx from a safe", async () => {
