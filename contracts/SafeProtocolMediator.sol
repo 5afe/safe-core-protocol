@@ -27,7 +27,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     }
 
     // Events
-    event ActionExecuted(address safe, bytes32 metaHash, uint256 index);
+    event ActionsExecuted(address safe, bytes32 metaHash, uint256 nonce);
     event RootAccessActionExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
@@ -81,10 +81,11 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
             if (!isActionSuccessful) {
                 revert ActionExecutionFailed(address(safe), transaction.metaHash, i);
             } else {
-                emit ActionExecuted(address(safe), transaction.metaHash, i);
                 data[i] = resultData;
             }
         }
+
+        emit ActionsExecuted(address(safe), transaction.metaHash, transaction.nonce);
     }
 
     /**
