@@ -14,7 +14,7 @@ interface ISafeProtocolMediator {
      * @notice TODO
      * @param safe Instance of a Safe account
      * @param transaction SafeTransaction instance containing payload information about the transaction
-     * @return data Array of bytes types returned upon the successful execution of all the actions. Size of array will be same as size of actions
+     * @return data Array of bytes types returned upon the successful execution of all the actions. The size of the array will be the same as the size of the actions
      *         in case of succcessful execution. Empty if the call failed.
      */
     function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external returns (bytes[] memory data);
