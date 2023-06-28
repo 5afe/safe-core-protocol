@@ -23,7 +23,7 @@ interface ISafeProtocolMediator {
      * @notice TODO
      * @param safe Instance of a Safe account
      * @param rootAccess SafeTransaction instance containing payload information about the transaction
-     * @return data Arbitrary length bytes data returned upon the successful execution. Size of array will be same as size of actions
+     * @return data Arbitrary length bytes data returned upon the successful execution. The size of the array will be the same as the size of the actions
      *         in case of succcessful execution. Empty if the call failed.
      */
     function executeRootAccess(ISafe safe, SafeRootAccess calldata rootAccess) external returns (bytes memory data);
