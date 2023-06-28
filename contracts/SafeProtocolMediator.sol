@@ -270,6 +270,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         }
     }
 
+    /**
+     * @notice Allows only owner to update the address of a registry. Emits event RegistryChanged(egistry, newRegistry)
+     * @param newRegistry Address of new registry
+     */
     function setRegistry(address newRegistry) external onlyOwner {
         emit RegistryChanged(registry, newRegistry);
         registry = newRegistry;
