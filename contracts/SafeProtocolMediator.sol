@@ -19,7 +19,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
      */
-    mapping(address safe => mapping(address module => ModuleAccessInfo)) public enabledComponents;
+    mapping(address => mapping(address => ModuleAccessInfo)) public enabledComponents;
     address public registry;
     struct ModuleAccessInfo {
         bool enabled;
