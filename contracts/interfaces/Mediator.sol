@@ -4,7 +4,7 @@ import {ISafe} from "./Accounts.sol";
 import {SafeRootAccess, SafeTransaction} from "../DataTypes.sol";
 
 /**
- * @title ISafeProtocolMediator interface that a Mediator should implement
+ * @title ISafeProtocolMediator interface a Mediator should implement
  * @notice A mediator checks the status of the component through the registry and allows only
  *         listed and non-flagged components to execute transactions. A Safe account should
  *         add mediator as a module.
