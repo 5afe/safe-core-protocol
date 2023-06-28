@@ -11,7 +11,8 @@ describe("SafeProtocolMediator", async () => {
 
     async function deployMediatorContractFixture() {
         [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address);
+        const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
+        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address, await safeProtocolRegistry.getAddress());
         return { safeProtocolMediator };
     }
 

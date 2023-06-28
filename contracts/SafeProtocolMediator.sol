@@ -20,6 +20,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
      */
     mapping(address safe => mapping(address module => ModuleAccessInfo)) public enabledComponents;
+    address public registry;
     struct ModuleAccessInfo {
         bool enabled;
         bool rootAddressGranted;
@@ -32,6 +33,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event RootAccessActionExecuted(address safe, bytes32 metaHash);
     event ModuleEnabled(address safe, address module, bool allowRootAccess);
     event ModuleDisabled(address safe, address module);
+    event RegistryChanged(address oldRegistry, address newRegistry);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
@@ -59,8 +61,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         _;
     }
 
-    constructor(address initialOwner) {
+    constructor(address initialOwner, address _registry) {
         _transferOwnership(initialOwner);
+        registry = _registry;
     }
 
     /**
@@ -254,5 +257,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         assembly {
             mstore(array, moduleCount)
         }
+    }
+
+    function setRegistry(address newRegistry) external onlyOwner {
+        emit RegistryChanged(registry, newRegistry);
+        registry = newRegistry;
     }
 }
