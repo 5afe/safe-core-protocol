@@ -34,73 +34,146 @@ describe("SafeProtocolMediator", async () => {
             return { safeProtocolMediator, safe, module };
         }
 
-        it("Should allow a Safe to enable a module through a mediator", async () => {
-            const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
-            await safe.setModule(await safeProtocolMediator.getAddress());
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-            // TODO: Check for emitted events and param values
-            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                true,
-                false,
-                SENTINEL_MODULES,
-            ]);
+        describe("Test enable module", async () => {
+            it("Should not allow a Safe to enable zero address module", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(hre.ethers.ZeroAddress);
+            });
+
+            it("Should not allow a Safe to enable SENTINEL_MODULES module", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [SENTINEL_MODULES, false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(SENTINEL_MODULES);
+            });
+
+            it("Should allow a Safe to enable a module through a mediator", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                // TODO: Check for emitted events and param values
+                expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
+                    true,
+                    false,
+                    SENTINEL_MODULES,
+                ]);
+            });
+
+            it("Should fail to enable a module (with non root access) with root access", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleAccessMismatch",
+                );
+                expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
+                    false,
+                    false,
+                    ZeroAddress,
+                ]);
+            });
         });
 
-        it("Should fail to enable a module (with non root access) with root access", async () => {
-            const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
-            await safe.setModule(await safeProtocolMediator.getAddress());
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+        describe("Test disable module", async () => {
+            it("Should not allow a Safe to disable zero address module", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("disableModule", [
+                    hre.ethers.ZeroAddress,
+                    hre.ethers.ZeroAddress,
+                ]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(hre.ethers.ZeroAddress);
+            });
 
-            await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "ModuleAccessMismatch",
-            );
-            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                false,
-                false,
-                ZeroAddress,
-            ]);
-        });
+            it("Should not allow a Safe to disable SENTINEL_MODULES module", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("disableModule", [SENTINEL_MODULES, SENTINEL_MODULES]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(SENTINEL_MODULES);
+            });
 
-        it("Should disable a module", async () => {
-            const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
-            await safe.setModule(await safeProtocolMediator.getAddress());
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                true,
-                false,
-                SENTINEL_MODULES,
-            ]);
+            it("Should revert if nexModulePtr and module address do not match", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("disableModule", [
+                    SENTINEL_MODULES,
+                    await module.getAddress(),
+                ]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidPrevModuleAddress")
+                    .withArgs(SENTINEL_MODULES);
+            });
 
-            const data2 = safeProtocolMediator.interface.encodeFunctionData("disableModule", [SENTINEL_MODULES, await module.getAddress()]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
-            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                false,
-                false,
-                ZeroAddress,
-            ]);
-        });
+            it("Should disable a module", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
+                    true,
+                    false,
+                    SENTINEL_MODULES,
+                ]);
 
-        it("Should not allow enabling module if already enabled", async () => {
-            const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
-            await safe.setModule(await safeProtocolMediator.getAddress());
-            const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-            expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                true,
-                false,
-                SENTINEL_MODULES,
-            ]);
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("disableModule", [
+                    SENTINEL_MODULES,
+                    await module.getAddress(),
+                ]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
+                expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
+                    false,
+                    false,
+                    ZeroAddress,
+                ]);
+            });
+            it("Should not allow enabling module if already enabled", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+                expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
+                    true,
+                    false,
+                    SENTINEL_MODULES,
+                ]);
 
-            await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
-                safeProtocolMediator,
-                "ModuleAlreadyEnabled",
-            );
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleAlreadyEnabled",
+                );
+            });
         });
 
         describe("Get paginated list of modules", async () => {
+            it("Should revert with InvalidModuleAddress", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                await expect(safeProtocolMediator.getModulesPaginated.staticCall(await module.getAddress(), 1, safe))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(await module.getAddress());
+            });
+
+            it("Should revert with InvalidPageSize", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                await expect(
+                    safeProtocolMediator.getModulesPaginated.staticCall(await module.getAddress(), 0, safe),
+                ).to.be.revertedWithCustomError(safeProtocolMediator, "ZeroPageSizeNotAllowed");
+            });
+
             it("Should return empty list if no modules are enabled", async () => {
                 const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
@@ -119,18 +192,57 @@ describe("SafeProtocolMediator", async () => {
                 ]);
             });
 
-            // it("Should return list with one module starting from non sentinel address", async () => {
-            //     const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
-            //     await safe.setModule(await safeProtocolMediator.getAddress());
-            //     const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
-            //     await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+            it("Should return list with 2 modules starting from sentinel address", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-            //     const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            //     const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
-            //     await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
+                const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
 
-            //     expect(await safeProtocolMediator.getModulesPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([[await module2.getAddress()], SENTINEL_MODULES]);
-            // });
+                expect(await safeProtocolMediator.getModulesPaginated.staticCall(SENTINEL_MODULES, 10, safe)).to.eql([
+                    [await module2.getAddress(), await module.getAddress()],
+                    SENTINEL_MODULES,
+                ]);
+            });
+
+            it("Should return list with 1 module starting from non-sentinel address", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
+                expect(await safeProtocolMediator.getModulesPaginated.staticCall(await module2.getAddress(), 10, safe)).to.eql([
+                    [await module.getAddress()],
+                    SENTINEL_MODULES,
+                ]);
+            });
+
+            it("Should return list with 1 module when called with pageSize 1", async () => {
+                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
+
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
+                expect(await safeProtocolMediator.getModulesPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([
+                    [await module2.getAddress()],
+                    await module2.getAddress(),
+                ]);
+
+                expect(await safeProtocolMediator.getModulesPaginated.staticCall(await module2.getAddress(), 1, safe)).to.eql([
+                    [await module.getAddress()],
+                    SENTINEL_MODULES,
+                ]);
+            });
         });
     });
 

@@ -42,7 +42,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     error ModuleAlreadyEnabled(address safe, address module);
     error InvalidModuleAddress(address module);
     error InvalidPrevModuleAddress(address module);
-    error InvalidPageSize(uint256 pageSize);
+    error ZeroPageSizeNotAllowed();
 
     modifier onlyEnabledModule(ISafe safe) {
         if (!enabledComponents[address(safe)][msg.sender].enabled) {
@@ -129,6 +129,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
 
+        // This check is added to explicitly to revert with InvalidModuleAddress.
+        // This check can be possibly removed because calling `ISafeProtocolModule(module).requiresRootAccess()
+        // will revert when called with address(0) or SENTINEL_MODULES
+        if (module == address(0) || module == SENTINEL_MODULES) {
+            revert InvalidModuleAddress(module);
+        }
+
         if (enabledComponents[msg.sender][module].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
@@ -136,10 +143,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         bool requiresRootAccess = ISafeProtocolModule(module).requiresRootAccess();
         if (allowRootAccess != requiresRootAccess) {
             revert ModuleAccessMismatch(module, requiresRootAccess, allowRootAccess);
-        }
-
-        if (module == address(0) || module == SENTINEL_MODULES) {
-            revert InvalidModuleAddress(module);
         }
 
         if (enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
@@ -209,12 +212,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         uint256 pageSize,
         address safe
     ) external view returns (address[] memory array, address next) {
-        if (!(start == SENTINEL_MODULES || isModuleEnabled(safe, start))) {
-            revert InvalidModuleAddress(start);
+        if (pageSize == 0) {
+            revert ZeroPageSizeNotAllowed();
         }
 
-        if (pageSize == 0) {
-            revert InvalidPageSize(pageSize);
+        if (!(start == SENTINEL_MODULES || isModuleEnabled(safe, start))) {
+            revert InvalidModuleAddress(start);
         }
         // Init array with max page size
         array = new address[](pageSize);
