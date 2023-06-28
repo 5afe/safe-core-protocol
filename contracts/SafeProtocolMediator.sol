@@ -5,6 +5,7 @@ import {ISafeProtocolModule} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
+import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
@@ -44,6 +45,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
     error ModuleAlreadyEnabled(address safe, address module);
     error InvalidModuleAddress(address module);
+    error ModuleCannotBeEnabled(address module, uint64 listedAt, uint64 flaggedAt);
     error InvalidPrevModuleAddress(address module);
     error ZeroPageSizeNotAllowed();
 
@@ -144,6 +146,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
+
+        // Only allow registered and non-flagged modules
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
+        if (listedAt == 0 || flaggedAt != 0) {
+            revert ModuleCannotBeEnabled(module, listedAt, flaggedAt);
+        }
 
         if (enabledComponents[msg.sender][module].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, module);

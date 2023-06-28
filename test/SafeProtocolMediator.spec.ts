@@ -12,8 +12,10 @@ describe("SafeProtocolMediator", async () => {
     async function deployMediatorContractFixture() {
         [deployer, owner, user1, user2] = await hre.ethers.getSigners();
         const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
-        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address, await safeProtocolRegistry.getAddress());
-        return { safeProtocolMediator };
+        const safeProtocolMediator = await (
+            await hre.ethers.getContractFactory("SafeProtocolMediator")
+        ).deploy(owner.address, await safeProtocolRegistry.getAddress());
+        return { safeProtocolMediator, safeProtocolRegistry };
     }
 
     describe("Setup mediator", async () => {
@@ -23,23 +25,64 @@ describe("SafeProtocolMediator", async () => {
             const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
             await safe.setModule(await safeProtocolMediator.getAddress());
         });
+
+        it("Should allow only owner to update registry", async () => {
+            const safe = await hre.ethers.deployContract("TestExecutor");
+
+            const { safeProtocolMediator, safeProtocolRegistry } = await loadFixture(deployMediatorContractFixture);
+            await safe.setModule(await safeProtocolMediator.getAddress());
+
+            await expect(safeProtocolMediator.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith(
+                "Ownable: caller is not the owner",
+            );
+
+            expect(await safeProtocolMediator.connect(owner).setRegistry(ZeroAddress))
+                .to.emit(safeProtocolMediator, "RegistryChanged")
+                .withArgs(await safeProtocolRegistry.getAddress(), ZeroAddress);
+        });
     });
 
     describe("Modules", async () => {
         async function deployContractsFixture() {
             // TODO: Reuse parent fixture
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
+            const { safeProtocolMediator, safeProtocolRegistry } = await loadFixture(deployMediatorContractFixture);
             const safe = await hre.ethers.deployContract("TestExecutor");
             const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-            return { safeProtocolMediator, safe, module };
+            await safeProtocolRegistry.connect(owner).addComponent(module);
+            return { safeProtocolMediator, safe, module, safeProtocolRegistry };
         }
+
+        describe("Enabling module reverts with ModuleCannotBeEnabled", async () => {
+            it("Should not allow a Safe to enable module if not added as a component in registry", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const moduleAddress = await (await (await hre.ethers.getContractFactory("TestModule")).deploy()).getAddress();
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [moduleAddress, false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleCannotBeEnabled")
+                    .withArgs(moduleAddress, 0, 0);
+            });
+
+            it("Should not allow a Safe to enable module if flagged in registry", async () => {
+                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                await safeProtocolRegistry.connect(owner).flagComponent(module);
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
+                    safeProtocolMediator,
+                    "ModuleCannotBeEnabled",
+                );
+            });
+        });
 
         describe("Test enable module", async () => {
             it("Should not allow a Safe to enable zero address module", async () => {
                 const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
-                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [ZeroAddress, false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
                     .withArgs(hre.ethers.ZeroAddress);
@@ -194,12 +237,13 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should return list with 2 modules starting from sentinel address", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module2.getAddress());
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
 
@@ -210,12 +254,14 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should return list with 1 module starting from non-sentinel address", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module2.getAddress());
+
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
                 expect(await safeProtocolMediator.getModulesPaginated.staticCall(await module2.getAddress(), 10, safe)).to.eql([
@@ -225,12 +271,14 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should return list with 1 module when called with pageSize 1", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const module2 = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module2.getAddress());
+
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module2.getAddress(), false]);
 
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
@@ -250,16 +298,17 @@ describe("SafeProtocolMediator", async () => {
     describe("Execute transaction from module", async () => {
         async function deployContractsFixture() {
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
+            const { safeProtocolMediator, safeProtocolRegistry } = await loadFixture(deployMediatorContractFixture);
             const safe = await hre.ethers.deployContract("TestExecutor");
             await safe.setModule(await safeProtocolMediator.getAddress());
-            return { safeProtocolMediator, safe };
+            return { safeProtocolMediator, safe, safeProtocolRegistry };
         }
 
         describe("Module with non-root access", async () => {
             it("Should not allow non-enabled module to execute tx from a safe", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+
                 // TODO: Replace with builder function
                 const safeTx = {
                     actions: [
@@ -280,10 +329,12 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should process a SafeTransaction", async function () {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
@@ -321,10 +372,12 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should fail to process a SafeTransaction", async function () {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 const safeTx = {
@@ -351,7 +404,7 @@ describe("SafeProtocolMediator", async () => {
 
         describe("Module with root access", async () => {
             it("Should run a transaction from root access enabled module", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 const testDelegateCallReceiver = await (
                     await hre.ethers.getContractFactory("TestDelegateCallReceiver")
@@ -359,6 +412,8 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
@@ -414,7 +469,7 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should revert with ModuleRequiresRootAccess", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 const testDelegateCallReceiver = await (
                     await hre.ethers.getContractFactory("TestDelegateCallReceiver")
@@ -422,6 +477,8 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
@@ -445,12 +502,14 @@ describe("SafeProtocolMediator", async () => {
             });
 
             it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
@@ -471,13 +530,15 @@ describe("SafeProtocolMediator", async () => {
                 );
             });
 
-            it("Should emit ModuleRequiresRootAccess for a root access module", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
+            it("Should emit ModuleRequiresRootAccess for root access module", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
 
                 const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 // Required to set module to indicate that it does not require root access
                 await module.setRequiresRootAccess(false);
