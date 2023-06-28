@@ -5,13 +5,14 @@ import {ISafeProtocolModule} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  *        TODO: Add more description on behaviour of the contract.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator {
+contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -56,6 +57,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
             revert InvalidModuleAddress(module);
         }
         _;
+    }
+
+    constructor(address initialOwner) {
+        _transferOwnership(initialOwner);
     }
 
     /**

@@ -9,9 +9,9 @@ describe("SafeProtocolMediator", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
     const SENTINEL_MODULES = "0x0000000000000000000000000000000000000001";
 
-    async function deployContractFixture() {
+    async function deployMediatorContractFixture() {
         [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
+        const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy(owner.address);
         return { safeProtocolMediator };
     }
 
@@ -19,7 +19,7 @@ describe("SafeProtocolMediator", async () => {
         it("Should set mediator as a module for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
 
-            const { safeProtocolMediator } = await loadFixture(deployContractFixture);
+            const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
             await safe.setModule(await safeProtocolMediator.getAddress());
         });
     });
@@ -28,7 +28,7 @@ describe("SafeProtocolMediator", async () => {
         async function deployContractsFixture() {
             // TODO: Reuse parent fixture
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
+            const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
             const safe = await hre.ethers.deployContract("TestExecutor");
             const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
             return { safeProtocolMediator, safe, module };
@@ -249,7 +249,7 @@ describe("SafeProtocolMediator", async () => {
     describe("Execute transaction from module", async () => {
         async function deployContractsFixture() {
             [deployer, owner, user1, user2] = await hre.ethers.getSigners();
-            const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
+            const { safeProtocolMediator } = await loadFixture(deployMediatorContractFixture);
             const safe = await hre.ethers.deployContract("TestExecutor");
             await safe.setModule(await safeProtocolMediator.getAddress());
             return { safeProtocolMediator, safe };
