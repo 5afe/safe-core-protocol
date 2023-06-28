@@ -51,6 +51,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         _;
     }
 
+    modifier noZeroOrSentinelModule(address module) {
+        if (module == address(0) || module == SENTINEL_MODULES) {
+            revert InvalidModuleAddress(module);
+        }
+        _;
+    }
+
     /**
      * @notice This function executes a delegate call on a safe if the module is enabled and
      *         root access it granted.
@@ -126,16 +133,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module ISafeProtocolModule A module that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enableModule(address module, bool allowRootAccess) external {
+    function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
         //       Validate if caller is a Safe.
-
-        // This check is added to explicitly to revert with InvalidModuleAddress.
-        // This check can be possibly removed because calling `ISafeProtocolModule(module).requiresRootAccess()
-        // will revert when called with address(0) or SENTINEL_MODULES
-        if (module == address(0) || module == SENTINEL_MODULES) {
-            revert InvalidModuleAddress(module);
-        }
 
         if (enabledComponents[msg.sender][module].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, module);
@@ -165,12 +165,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @notice Disable a module. This function should be called by Safe.
      * @param module Module to be disabled
      */
-    function disableModule(address prevModule, address module) external {
+    function disableModule(address prevModule, address module) external noZeroOrSentinelModule(module) {
         // TODO: Validate if caller is a Safe
-        //       Should it be allowed to disable a non-enabled module?
-        if (module == address(0) || module == SENTINEL_MODULES) {
-            revert InvalidModuleAddress(module);
-        }
 
         if (enabledComponents[msg.sender][prevModule].nextModulePointer != module) {
             revert InvalidPrevModuleAddress(prevModule);
