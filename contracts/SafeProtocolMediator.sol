@@ -9,7 +9,6 @@ import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.s
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
- *        TODO: Add more description on behaviour of the contract.
  */
 contract SafeProtocolMediator is ISafeProtocolMediator {
     address internal constant SENTINEL_MODULES = address(0x1);
@@ -23,7 +22,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         bool enabled;
         bool rootAddressGranted;
         address nextModulePointer;
-        // TODO: Add deadline for validity
     }
 
     // Events
@@ -70,8 +68,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         ISafe safe,
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
-        // TODO: Check for re-entrancy attacks
-
         data = new bytes[](transaction.actions.length);
         for (uint256 i = 0; i < transaction.actions.length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
@@ -108,7 +104,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         SafeRootAccess calldata rootAccess
     ) external override onlyEnabledModule(safe) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
-        // TODO: Check for re-entrancy attacks
 
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
@@ -135,7 +130,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      */
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
-        //       Validate if caller is a Safe.
 
         if (enabledComponents[msg.sender][module].enabled) {
             revert ModuleAlreadyEnabled(msg.sender, module);
@@ -166,8 +160,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module Module to be disabled
      */
     function disableModule(address prevModule, address module) external noZeroOrSentinelModule(module) {
-        // TODO: Validate if caller is a Safe
-
         if (enabledComponents[msg.sender][prevModule].nextModulePointer != module) {
             revert InvalidPrevModuleAddress(prevModule);
         }
