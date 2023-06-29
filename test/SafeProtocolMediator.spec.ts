@@ -60,7 +60,6 @@ describe("SafeProtocolMediator", async () => {
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 // TODO: Check for emitted events and param values
                 expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                    true,
                     false,
                     SENTINEL_MODULES,
                 ]);
@@ -76,7 +75,6 @@ describe("SafeProtocolMediator", async () => {
                     "ModuleAccessMismatch",
                 );
                 expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                    false,
                     false,
                     ZeroAddress,
                 ]);
@@ -123,7 +121,6 @@ describe("SafeProtocolMediator", async () => {
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                    true,
                     false,
                     SENTINEL_MODULES,
                 ]);
@@ -135,7 +132,6 @@ describe("SafeProtocolMediator", async () => {
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
                 expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
                     false,
-                    false,
                     ZeroAddress,
                 ]);
             });
@@ -145,7 +141,6 @@ describe("SafeProtocolMediator", async () => {
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 expect(await safeProtocolMediator.getModuleInfo(await safe.getAddress(), await module.getAddress())).to.eql([
-                    true,
                     false,
                     SENTINEL_MODULES,
                 ]);
@@ -352,9 +347,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should run a transaction from root access enabled module", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testFallbackReceiver = await (
-                    await hre.ethers.getContractFactory("TestFallbackReceiver")
-                ).deploy(user2.address);
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user2.address);
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
@@ -415,9 +408,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should revert with ModuleRequiresRootAccess", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testFallbackReceiver = await (
-                    await hre.ethers.getContractFactory("TestFallbackReceiver")
-                ).deploy(user2.address);
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user2.address);
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();

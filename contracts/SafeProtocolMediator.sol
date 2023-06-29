@@ -19,7 +19,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledComponents;
     struct ModuleAccessInfo {
-        bool enabled;
         bool rootAddressGranted;
         address nextModulePointer;
     }
@@ -43,7 +42,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     error ZeroPageSizeNotAllowed();
 
     modifier onlyEnabledModule(ISafe safe) {
-        if (!enabledComponents[address(safe)][msg.sender].enabled) {
+        if (enabledComponents[address(safe)][msg.sender].nextModulePointer == address(0)) {
             revert MoudleNotEnabled(msg.sender);
         }
         _;
@@ -131,7 +130,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
 
-        if (enabledComponents[msg.sender][module].enabled) {
+        if (enabledComponents[msg.sender][module].nextModulePointer != address(0)) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
 
@@ -142,15 +141,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
 
         if (enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
             // The circular linked list has not been initialised yet for msg.sender. So, do it now.
-            enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, SENTINEL_MODULES);
+            enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, SENTINEL_MODULES);
         }
 
         enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(
-            true,
             allowRootAccess,
             enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer
         );
-        enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, address(module));
+        enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, address(module));
 
         emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
     }
@@ -166,7 +164,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
 
         enabledComponents[msg.sender][prevModule] = enabledComponents[msg.sender][module];
 
-        enabledComponents[msg.sender][module] = ModuleAccessInfo(false, false, address(0));
+        enabledComponents[msg.sender][module] = ModuleAccessInfo(false, address(0));
         emit ModuleDisabled(msg.sender, module);
     }
 
@@ -184,7 +182,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @return True if the module is enabled
      */
     function isModuleEnabled(address safe, address module) public view returns (bool) {
-        return SENTINEL_MODULES != module && enabledComponents[safe][module].enabled;
+        return SENTINEL_MODULES != module && enabledComponents[safe][module].nextModulePointer != address(0);
     }
 
     /**
