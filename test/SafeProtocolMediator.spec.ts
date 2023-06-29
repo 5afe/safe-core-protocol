@@ -352,8 +352,8 @@ describe("SafeProtocolMediator", async () => {
             it("Should run a transaction from root access enabled module", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testDelegateCallReceiver = await (
-                    await hre.ethers.getContractFactory("TestDelegateCallReceiver")
+                const testFallbackReceiver = await (
+                    await hre.ethers.getContractFactory("TestFallbackReceiver")
                 ).deploy(user2.address);
 
                 // Enable module
@@ -371,7 +371,7 @@ describe("SafeProtocolMediator", async () => {
                 // TODO: Replace with builder function
                 const safeTx = {
                     action: {
-                        to: await testDelegateCallReceiver.getAddress(),
+                        to: await testFallbackReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
@@ -415,8 +415,8 @@ describe("SafeProtocolMediator", async () => {
             it("Should revert with ModuleRequiresRootAccess", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testDelegateCallReceiver = await (
-                    await hre.ethers.getContractFactory("TestDelegateCallReceiver")
+                const testFallbackReceiver = await (
+                    await hre.ethers.getContractFactory("TestFallbackReceiver")
                 ).deploy(user2.address);
 
                 // Enable module
@@ -429,7 +429,7 @@ describe("SafeProtocolMediator", async () => {
                 // TODO: Replace with builder function
                 const safeTx = {
                     action: {
-                        to: await testDelegateCallReceiver.getAddress(),
+                        to: await testFallbackReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
@@ -446,7 +446,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiverReverter")).deploy();
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
@@ -456,7 +456,7 @@ describe("SafeProtocolMediator", async () => {
                 // TODO: Replace with builder function
                 const safeTx = {
                     action: {
-                        to: await testDelegateCallReceiver.getAddress(),
+                        to: await testFallbackReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },
@@ -473,7 +473,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should emit ModuleRequiresRootAccess for a root access module", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
-                const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestDelegateCallReverter")).deploy();
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiverReverter")).deploy();
 
                 // Enable module
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
@@ -488,7 +488,7 @@ describe("SafeProtocolMediator", async () => {
                 // TODO: Replace with builder function
                 const safeTx = {
                     action: {
-                        to: await testDelegateCallReceiver.getAddress(),
+                        to: await testFallbackReceiver.getAddress(),
                         value: hre.ethers.parseEther("1"),
                         data: "0x",
                     },

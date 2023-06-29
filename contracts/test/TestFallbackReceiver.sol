@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 
-contract TestDelegateCallReceiver {
+contract TestFallbackReceiver {
     address public immutable ethReceiver;
 
     constructor(address _ethReceiver) {
@@ -17,7 +17,7 @@ contract TestDelegateCallReceiver {
     }
 }
 
-contract TestDelegateCallReverter {
+contract TestFallbackReceiverReverter {
     receive() external payable {
         revert();
     }
