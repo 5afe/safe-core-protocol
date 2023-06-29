@@ -17,7 +17,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledMoudleInfo
      */
-    mapping(address => mapping(address => ModuleAccessInfo)) public enabledComponents;
+    mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
     struct ModuleAccessInfo {
         bool rootAddressGranted;
         address nextModulePointer;
@@ -42,7 +42,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     error ZeroPageSizeNotAllowed();
 
     modifier onlyEnabledModule(ISafe safe) {
-        if (enabledComponents[address(safe)][msg.sender].nextModulePointer == address(0)) {
+        if (enabledModules[address(safe)][msg.sender].nextModulePointer == address(0)) {
             revert MoudleNotEnabled(msg.sender);
         }
         _;
@@ -104,7 +104,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     ) external override onlyEnabledModule(safe) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
 
-        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[address(safe)][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
@@ -130,7 +130,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
         // TODO: Check if module is a valid address and implements valid interface.
 
-        if (enabledComponents[msg.sender][module].nextModulePointer != address(0)) {
+        if (enabledModules[msg.sender][module].nextModulePointer != address(0)) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
 
@@ -139,16 +139,16 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
             revert ModuleAccessMismatch(module, requiresRootAccess, allowRootAccess);
         }
 
-        if (enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
+        if (enabledModules[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
             // The circular linked list has not been initialised yet for msg.sender. So, do it now.
-            enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, SENTINEL_MODULES);
+            enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, SENTINEL_MODULES);
         }
 
-        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(
+        enabledModules[msg.sender][address(module)] = ModuleAccessInfo(
             allowRootAccess,
-            enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer
+            enabledModules[msg.sender][SENTINEL_MODULES].nextModulePointer
         );
-        enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, address(module));
+        enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, address(module));
 
         emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
     }
@@ -158,13 +158,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module Module to be disabled
      */
     function disableModule(address prevModule, address module) external noZeroOrSentinelModule(module) {
-        if (enabledComponents[msg.sender][prevModule].nextModulePointer != module) {
+        if (enabledModules[msg.sender][prevModule].nextModulePointer != module) {
             revert InvalidPrevModuleAddress(prevModule);
         }
 
-        enabledComponents[msg.sender][prevModule] = enabledComponents[msg.sender][module];
+        enabledModules[msg.sender][prevModule] = enabledModules[msg.sender][module];
 
-        enabledComponents[msg.sender][module] = ModuleAccessInfo(false, address(0));
+        enabledModules[msg.sender][module] = ModuleAccessInfo(false, address(0));
         emit ModuleDisabled(msg.sender, module);
     }
 
@@ -174,7 +174,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module Address of a module
      */
     function getModuleInfo(address safe, address module) external view returns (ModuleAccessInfo memory enabled) {
-        return enabledComponents[safe][module];
+        return enabledModules[safe][module];
     }
 
     /**
@@ -182,7 +182,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @return True if the module is enabled
      */
     function isModuleEnabled(address safe, address module) public view returns (bool) {
-        return SENTINEL_MODULES != module && enabledComponents[safe][module].nextModulePointer != address(0);
+        return SENTINEL_MODULES != module && enabledModules[safe][module].nextModulePointer != address(0);
     }
 
     /**
@@ -211,10 +211,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
 
         // Populate return array
         uint256 moduleCount = 0;
-        next = enabledComponents[safe][start].nextModulePointer;
+        next = enabledModules[safe][start].nextModulePointer;
         while (next != address(0) && next != SENTINEL_MODULES && moduleCount < pageSize) {
             array[moduleCount] = next;
-            next = enabledComponents[safe][next].nextModulePointer;
+            next = enabledModules[safe][next].nextModulePointer;
             moduleCount++;
         }
 
