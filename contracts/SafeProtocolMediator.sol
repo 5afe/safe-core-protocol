@@ -128,8 +128,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
-        // TODO: Check if module is a valid address and implements valid interface.
-
         if (enabledModules[msg.sender][module].nextModulePointer != address(0)) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
