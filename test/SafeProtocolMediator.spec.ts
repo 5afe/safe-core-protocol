@@ -70,7 +70,7 @@ describe("SafeProtocolMediator", async () => {
 
         describe("Test disable module", async () => {
             it("Should not allow a Safe to disable zero address module", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("disableModule", [
                     hre.ethers.ZeroAddress,
