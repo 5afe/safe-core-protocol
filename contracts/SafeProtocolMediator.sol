@@ -24,10 +24,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     }
 
     // Events
-    event ActionsExecuted(address safe, bytes32 metaHash, uint256 nonce);
-    event RootAccessActionExecuted(address safe, bytes32 metaHash);
-    event ModuleEnabled(address safe, address module, bool allowRootAccess);
-    event ModuleDisabled(address safe, address module);
+    event ActionsExecuted(address indexed safe, bytes32 metaHash, uint256 nonce);
+    event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
+    event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
+    event ModuleDisabled(address indexed safe, address indexed module);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
