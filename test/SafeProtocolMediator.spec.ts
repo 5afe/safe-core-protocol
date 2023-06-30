@@ -2,9 +2,9 @@ import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { ZeroAddress } from "ethers";
+import { SENTINEL_MODULES } from "./utils/constants";
 
 describe("SafeProtocolMediator", async () => {
-    const SENTINEL_MODULES = "0x0000000000000000000000000000000000000001";
     const [deployer, user1] = await hre.ethers.getSigners();
 
     async function deployContractFixture() {
@@ -70,7 +70,7 @@ describe("SafeProtocolMediator", async () => {
 
         describe("Test disable module", async () => {
             it("Should not allow a Safe to disable zero address module", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("disableModule", [
                     hre.ethers.ZeroAddress,
@@ -119,6 +119,7 @@ describe("SafeProtocolMediator", async () => {
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
                 expect(await safeProtocolMediator.getModuleInfo(safeAddress, moduleAddress)).to.eql([false, ZeroAddress]);
             });
+
             it("Should not allow enabling module if already enabled", async () => {
                 const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
