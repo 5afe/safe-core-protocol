@@ -77,9 +77,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
                 0
             );
 
-            // Need to revisit the approach below. If some actions fail, the transaction stiil succeeds.
-            // With current approach, even if one action fails, `data` will be empty bytes even for successful
-            // actions.
+            // Even if one action fails, revert the transaction.
             if (!isActionSuccessful) {
                 revert ActionExecutionFailed(address(safe), transaction.metaHash, i);
             } else {
@@ -142,13 +140,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
             enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, SENTINEL_MODULES);
         }
 
-        enabledModules[msg.sender][address(module)] = ModuleAccessInfo(
+        enabledModules[msg.sender][module] = ModuleAccessInfo(
             allowRootAccess,
             enabledModules[msg.sender][SENTINEL_MODULES].nextModulePointer
         );
-        enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, address(module));
+        enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, module);
 
-        emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
+        emit ModuleEnabled(msg.sender, module, allowRootAccess);
     }
 
     /**
