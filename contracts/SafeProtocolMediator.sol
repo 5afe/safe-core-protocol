@@ -15,7 +15,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
 
     /**
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
-     *         address (Safe address) => address (component address) => EnabledMoudleInfo
+     *         address (Safe address) => address (component address) => EnabledModuleInfo
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
     struct ModuleAccessInfo {
