@@ -8,8 +8,11 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 describe("SafeProtocolMediator", async () => {
     let deployer: SignerWithAddress, user1: SignerWithAddress;
 
-    async function deployContractFixture() {
+    before(async () => {
         [deployer, user1] = await hre.ethers.getSigners();
+    });
+
+    async function deployContractFixture() {
         const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
         const safe = await hre.ethers.deployContract("TestExecutor");
         return { safeProtocolMediator, safe };
