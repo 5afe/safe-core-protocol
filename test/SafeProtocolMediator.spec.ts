@@ -3,9 +3,14 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { ZeroAddress } from "ethers";
 import { SENTINEL_MODULES } from "./utils/constants";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("SafeProtocolMediator", async () => {
-    const [deployer, user1] = await hre.ethers.getSigners();
+    let deployer: SignerWithAddress, user1: SignerWithAddress;
+
+    before(async () => {
+        [deployer, user1] = await hre.ethers.getSigners();
+    });
 
     async function deployContractFixture() {
         const safeProtocolMediator = await (await hre.ethers.getContractFactory("SafeProtocolMediator")).deploy();
