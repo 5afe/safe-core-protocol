@@ -11,29 +11,26 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
- *        TODO: Add more description on behaviour of the contract.
  */
 contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
      * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
-     *         address (Safe address) => address (component address) => EnabledMoudleInfo
+     *         address (Safe address) => address (component address) => EnabledModuleInfo
      */
-    mapping(address => mapping(address => ModuleAccessInfo)) public enabledComponents;
+    mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
     address public registry;
     struct ModuleAccessInfo {
-        bool enabled;
         bool rootAddressGranted;
         address nextModulePointer;
-        // TODO: Add deadline for validity
     }
 
     // Events
-    event ActionsExecuted(address safe, bytes32 metaHash, uint256 nonce);
-    event RootAccessActionExecuted(address safe, bytes32 metaHash);
-    event ModuleEnabled(address safe, address module, bool allowRootAccess);
-    event ModuleDisabled(address safe, address module);
+    event ActionsExecuted(address indexed safe, bytes32 metaHash, uint256 nonce);
+    event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
+    event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
+    event ModuleDisabled(address indexed safe, address indexed module);
     event RegistryChanged(address oldRegistry, address newRegistry);
 
     // Errors
@@ -49,8 +46,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     error InvalidPrevModuleAddress(address module);
     error ZeroPageSizeNotAllowed();
 
-    modifier onlyEnabledModule(ISafe safe) {
-        if (!enabledComponents[address(safe)][msg.sender].enabled) {
+    modifier onlyEnabledModule(address safe) {
+        if (enabledModules[safe][msg.sender].nextModulePointer == address(0)) {
             revert MoudleNotEnabled(msg.sender);
         }
         _;
@@ -78,72 +75,68 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     }
 
     /**
-     * @notice This function executes a delegate call on a safe if the module is enabled and
-     *         root access it granted.
-     * @param safe A Safe instance
+     * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
+     *         If any one of the actions fail, the transaction reverts.
+     * @param safe Address of the Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
-        ISafe safe,
+        address safe,
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
-        // TODO: Check for re-entrancy attacks
-
         data = new bytes[](transaction.actions.length);
-        for (uint256 i = 0; i < transaction.actions.length; ++i) {
+        uint256 length = transaction.actions.length;
+        for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
-            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
+            (bool isActionSuccessful, bytes memory resultData) = ISafe(safe).execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
                 0
             );
 
-            // Need to revisit the approach below. If some actions fail, the transaction stiil succeeds.
-            // With current approach, even if one action fails, `data` will be empty bytes even for successful
-            // actions.
+            // Even if one action fails, revert the transaction.
             if (!isActionSuccessful) {
-                revert ActionExecutionFailed(address(safe), transaction.metaHash, i);
+                revert ActionExecutionFailed(safe, transaction.metaHash, i);
             } else {
                 data[i] = resultData;
             }
         }
 
-        emit ActionsExecuted(address(safe), transaction.metaHash, transaction.nonce);
+        emit ActionsExecuted(safe, transaction.metaHash, transaction.nonce);
     }
 
     /**
      * @notice This function executes a delegate call on a safe if the module is enabled and
      *         root access it granted.
-     * @param safe A Safe instance
+     * @param safe Address of the Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
      *                   Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
-        ISafe safe,
+        address safe,
         SafeRootAccess calldata rootAccess
     ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes memory data) {
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
-        // TODO: Check for re-entrancy attacks
 
-        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledComponents[address(safe)][msg.sender].rootAddressGranted) {
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
         bool success;
-        (success, data) = safe.execTransactionFromModuleReturnData(
+        (success, data) = ISafe(safe).execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
             safeProtocolAction.data,
             1
         );
         if (success) {
-            emit RootAccessActionExecuted(address(safe), rootAccess.metaHash);
+            emit RootAccessActionExecuted(safe, rootAccess.metaHash);
         } else {
-            revert RootAccessActionExecutionFailed(address(safe), rootAccess.metaHash);
+            revert RootAccessActionExecutionFailed(safe, rootAccess.metaHash);
         }
     }
 
@@ -153,10 +146,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) onlyPermittedModule(module) {
-        // TODO: Check if module is a valid address and implements valid interface.
-        //       Validate if caller is a Safe.
+        ModuleAccessInfo storage senderSentinelModule = enabledModules[msg.sender][SENTINEL_MODULES];
+        ModuleAccessInfo storage senderModule = enabledModules[msg.sender][module];
 
-        if (enabledComponents[msg.sender][module].enabled) {
+        if (senderModule.nextModulePointer != address(0)) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
 
@@ -165,19 +158,16 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             revert ModuleAccessMismatch(module, requiresRootAccess, allowRootAccess);
         }
 
-        if (enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
-            // The circular linked list has not been initialised yet for msg.sender. So, do it now.
-            enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, SENTINEL_MODULES);
+        if (senderSentinelModule.nextModulePointer == address(0)) {
+            senderSentinelModule.rootAddressGranted = false;
+            senderSentinelModule.nextModulePointer = SENTINEL_MODULES;
         }
 
-        enabledComponents[msg.sender][address(module)] = ModuleAccessInfo(
-            true,
-            allowRootAccess,
-            enabledComponents[msg.sender][SENTINEL_MODULES].nextModulePointer
-        );
-        enabledComponents[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, false, address(module));
+        senderModule.nextModulePointer = senderSentinelModule.nextModulePointer;
+        senderModule.rootAddressGranted = allowRootAccess;
+        senderSentinelModule.nextModulePointer = module;
 
-        emit ModuleEnabled(msg.sender, address(module), allowRootAccess);
+        emit ModuleEnabled(msg.sender, module, allowRootAccess);
     }
 
     /**
@@ -185,15 +175,17 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @param module Module to be disabled
      */
     function disableModule(address prevModule, address module) external noZeroOrSentinelModule(module) {
-        // TODO: Validate if caller is a Safe
+        ModuleAccessInfo storage prevModuleInfo = enabledModules[msg.sender][prevModule];
+        ModuleAccessInfo storage moduleInfo = enabledModules[msg.sender][module];
 
-        if (enabledComponents[msg.sender][prevModule].nextModulePointer != module) {
+        if (prevModuleInfo.nextModulePointer != module) {
             revert InvalidPrevModuleAddress(prevModule);
         }
 
-        enabledComponents[msg.sender][prevModule] = enabledComponents[msg.sender][module];
+        prevModuleInfo = moduleInfo;
 
-        enabledComponents[msg.sender][module] = ModuleAccessInfo(false, false, address(0));
+        moduleInfo.nextModulePointer = address(0);
+        moduleInfo.rootAddressGranted = false;
         emit ModuleDisabled(msg.sender, module);
     }
 
@@ -203,7 +195,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @param module Address of a module
      */
     function getModuleInfo(address safe, address module) external view returns (ModuleAccessInfo memory enabled) {
-        return enabledComponents[safe][module];
+        return enabledModules[safe][module];
     }
 
     /**
@@ -211,7 +203,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      * @return True if the module is enabled
      */
     function isModuleEnabled(address safe, address module) public view returns (bool) {
-        return SENTINEL_MODULES != module && enabledComponents[safe][module].enabled;
+        return SENTINEL_MODULES != module && enabledModules[safe][module].nextModulePointer != address(0);
     }
 
     /**
@@ -240,10 +232,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
 
         // Populate return array
         uint256 moduleCount = 0;
-        next = enabledComponents[safe][start].nextModulePointer;
+        next = enabledModules[safe][start].nextModulePointer;
         while (next != address(0) && next != SENTINEL_MODULES && moduleCount < pageSize) {
             array[moduleCount] = next;
-            next = enabledComponents[safe][next].nextModulePointer;
+            next = enabledModules[safe][next].nextModulePointer;
             moduleCount++;
         }
 

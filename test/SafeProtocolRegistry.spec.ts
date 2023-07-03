@@ -1,14 +1,14 @@
 import { ethers } from "hardhat";
-import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("SafeProtocolRegistry", async () => {
-    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
+    let owner: SignerWithAddress, user1: SignerWithAddress;
 
     async function deployContractFixture() {
-        [deployer, owner, user1, user2] = await ethers.getSigners();
+        [owner, user1] = await ethers.getSigners();
         const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         return { safeProtocolRegistry };
     }
@@ -43,7 +43,7 @@ describe("SafeProtocolRegistry", async () => {
 
         expect(await safeProtocolRegistry.connect(owner).flagComponent(AddressZero));
 
-        const [listedAt, flaggedAt] = await safeProtocolRegistry.check(AddressZero);
+        const [flaggedAt] = await safeProtocolRegistry.check(AddressZero);
         expect(flaggedAt).to.be.gt(0);
     });
 
