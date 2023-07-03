@@ -56,8 +56,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     }
 
     /**
-     * @notice This function executes a delegate call on a safe if the module is enabled and
-     *         root access it granted.
+     * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
+     *         If any one of the actions fail, the transaction reverts.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metahash through a transaction guard.
