@@ -273,7 +273,7 @@ describe("SafeProtocolMediator", async () => {
                 );
             });
 
-            it("Should process a SafeTransaction", async function () {
+            it("Should process a SafeTransaction and transfer ETH from safe to an EOA", async function () {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
                 // Enable module
@@ -301,7 +301,7 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx).to.emit(safeProtocolMediator, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
             });
 
-            it("Should fail to process a SafeTransaction", async function () {
+            it("Should revert with ActionExecutionFailed error if Safe doesn't have enough ETH balance", async function () {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
                 // Enable module
@@ -379,7 +379,7 @@ describe("SafeProtocolMediator", async () => {
                 );
             });
 
-            it("Should revert with ModuleRequiresRootAccess", async () => {
+            it("Should revert with ModuleRequiresRootAccess if module indicates it doesn't need root access anymore", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
