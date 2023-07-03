@@ -68,7 +68,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
         data = new bytes[](transaction.actions.length);
-        for (uint256 i = 0; i < transaction.actions.length; ++i) {
+        uint256 length = transaction.actions.length;
+        for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
             (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
