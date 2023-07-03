@@ -126,7 +126,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
     function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
-        if (enabledModules[msg.sender][module].nextModulePointer != address(0)) {
+        ModuleAccessInfo storage senderSentinelModule = enabledModules[msg.sender][SENTINEL_MODULES];
+        ModuleAccessInfo storage senderModule = enabledModules[msg.sender][module];
+
+        if (senderModule.nextModulePointer != address(0)) {
             revert ModuleAlreadyEnabled(msg.sender, module);
         }
 
@@ -135,16 +138,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
             revert ModuleAccessMismatch(module, requiresRootAccess, allowRootAccess);
         }
 
-        if (enabledModules[msg.sender][SENTINEL_MODULES].nextModulePointer == address(0)) {
-            // The circular linked list has not been initialised yet for msg.sender. So, do it now.
-            enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, SENTINEL_MODULES);
+        if (senderSentinelModule.nextModulePointer == address(0)) {
+            senderSentinelModule.rootAddressGranted = false;
+            senderSentinelModule.nextModulePointer = SENTINEL_MODULES;
         }
 
-        enabledModules[msg.sender][module] = ModuleAccessInfo(
-            allowRootAccess,
-            enabledModules[msg.sender][SENTINEL_MODULES].nextModulePointer
-        );
-        enabledModules[msg.sender][SENTINEL_MODULES] = ModuleAccessInfo(false, module);
+        senderModule.nextModulePointer = senderSentinelModule.nextModulePointer;
+        senderModule.rootAddressGranted = allowRootAccess;
+        senderSentinelModule.nextModulePointer = module;
 
         emit ModuleEnabled(msg.sender, module, allowRootAccess);
     }
