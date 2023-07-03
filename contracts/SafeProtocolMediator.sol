@@ -20,7 +20,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      *         address (Safe address) => address (component address) => EnabledModuleInfo
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
+    mapping(address => address) public enabledGuard;
     address public registry;
+
     struct ModuleAccessInfo {
         bool rootAddressGranted;
         address nextModulePointer;
@@ -32,6 +34,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
     event ModuleDisabled(address indexed safe, address indexed module);
     event RegistryChanged(address oldRegistry, address newRegistry);
+    event GuardEnabled(address indexed safe, address indexed guardAddress);
+    event GuardDisabled(address indexed safe, address indexed guardAddress);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
@@ -269,5 +273,23 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     function setRegistry(address newRegistry) external onlyOwner {
         emit RegistryChanged(registry, newRegistry);
         registry = newRegistry;
+    }
+
+    /**
+     * @notice Returns the address of a guard for a Safe account provided as a fucntion parameter.
+     *         Returns address(0) is no guard is enabled.
+     * @param safe Address of a Safe account
+     * @return guardAddress Address of a guard enabled for on Safe account
+     */
+    function getEnabledGuard(address safe) external view returns (address guardAddress) {
+        guardAddress = enabledGuard[safe];
+    }
+
+    /**
+     * @notice Enables guard on a Safe account.
+     * @param guard Address of the guard to be enabled for msg.sender.
+     */
+    function setGuard(address guard) external {
+        enabledGuard[msg.sender] = guard;
     }
 }
