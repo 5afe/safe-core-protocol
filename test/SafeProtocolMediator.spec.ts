@@ -4,6 +4,7 @@ import { expect } from "chai";
 import { ZeroAddress } from "ethers";
 import { SENTINEL_MODULES } from "./utils/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { buildRootTx, buildSingleTx } from "./utils/builder";
 
 describe("SafeProtocolMediator", async () => {
     let deployer: SignerWithAddress, user1: SignerWithAddress;
@@ -265,19 +266,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should not allow non-enabled module to execute tx from a safe", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    actions: [
-                        {
-                            to: user1.address,
-                            value: hre.ethers.parseEther("1"),
-                            data: "0x",
-                        },
-                    ],
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
-
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "MoudleNotEnabled",
@@ -299,18 +288,7 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    actions: [
-                        {
-                            to: user1.address,
-                            value: hre.ethers.parseEther("1"),
-                            data: "0x",
-                        },
-                    ],
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
                 const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
@@ -371,16 +349,14 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testFallbackReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
                 const tx = await module.executeFromModule(safeProtocolMediator, safe, safeTx);
@@ -396,17 +372,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should not allow non-enabled module to execute root tx from a safe", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsFixture);
                 const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: user1.address,
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
-
+                const safeTx = buildRootTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "MoudleNotEnabled",
@@ -424,17 +390,13 @@ describe("SafeProtocolMediator", async () => {
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 await module.setRequiresRootAccess(false);
-
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testFallbackReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
 
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
@@ -452,17 +414,13 @@ describe("SafeProtocolMediator", async () => {
                 const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testFallbackReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
-
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "RootAccessActionExecutionFailed",
@@ -485,17 +443,13 @@ describe("SafeProtocolMediator", async () => {
                 // Set root access flag back to true
                 await module.setRequiresRootAccess(true);
 
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testFallbackReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
-
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "ModuleRequiresRootAccess")
                     .withArgs(moduleAddress);
