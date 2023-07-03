@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolMediator} from "./interfaces/Mediator.sol";
-import {ISafeProtocolModule} from "./interfaces/Components.sol";
+import {ISafeProtocolModule, ISafeProtocolGuard} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
@@ -90,6 +90,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         address safe,
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
+        bool isGuardEnabled = enabledGuard[safe] != address(0);
+        bytes memory preCheckData;
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // executionType = 1 for module flow
+            preCheckData = ISafeProtocolGuard(safe).preCheck(ISafe(safe), transaction, 1, "");
+        }
+
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -109,6 +117,11 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             }
         }
 
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // success = true because if transaction is not revereted till here, all actions executed successfully.
+            ISafeProtocolGuard(safe).postCheck(ISafe(safe), true, preCheckData);
+        }
         emit ActionsExecuted(safe, transaction.metaHash, transaction.nonce);
     }
 
@@ -124,6 +137,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         address safe,
         SafeRootAccess calldata rootAccess
     ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes memory data) {
+        bool isGuardEnabled = enabledGuard[safe] != address(0);
+        bytes memory preCheckData;
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // executionType = 1 for module flow
+            preCheckData = ISafeProtocolGuard(safe).preCheckRootAccess(ISafe(safe), rootAccess, 1, "");
+        }
+
         SafeProtocolAction memory safeProtocolAction = rootAccess.action;
 
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
@@ -137,6 +158,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             safeProtocolAction.data,
             1
         );
+
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // success = true because if transaction is not revereted till here, all actions executed successfully.
+            ISafeProtocolGuard(safe).postCheck(ISafe(safe), success, preCheckData);
+        }
+
         if (success) {
             emit RootAccessActionExecuted(safe, rootAccess.metaHash);
         } else {
