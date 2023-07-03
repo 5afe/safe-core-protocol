@@ -155,13 +155,17 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module Module to be disabled
      */
     function disableModule(address prevModule, address module) external noZeroOrSentinelModule(module) {
-        if (enabledModules[msg.sender][prevModule].nextModulePointer != module) {
+        ModuleAccessInfo storage prevModuleInfo = enabledModules[msg.sender][prevModule];
+        ModuleAccessInfo storage moduleInfo = enabledModules[msg.sender][module];
+
+        if (prevModuleInfo.nextModulePointer != module) {
             revert InvalidPrevModuleAddress(prevModule);
         }
 
-        enabledModules[msg.sender][prevModule] = enabledModules[msg.sender][module];
+        prevModuleInfo = moduleInfo;
 
-        enabledModules[msg.sender][module] = ModuleAccessInfo(false, address(0));
+        moduleInfo.nextModulePointer = address(0);
+        moduleInfo.rootAddressGranted = false;
         emit ModuleDisabled(msg.sender, module);
     }
 
