@@ -286,10 +286,20 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     }
 
     /**
-     * @notice Enables guard on a Safe account.
+     * @notice Enables guard on an account.
      * @param guard Address of the guard to be enabled for msg.sender.
      */
     function setGuard(address guard) external {
         enabledGuard[msg.sender] = guard;
+        emit GuardEnabled(msg.sender, guard);
+    }
+
+    /**
+     * @notice Disables guard on an account.
+     */
+    function disableGuard() external {
+        // Evaluate if caching variable saves some gas.
+        emit GuardDisabled(msg.sender, enabledGuard[msg.sender]);
+        enabledGuard[msg.sender] = address(0);
     }
 }
