@@ -11,7 +11,8 @@ import {SafeRootAccess, SafeTransaction} from "../DataTypes.sol";
  */
 interface ISafeProtocolMediator {
     /**
-     * @notice TODO
+     * @notice This function allows enabled modules to execute non-delegate call transactions thorugh a Safe.
+     *         It should validate the status of the module through the registry and allows only listed and non-flagged components to execute transactions.
      * @param safe Instance of a Safe account
      * @param transaction SafeTransaction instance containing payload information about the transaction
      * @return data Array of bytes types returned upon the successful execution of all the actions. The size of the array will be the same as the size of the actions
@@ -20,7 +21,8 @@ interface ISafeProtocolMediator {
     function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external returns (bytes[] memory data);
 
     /**
-     * @notice TODO
+     * @notice This function allows enabled modules to execute delegate call transactions thorugh a Safe.
+     *         It should validate the status of the module through the registry and allows only listed and non-flagged components to execute transactions.
      * @param safe Instance of a Safe account
      * @param rootAccess SafeTransaction instance containing payload information about the transaction
      * @return data Arbitrary length bytes data returned upon the successful execution. The size of the array will be the same as the size of the actions
