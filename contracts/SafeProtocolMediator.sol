@@ -101,7 +101,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
-            SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
+            SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
             (bool isActionSuccessful, bytes memory resultData) = ISafe(safe).execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
@@ -145,7 +145,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
             preCheckData = ISafeProtocolGuard(safe).preCheckRootAccess(ISafe(safe), rootAccess, 1, "");
         }
 
-        SafeProtocolAction memory safeProtocolAction = rootAccess.action;
+        SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
 
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
