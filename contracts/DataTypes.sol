@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 struct SafeProtocolAction {
-    address to;
+    address payable to;
     uint256 value;
     bytes data;
 }

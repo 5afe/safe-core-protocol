@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.18;
-import "./interfaces/ISafeProtocolRegistry.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {ISafeProtocolRegistry} from "./interfaces/ISafeProtocolRegistry.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     /**

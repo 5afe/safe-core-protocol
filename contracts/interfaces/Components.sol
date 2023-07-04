@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import "./Accounts.sol";
-import "../DataTypes.sol";
+import {ISafe} from "./Accounts.sol";
+import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 
 /**
  * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement
