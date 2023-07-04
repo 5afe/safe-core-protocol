@@ -6,7 +6,8 @@ contract RegistryManager is Ownable2Step {
     address public registry;
     event RegistryChanged(address oldRegistry, address newRegistry);
 
-    constructor(address _registry) {
+    constructor(address _registry, address intitalOwner) {
+        _transferOwnership(intitalOwner);
         registry = _registry;
     }
 

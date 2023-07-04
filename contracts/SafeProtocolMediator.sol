@@ -67,9 +67,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
         _;
     }
 
-    constructor(address initialOwner, address _registry) RegistryManager(_registry) {
-        _transferOwnership(initialOwner);
-    }
+    constructor(address initialOwner, address _registry) RegistryManager(_registry, initialOwner) {}
 
     /**
      * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
