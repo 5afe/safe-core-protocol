@@ -40,7 +40,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
     error ModuleAlreadyEnabled(address safe, address module);
     error InvalidModuleAddress(address module);
-    error ModuleNotPermitted(address module, uint64 listedAt, uint64 flaggedAt);
     error InvalidPrevModuleAddress(address module);
     error ZeroPageSizeNotAllowed();
 
@@ -54,15 +53,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     modifier noZeroOrSentinelModule(address module) {
         if (module == address(0) || module == SENTINEL_MODULES) {
             revert InvalidModuleAddress(module);
-        }
-        _;
-    }
-
-    modifier onlyPermittedModule(address module) {
-        // Only allow registered and non-flagged modules
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
-        if (listedAt == 0 || flaggedAt != 0) {
-            revert ModuleNotPermitted(module, listedAt, flaggedAt);
         }
         _;
     }
