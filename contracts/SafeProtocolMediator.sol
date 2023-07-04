@@ -6,13 +6,13 @@ import {ISafeProtocolModule} from "./interfaces/Components.sol";
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
-import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {RegistryManager} from "./base/RegistryManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -20,7 +20,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      *         address (Safe address) => address (component address) => EnabledModuleInfo
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
-    address public registry;
     struct ModuleAccessInfo {
         bool rootAddressGranted;
         address nextModulePointer;
@@ -31,7 +30,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
     event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
     event ModuleDisabled(address indexed safe, address indexed module);
-    event RegistryChanged(address oldRegistry, address newRegistry);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
@@ -69,9 +67,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         _;
     }
 
-    constructor(address initialOwner, address _registry) {
+    constructor(address initialOwner, address _registry) RegistryManager(_registry) {
         _transferOwnership(initialOwner);
-        registry = _registry;
     }
 
     /**
@@ -259,14 +256,5 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         assembly {
             mstore(array, moduleCount)
         }
-    }
-
-    /**
-     * @notice Allows only owner to update the address of a registry. Emits event RegistryChanged(egistry, newRegistry)
-     * @param newRegistry Address of new registry
-     */
-    function setRegistry(address newRegistry) external onlyOwner {
-        emit RegistryChanged(registry, newRegistry);
-        registry = newRegistry;
     }
 }
