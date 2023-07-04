@@ -89,7 +89,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
-            SafeProtocolAction memory safeProtocolAction = transaction.actions[i];
+            SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
             (bool isActionSuccessful, bytes memory resultData) = ISafe(safe).execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
@@ -120,8 +120,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         address safe,
         SafeRootAccess calldata rootAccess
     ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes memory data) {
-        SafeProtocolAction memory safeProtocolAction = rootAccess.action;
-
+        SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
