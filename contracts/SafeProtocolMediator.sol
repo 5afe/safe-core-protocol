@@ -58,20 +58,21 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     /**
      * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
      *         If any one of the actions fail, the transaction reverts.
-     * @param safe Address of the Safe instance
+     * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
-        address safe,
+        ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledModule(safe) returns (bytes[] memory data) {
+    ) external override onlyEnabledModule(address(safe)) returns (bytes[] memory data) {
+        address safeAddress = address(safe);
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
-            (bool isActionSuccessful, bytes memory resultData) = ISafe(safe).execTransactionFromModuleReturnData(
+            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
@@ -80,44 +81,46 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
 
             // Even if one action fails, revert the transaction.
             if (!isActionSuccessful) {
-                revert ActionExecutionFailed(safe, transaction.metaHash, i);
+                revert ActionExecutionFailed(safeAddress, transaction.metaHash, i);
             } else {
                 data[i] = resultData;
             }
         }
 
-        emit ActionsExecuted(safe, transaction.metaHash, transaction.nonce);
+        emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
 
     /**
      * @notice This function executes a delegate call on a safe if the module is enabled and
      *         root access it granted.
-     * @param safe Address of the Safe instance
+     * @param safe A Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
      *                   Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
-        address safe,
+        ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledModule(safe) returns (bytes memory data) {
+    ) external override onlyEnabledModule(address(safe)) returns (bytes memory data) {
+        address safeAddress = address(safe);
+
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
 
-        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safeAddress][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
         bool success;
-        (success, data) = ISafe(safe).execTransactionFromModuleReturnData(
+        (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
             safeProtocolAction.data,
             1
         );
         if (success) {
-            emit RootAccessActionExecuted(safe, rootAccess.metaHash);
+            emit RootAccessActionExecuted(safeAddress, rootAccess.metaHash);
         } else {
-            revert RootAccessActionExecutionFailed(safe, rootAccess.metaHash);
+            revert RootAccessActionExecutionFailed(safeAddress, rootAccess.metaHash);
         }
     }
 
