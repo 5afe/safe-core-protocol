@@ -18,7 +18,7 @@ interface ISafeProtocolMediator {
      * @return data Array of bytes types returned upon the successful execution of all the actions. The size of the array will be the same as the size of the actions
      *         in case of succcessful execution. Empty if the call failed.
      */
-    function executeTransaction(address safe, SafeTransaction calldata transaction) external returns (bytes[] memory data);
+    function executeTransaction(ISafe safe, SafeTransaction calldata transaction) external returns (bytes[] memory data);
 
     /**
      * @notice This function allows enabled modules to execute delegate call transactions thorugh a Safe.
@@ -28,5 +28,5 @@ interface ISafeProtocolMediator {
      * @return data Arbitrary length bytes data returned upon the successful execution. The size of the array will be the same as the size of the actions
      *         in case of succcessful execution. Empty if the call failed.
      */
-    function executeRootAccess(address safe, SafeRootAccess calldata rootAccess) external returns (bytes memory data);
+    function executeRootAccess(ISafe safe, SafeRootAccess calldata rootAccess) external returns (bytes memory data);
 }

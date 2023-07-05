@@ -29,21 +29,6 @@ describe("SafeProtocolMediator", async () => {
             const { safeProtocolMediator } = await loadFixture(deployContractsFixture);
             expect(await safe.setModule(await safeProtocolMediator.getAddress()));
         });
-
-        it("Should allow only owner to update registry", async () => {
-            const safe = await hre.ethers.deployContract("TestExecutor");
-
-            const { safeProtocolMediator, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
-            await safe.setModule(await safeProtocolMediator.getAddress());
-
-            await expect(safeProtocolMediator.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-
-            expect(await safeProtocolMediator.connect(owner).setRegistry(ZeroAddress))
-                .to.emit(safeProtocolMediator, "RegistryChanged")
-                .withArgs(await safeProtocolRegistry.getAddress(), ZeroAddress);
-        });
     });
 
     describe("Modules", async () => {

@@ -6,13 +6,13 @@ import {ISafeProtocolModule, ISafeProtocolGuard} from "./interfaces/Components.s
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
-import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {RegistryManager} from "./base/RegistryManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -21,7 +21,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
     mapping(address => address) public enabledGuard;
-    address public registry;
 
     struct ModuleAccessInfo {
         bool rootAddressGranted;
@@ -33,7 +32,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
     event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
     event ModuleDisabled(address indexed safe, address indexed module);
-    event RegistryChanged(address oldRegistry, address newRegistry);
     event GuardEnabled(address indexed safe, address indexed guardAddress);
     event GuardDisabled(address indexed safe, address indexed guardAddress);
 
@@ -46,7 +44,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
     error ModuleAlreadyEnabled(address safe, address module);
     error InvalidModuleAddress(address module);
-    error ModuleNotPermitted(address module, uint64 listedAt, uint64 flaggedAt);
     error InvalidPrevModuleAddress(address module);
     error ZeroPageSizeNotAllowed();
 
@@ -64,45 +61,36 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         _;
     }
 
-    modifier onlyPermittedModule(address module) {
-        // Only allow registered and non-flagged modules
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
-        if (listedAt == 0 || flaggedAt != 0) {
-            revert ModuleNotPermitted(module, listedAt, flaggedAt);
-        }
-        _;
-    }
-
-    constructor(address initialOwner, address _registry) {
-        _transferOwnership(initialOwner);
-        registry = _registry;
-    }
+    constructor(address initialOwner, address _registry) RegistryManager(_registry, initialOwner) {}
 
     /**
      * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
      *         If any one of the actions fail, the transaction reverts.
-     * @param safe Address of the Safe instance
+     * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
-        address safe,
+        ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
-        bool isGuardEnabled = enabledGuard[safe] != address(0);
+    ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
+        address safeAddress = address(safe);
+
+        address guardAddress = enabledGuard[safeAddress];
+        bool isGuardEnabled = guardAddress != address(0);
         bytes memory preCheckData;
         if (isGuardEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for module flow
-            preCheckData = ISafeProtocolGuard(safe).preCheck(ISafe(safe), transaction, 1, "");
+            preCheckData = ISafeProtocolGuard(guardAddress).preCheck(safe, transaction, 1, "");
         }
 
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
-            (bool isActionSuccessful, bytes memory resultData) = ISafe(safe).execTransactionFromModuleReturnData(
+            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
@@ -111,48 +99,48 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
 
             // Even if one action fails, revert the transaction.
             if (!isActionSuccessful) {
-                revert ActionExecutionFailed(safe, transaction.metaHash, i);
+                revert ActionExecutionFailed(safeAddress, transaction.metaHash, i);
             } else {
                 data[i] = resultData;
             }
         }
-
         if (isGuardEnabled) {
             // TODO: Define execution meta
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolGuard(safe).postCheck(ISafe(safe), true, preCheckData);
+            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), true, preCheckData);
         }
-        emit ActionsExecuted(safe, transaction.metaHash, transaction.nonce);
+        emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
 
     /**
      * @notice This function executes a delegate call on a safe if the module is enabled and
      *         root access it granted.
-     * @param safe Address of the Safe instance
+     * @param safe A Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
      *                   Users can add logic to validate metahash through a transaction guard.
      * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
-        address safe,
+        ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledModule(safe) onlyPermittedModule(msg.sender) returns (bytes memory data) {
-        bool isGuardEnabled = enabledGuard[safe] != address(0);
+    ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes memory data) {
+        SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
+        address safeAddress = address(safe);
+
+        address guardAddress = enabledGuard[safeAddress];
+        bool isGuardEnabled = guardAddress != address(0);
         bytes memory preCheckData;
         if (isGuardEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for module flow
-            preCheckData = ISafeProtocolGuard(safe).preCheckRootAccess(ISafe(safe), rootAccess, 1, "");
+            preCheckData = ISafeProtocolGuard(guardAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
-
-        SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
-
-        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safe][msg.sender].rootAddressGranted) {
+        if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safeAddress][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
 
         bool success;
-        (success, data) = ISafe(safe).execTransactionFromModuleReturnData(
+        (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
             safeProtocolAction.data,
@@ -162,13 +150,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         if (isGuardEnabled) {
             // TODO: Define execution meta
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolGuard(safe).postCheck(ISafe(safe), success, preCheckData);
+            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), success, preCheckData);
         }
 
         if (success) {
-            emit RootAccessActionExecuted(safe, rootAccess.metaHash);
+            emit RootAccessActionExecuted(safeAddress, rootAccess.metaHash);
         } else {
-            revert RootAccessActionExecutionFailed(safe, rootAccess.metaHash);
+            revert RootAccessActionExecutionFailed(safeAddress, rootAccess.metaHash);
         }
     }
 
@@ -292,15 +280,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, Ownable2Step {
         assembly {
             mstore(array, moduleCount)
         }
-    }
-
-    /**
-     * @notice Allows only owner to update the address of a registry. Emits event RegistryChanged(egistry, newRegistry)
-     * @param newRegistry Address of new registry
-     */
-    function setRegistry(address newRegistry) external onlyOwner {
-        emit RegistryChanged(registry, newRegistry);
-        registry = newRegistry;
     }
 
     /**
