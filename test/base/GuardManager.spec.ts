@@ -22,16 +22,7 @@ describe("GuardManager", async () => {
     it("Should emit GuardEnabled event when a guard is enabled", async () => {
         const { guardManager } = await loadFixture(deployContractsFixture);
         const guardAddress = hre.ethers.hexlify(hre.ethers.randomBytes(20));
-        expect(await guardManager.connect(user1).enableGuard(guardAddress))
-            .to.emit(guardManager, "GuardEnabled")
-            .withArgs(user1, guardAddress);
-    });
-
-    it("Should emit GuardDisabled event when a guard is enabled", async () => {
-        const { guardManager } = await loadFixture(deployContractsFixture);
-        const guardAddress = hre.ethers.getAddress(hre.ethers.hexlify(hre.ethers.randomBytes(20)));
-        await guardManager.connect(user1).enableGuard(guardAddress);
-        expect(await guardManager.connect(user1).disableGuard())
+        expect(await guardManager.connect(user1).setGuard(guardAddress))
             .to.emit(guardManager, "GuardEnabled")
             .withArgs(user1, guardAddress);
     });
@@ -39,7 +30,7 @@ describe("GuardManager", async () => {
     it("Should return correct guard address", async () => {
         const { guardManager } = await loadFixture(deployContractsFixture);
         const guardAddress = hre.ethers.getAddress(hre.ethers.hexlify(hre.ethers.randomBytes(20)));
-        await guardManager.connect(user1).enableGuard(guardAddress);
+        await guardManager.connect(user1).setGuard(guardAddress);
         expect(await guardManager.getEnabledGuard(user1.address)).to.be.equal(guardAddress);
     });
 

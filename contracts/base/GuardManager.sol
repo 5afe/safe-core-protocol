@@ -6,7 +6,6 @@ contract GuardManager {
 
     // Events
     event GuardEnabled(address indexed safe, address indexed guardAddress);
-    event GuardDisabled(address indexed safe, address indexed guardAddress);
 
     /**
      * @notice Returns the address of a guard for a Safe account provided as a fucntion parameter.
@@ -19,20 +18,11 @@ contract GuardManager {
     }
 
     /**
-     * @notice Enables guard on an account.
+     * @notice Sets guard on an account. If Zero address is set, mediator will not perform pre and post checks for on Safe transaction.
      * @param guard Address of the guard to be enabled for msg.sender.
      */
-    function enableGuard(address guard) external {
+    function setGuard(address guard) external {
         enabledGuard[msg.sender] = guard;
         emit GuardEnabled(msg.sender, guard);
-    }
-
-    /**
-     * @notice Disables guard on an account.
-     */
-    function disableGuard() external {
-        // Evaluate if caching variable saves some gas.
-        emit GuardDisabled(msg.sender, enabledGuard[msg.sender]);
-        enabledGuard[msg.sender] = address(0);
     }
 }
