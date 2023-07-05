@@ -4,14 +4,14 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("GuardManager", async () => {
-    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
+    let deployer: SignerWithAddress, user1: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, user1] = await hre.ethers.getSigners();
     });
 
     async function deployContractsFixture() {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, user1] = await hre.ethers.getSigners();
 
         const guardManager = await hre.ethers.deployContract("GuardManager", { signer: deployer });
         const guard = await hre.ethers.deployContract("TestGuard", { signer: deployer });
