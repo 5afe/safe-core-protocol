@@ -22,7 +22,7 @@ contract GuardManager {
      * @notice Enables guard on an account.
      * @param guard Address of the guard to be enabled for msg.sender.
      */
-    function setGuard(address guard) external {
+    function enableGuard(address guard) external {
         enabledGuard[msg.sender] = guard;
         emit GuardEnabled(msg.sender, guard);
     }
