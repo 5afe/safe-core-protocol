@@ -6,7 +6,7 @@ import {ISafeProtocolRegistry} from "../interfaces/Registry.sol";
 contract RegistryManager is Ownable2Step {
     address public registry;
 
-    event RegistryChanged(address oldRegistry, address newRegistry);
+    event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
     error ModuleNotPermitted(address module, uint64 listedAt, uint64 flaggedAt);
 

@@ -39,7 +39,16 @@ describe("SafeProtocolMediator", async () => {
             return { safeProtocolMediator, safe, module, safeProtocolRegistry };
         }
 
-        describe("Enabling module reverts with ModuleNotPermitted", async () => {
+        describe("Test enable module", async () => {
+            it("Should not allow a Safe to enable zero address module", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(hre.ethers.ZeroAddress);
+            });
+
             it("Should not allow a Safe to enable module if not added as a component in registry", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
@@ -61,17 +70,6 @@ describe("SafeProtocolMediator", async () => {
                     safeProtocolMediator,
                     "ModuleNotPermitted",
                 );
-            });
-        });
-
-        describe("Test enable module", async () => {
-            it("Should not allow a Safe to enable zero address module", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
-                await safe.setModule(await safeProtocolMediator.getAddress());
-                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
-                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
-                    .withArgs(hre.ethers.ZeroAddress);
             });
 
             it("Should not allow a Safe to enable SENTINEL_MODULES module", async () => {
