@@ -7,12 +7,13 @@ import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
+import {GuardManager} from "./base/GuardManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -20,8 +21,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
      *         address (Safe address) => address (component address) => EnabledModuleInfo
      */
     mapping(address => mapping(address => ModuleAccessInfo)) public enabledModules;
-    mapping(address => address) public enabledGuard;
-
     struct ModuleAccessInfo {
         bool rootAddressGranted;
         address nextModulePointer;
@@ -32,8 +31,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
     event ModuleEnabled(address indexed safe, address indexed module, bool allowRootAccess);
     event ModuleDisabled(address indexed safe, address indexed module);
-    event GuardEnabled(address indexed safe, address indexed guardAddress);
-    event GuardDisabled(address indexed safe, address indexed guardAddress);
 
     // Errors
     error ModuleRequiresRootAccess(address sender);
@@ -280,33 +277,5 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
         assembly {
             mstore(array, moduleCount)
         }
-    }
-
-    /**
-     * @notice Returns the address of a guard for a Safe account provided as a fucntion parameter.
-     *         Returns address(0) is no guard is enabled.
-     * @param safe Address of a Safe account
-     * @return guardAddress Address of a guard enabled for on Safe account
-     */
-    function getEnabledGuard(address safe) external view returns (address guardAddress) {
-        guardAddress = enabledGuard[safe];
-    }
-
-    /**
-     * @notice Enables guard on an account.
-     * @param guard Address of the guard to be enabled for msg.sender.
-     */
-    function setGuard(address guard) external {
-        enabledGuard[msg.sender] = guard;
-        emit GuardEnabled(msg.sender, guard);
-    }
-
-    /**
-     * @notice Disables guard on an account.
-     */
-    function disableGuard() external {
-        // Evaluate if caching variable saves some gas.
-        emit GuardDisabled(msg.sender, enabledGuard[msg.sender]);
-        enabledGuard[msg.sender] = address(0);
     }
 }
