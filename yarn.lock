@@ -450,7 +450,7 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@gnosis.pm/mock-contract@gnosis/mock-contract#master":
+"@gnosis.pm/mock-contract@gnosis/mock-contract#b0f735ddc62d5000b50667011d69142a4dee9c71":
   version "4.0.0"
   resolved "https://codeload.github.com/gnosis/mock-contract/tar.gz/b0f735ddc62d5000b50667011d69142a4dee9c71"
 
