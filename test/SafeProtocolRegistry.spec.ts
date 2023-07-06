@@ -68,7 +68,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should return true when valid interfaceId is passed", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const supportsERC165 = await safeProtocolRegistry.supportsInterface("0x01ffc9a7");
-        expect(supportsERC165).to.be.equal(true);
+        expect(await safeProtocolRegistry.supportsInterface("0x01ffc9a7")).to.be.equal(true);
+        expect(await safeProtocolRegistry.supportsInterface("0xc23697a8")).to.be.equal(true);
     });
 });

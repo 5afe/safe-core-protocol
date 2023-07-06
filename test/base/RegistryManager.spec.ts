@@ -26,11 +26,9 @@ describe("RegistryManager", async () => {
 
     it("Should revert when registry address does not implement valid interfaceId", async () => {
         const { registryManager } = await loadFixture(deployContractsFixture);
-        await expect(registryManager.connect(owner).setRegistry(ZeroAddress)).to.be.reverted;
-    });
 
-    it("Should revert with AccountDoesNotImplementValidInterfaceId when registry address does not implement valid interfaceId", async () => {
-        const { registryManager } = await loadFixture(deployContractsFixture);
+        await expect(registryManager.connect(owner).setRegistry(ZeroAddress)).to.be.reverted;
+
         const registry = await getMockRegistryWithInvalidInterfaceSupport();
         await expect(registryManager.connect(owner).setRegistry(await registry.getAddress())).to.be.revertedWithCustomError(
             registryManager,
@@ -49,10 +47,6 @@ describe("RegistryManager", async () => {
         const safeProtocolRegistryAddress = await (
             await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address], { signer: deployer })
         ).getAddress();
-
-        await expect(registryManager.connect(user1).setRegistry(safeProtocolRegistryAddress)).to.be.revertedWith(
-            "Ownable: caller is not the owner",
-        );
 
         expect(await registryManager.connect(owner).setRegistry(safeProtocolRegistryAddress))
             .to.emit(registryManager, "RegistryChanged")

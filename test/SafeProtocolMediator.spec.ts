@@ -381,18 +381,7 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    actions: [
-                        {
-                            to: user2.address,
-                            value: hre.ethers.parseEther("1"),
-                            data: "0x",
-                        },
-                    ],
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
                 await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
@@ -462,16 +451,15 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testDelegateCallReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+
+                const safeTx = buildRootTx(
+                    await testDelegateCallReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
+
                 await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
