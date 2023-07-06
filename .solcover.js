@@ -1,3 +1,3 @@
 module.exports = {
-    skipFiles: ['test/TestExecutor.sol', 'test/TestModule.sol', 'test/TestFallbackReceiver.sol', 'test/TestGuard.sol']
+    skipFiles: ['test/TestExecutor.sol', 'test/TestModule.sol', 'test/TestFallbackReceiver.sol']
   };
