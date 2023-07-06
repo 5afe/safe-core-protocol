@@ -65,4 +65,10 @@ describe("SafeProtocolRegistry", async () => {
         expect(listedAt).to.be.equal(0);
         expect(flaggedAt).to.be.equal(0);
     });
+
+    it("Should return true when valid interfaceId is passed", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        const supportsERC165 = await safeProtocolRegistry.supportsInterface("0x01ffc9a7");
+        expect(supportsERC165).to.be.equal(true);
+    });
 });
