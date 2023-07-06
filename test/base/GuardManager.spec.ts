@@ -2,6 +2,7 @@ import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { getGuardWithPassingChecks } from "../utils/mockGuardBuilder";
 
 describe("GuardManager", async () => {
     let deployer: SignerWithAddress, user1: SignerWithAddress;
@@ -14,7 +15,7 @@ describe("GuardManager", async () => {
         [deployer, user1] = await hre.ethers.getSigners();
 
         const guardManager = await hre.ethers.deployContract("GuardManager", { signer: deployer });
-        const guard = await hre.ethers.deployContract("TestGuard", { signer: deployer });
+        const guard = await getGuardWithPassingChecks();
 
         return { guardManager, guard };
     }
@@ -56,7 +57,8 @@ describe("GuardManager", async () => {
 
     it("Should revert AddressDoesNotImplementGuardInterface if user attempts address does not implement Guard interface", async () => {
         const { guardManager } = await loadFixture(deployContractsFixture);
-        const contractNotImplementingGuardInterface = hre.ethers.deployContract("TestContractNotImplementingGuardInterface");
+        const contractNotImplementingGuardInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+        await contractNotImplementingGuardInterface.givenMethodReturnBool("0x01ffc9a7", false);
 
         await expect(guardManager.setGuard((await contractNotImplementingGuardInterface).getAddress())).to.be.revertedWithCustomError(
             guardManager,

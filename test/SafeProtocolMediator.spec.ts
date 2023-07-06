@@ -5,6 +5,7 @@ import { ZeroAddress } from "ethers";
 import { SENTINEL_MODULES } from "./utils/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
+import { getGuardWithFailingPrechecks, getGuardWithPassingChecks, getGuardWithFailingPostCheck } from "./utils/mockGuardBuilder";
 
 describe("SafeProtocolMediator", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
@@ -340,7 +341,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should process a SafeTransaction and transfer ETH from safe to an EOA guard enabled", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 // Enable guard on a safe
-                const guard = await hre.ethers.deployContract("TestGuard");
+                const guard = await getGuardWithPassingChecks();
                 const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetGuard);
 
@@ -369,6 +370,55 @@ describe("SafeProtocolMediator", async () => {
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolMediator, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
+            });
+
+            it("Should fail executing a transaction through module when guard pre-check fails", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
+                // Enable guard on a safe
+                const guard = await getGuardWithFailingPrechecks();
+
+                const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetGuard);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), false]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("pre-check failed");
+            });
+
+            it("Should fail executing a transaction through module when guard post-check fails", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
+                const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
+                // Enable guard on a safe
+                const guard = await getGuardWithFailingPostCheck();
+
+                const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
+                await safe.exec(safeProtocolMediatorAddress, 0, dataSetGuard);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModule")).deploy();
+                const moduleAddress = await module.getAddress();
+
+                await safeProtocolRegistry.connect(owner).addComponent(moduleAddress);
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [moduleAddress, false]);
+                await safe.exec(safeProtocolMediatorAddress, 0, data);
+
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: await safe.getAddress(),
+                        value: amount,
+                    })
+                ).wait();
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
             });
 
             it("Should revert with ActionExecutionFailed error if Safe doesn't have enough ETH balance", async function () {
@@ -480,11 +530,11 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx).to.emit(safeProtocolMediator, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
             });
 
-            it("Should run a transaction from root access enabled module with guard enabled", async () => {
+            it("Should execute a transaction from root access enabled module with guard enabled", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 const safeAddress = await safe.getAddress();
                 // Enable guard on a safe
-                const guard = await hre.ethers.deployContract("TestGuard");
+                const guard = await getGuardWithPassingChecks();
                 const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetGuard);
 
@@ -522,6 +572,76 @@ describe("SafeProtocolMediator", async () => {
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolMediator, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
+            });
+
+            it("Should fail to execute a transaction from root access enabled module when guard pre-check fails", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
+                // Enable guard on a safe
+                const guard = await getGuardWithFailingPrechecks();
+
+                const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetGuard);
+
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [await module.getAddress(), true]);
+                await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
+
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWith(
+                    "pre-check root access failed",
+                );
+            });
+
+            it("Should fail to execute a transaction from root access enabled module when guard post-check fails", async () => {
+                const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
+                const safeAddress = await safe.getAddress();
+                const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
+
+                // Enable guard on a safe
+                const guard = await getGuardWithFailingPostCheck();
+                const dataSetGuard = safeProtocolMediator.interface.encodeFunctionData("setGuard", [await guard.getAddress()]);
+                await safe.exec(safeProtocolMediatorAddress, 0, dataSetGuard);
+
+                const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
+
+                // Enable module
+                const module = await (await hre.ethers.getContractFactory("TestModuleWithRootAccess")).deploy();
+                const moduleAddress = await module.getAddress();
+
+                await safeProtocolRegistry.connect(owner).addComponent(moduleAddress);
+
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [moduleAddress, true]);
+                await safe.exec(safeProtocolMediatorAddress, 0, data);
+
+                const amount = hre.ethers.parseEther("1");
+                await (
+                    await deployer.sendTransaction({
+                        to: safeAddress,
+                        value: amount,
+                    })
+                ).wait();
+
+                const safeTx = buildRootTx(
+                    await testFallbackReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
+
+                await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
             });
 
             it("Should not allow a transaction from root access if module is flagged", async () => {
