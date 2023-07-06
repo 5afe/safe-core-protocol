@@ -1,13 +1,9 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
-    /**
-     * @dev TODO: Determint whether there exists a more gas efficient way to store component info based on the way component information is accessed.
-     *      For simplicity, currently using a struct.
-     */
     mapping(address => ComponentInfo) public listedComponents;
 
     struct ComponentInfo {
@@ -68,5 +64,9 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         // TODO: Determint whether there exists a more gas efficient way to update component info.
         listedComponents[component] = ComponentInfo(componentInfo.listedAt, uint64(block.timestamp));
         emit ComponentFlagged(component);
+    }
+
+    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+        return interfaceId == type(ISafeProtocolRegistry).interfaceId || interfaceId == 0x01ffc9a7; //bytes4(keccak256('supportsInterface(bytes4)'));
     }
 }

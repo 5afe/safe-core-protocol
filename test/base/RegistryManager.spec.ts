@@ -3,6 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { ZeroAddress } from "ethers";
+import { getMockRegistryWithInvalidInterfaceSupport } from "../utils/mockRegistryBuilder";
 
 describe("RegistryManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
@@ -23,15 +24,35 @@ describe("RegistryManager", async () => {
         return { registryManager, safeProtocolRegistry };
     }
 
+    it("Should revert when registry address does not implement valid interfaceId", async () => {
+        const { registryManager } = await loadFixture(deployContractsFixture);
+        await expect(registryManager.connect(owner).setRegistry(ZeroAddress)).to.be.reverted;
+    });
+
+    it("Should revert with AccountDoesNotImplementValidInterfaceId when registry address does not implement valid interfaceId", async () => {
+        const { registryManager } = await loadFixture(deployContractsFixture);
+        const registry = await getMockRegistryWithInvalidInterfaceSupport();
+        await expect(registryManager.connect(owner).setRegistry(registry)).to.be.revertedWithCustomError(
+            registryManager,
+            "AccountDoesNotImplementValidInterfaceId",
+        );
+    });
+
     it("Should emit RegistryChanged change event when registry is updated", async () => {
         const { registryManager } = await loadFixture(deployContractsFixture);
-        await expect(registryManager.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith("Ownable: caller is not the owner");
+        const safeProtocolRegistryAddress = await (
+            await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address], { signer: deployer })
+        ).getAddress();
 
-        expect(await registryManager.connect(owner).setRegistry(ZeroAddress))
+        await expect(registryManager.connect(user1).setRegistry(safeProtocolRegistryAddress)).to.be.revertedWith(
+            "Ownable: caller is not the owner",
+        );
+
+        expect(await registryManager.connect(owner).setRegistry(safeProtocolRegistryAddress))
             .to.emit(registryManager, "RegistryChanged")
-            .withArgs(await registryManager.getAddress(), ZeroAddress);
+            .withArgs(await registryManager.getAddress(), safeProtocolRegistryAddress);
 
-        expect(await registryManager.registry()).to.be.equal(ZeroAddress);
+        expect(await registryManager.registry()).to.be.equal(safeProtocolRegistryAddress);
     });
 
     it("Should not allow non-owner to update registry", async () => {
