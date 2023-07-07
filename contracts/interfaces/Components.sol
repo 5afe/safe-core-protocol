@@ -62,6 +62,7 @@ interface ISafeProtocolGuard is IERC165 {
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled and
      *         transaction requies tool access.
+     * @dev Add custom logic in this function to validate the pre-state and contents of transaction for root access.
      * @param safe A Safe instance
      * @param rootAccess DataTypes.SafeRootAccess
      * @param executionType uint256
@@ -80,7 +81,7 @@ interface ISafeProtocolGuard is IERC165 {
      * @dev Add custom logic in this function to validate the post-state after the transaction is executed.
      * @param safe ISafe
      * @param success bool
-     * @param preCheckData Arbitrary length bytes
+     * @param preCheckData Arbitrary length bytes that was returned by during pre-check of the transaction.
      */
     function postCheck(ISafe safe, bool success, bytes calldata preCheckData) external;
 }
