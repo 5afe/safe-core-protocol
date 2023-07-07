@@ -26,7 +26,7 @@ describe("SafeProtocolMediator", async () => {
     }
 
     describe("Setup mediator", async () => {
-        it("Should set mediator as a module for a safe", async () => {
+        it("Should set mediator as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
             const { safeProtocolMediator } = await loadFixture(deployContractsFixture);
             expect(await safe.setPlugin(await safeProtocolMediator.getAddress()));
@@ -36,13 +36,13 @@ describe("SafeProtocolMediator", async () => {
     describe("Plugins", async () => {
         async function deployContractsWithPluginFixture() {
             const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
-            const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-            await safeProtocolRegistry.connect(owner).addComponent(module);
-            return { safeProtocolMediator, safe, module, safeProtocolRegistry };
+            const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+            await safeProtocolRegistry.connect(owner).addComponent(plugin);
+            return { safeProtocolMediator, safe, plugin, safeProtocolRegistry };
         }
 
-        describe("Test enable module", async () => {
-            it("Should not allow a Safe to enable zero address module", async () => {
+        describe("Test enable plugin", async () => {
+            it("Should not allow a Safe to enable zero address plugin", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [hre.ethers.ZeroAddress, false]);
@@ -51,30 +51,30 @@ describe("SafeProtocolMediator", async () => {
                     .withArgs(hre.ethers.ZeroAddress);
             });
 
-            it("Should not allow a Safe to enable module if not added as a component in registry", async () => {
+            it("Should not allow a Safe to enable plugin if not added as a component in registry", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
-                const moduleAddress = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
+                const pluginAddress = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "PluginNotPermitted")
-                    .withArgs(moduleAddress, 0, 0);
+                    .withArgs(pluginAddress, 0, 0);
             });
 
-            it("Should not allow a Safe to enable module if flagged in registry", async () => {
-                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
+                const { safeProtocolMediator, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
-                await safeProtocolRegistry.connect(owner).flagComponent(module);
+                await safeProtocolRegistry.connect(owner).flagComponent(plugin);
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginNotPermitted",
                 );
             });
 
-            it("Should not allow a Safe to enable SENTINEL_MODULES module", async () => {
+            it("Should not allow a Safe to enable SENTINEL_MODULES plugin", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [SENTINEL_MODULES, false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
@@ -82,31 +82,31 @@ describe("SafeProtocolMediator", async () => {
                     .withArgs(SENTINEL_MODULES);
             });
 
-            it("Should allow a Safe to enable a module through a mediator", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
-                const moduleAddress = await module.getAddress();
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+            it("Should allow a Safe to enable a plugin through a mediator", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
+                const pluginAddress = await plugin.getAddress();
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
-                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), moduleAddress)).to.eql([false, SENTINEL_MODULES]);
+                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, SENTINEL_MODULES]);
             });
 
-            it("Should fail to enable a module (with non root access) with root access", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should fail to enable a plugin (with non root access) with root access", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
 
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginAccessMismatch",
                 );
-                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), moduleAddress)).to.eql([false, ZeroAddress]);
+                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, ZeroAddress]);
             });
         });
 
-        describe("Test disable module", async () => {
-            it("Should not allow a Safe to disable zero address module", async () => {
+        describe("Test disable plugin", async () => {
+            it("Should not allow a Safe to disable zero address plugin", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
                 const data = safeProtocolMediator.interface.encodeFunctionData("disablePlugin", [
@@ -118,7 +118,7 @@ describe("SafeProtocolMediator", async () => {
                     .withArgs(hre.ethers.ZeroAddress);
             });
 
-            it("Should not allow a Safe to disable SENTINEL_MODULES module", async () => {
+            it("Should not allow a Safe to disable SENTINEL_MODULES plugin", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
                 await safe.setPlugin(safeProtocolMediatorAddress);
@@ -128,44 +128,44 @@ describe("SafeProtocolMediator", async () => {
                     .withArgs(SENTINEL_MODULES);
             });
 
-            it("Should revert if nexPluginPtr and module address do not match", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should revert if nexPluginPtr and plugin address do not match", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
                 await safe.setPlugin(safeProtocolMediatorAddress);
                 const data = safeProtocolMediator.interface.encodeFunctionData("disablePlugin", [
                     SENTINEL_MODULES,
-                    await module.getAddress(),
+                    await plugin.getAddress(),
                 ]);
                 await expect(safe.exec(safeProtocolMediatorAddress, 0, data))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidPrevPluginAddress")
                     .withArgs(SENTINEL_MODULES);
             });
 
-            it("Should disable a module", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should disable a plugin", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
                 const safeAddress = await safe.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
-                expect(await safeProtocolMediator.getPluginInfo(safeAddress, moduleAddress)).to.eql([false, SENTINEL_MODULES]);
+                expect(await safeProtocolMediator.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
 
-                const data2 = safeProtocolMediator.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, moduleAddress]);
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
-                expect(await safeProtocolMediator.getPluginInfo(safeAddress, moduleAddress)).to.eql([false, ZeroAddress]);
+                expect(await safeProtocolMediator.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, ZeroAddress]);
             });
 
-            it("Should not allow enabling module if already enabled", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should not allow enabling plugin if already enabled", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
-                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), moduleAddress)).to.eql([false, SENTINEL_MODULES]);
+                expect(await safeProtocolMediator.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, SENTINEL_MODULES]);
 
                 await expect(safe.exec(safeProtocolMediatorAddress, 0, data)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
@@ -174,121 +174,121 @@ describe("SafeProtocolMediator", async () => {
             });
         });
 
-        describe("Get paginated list of modules", async () => {
+        describe("Get paginated list of plugins", async () => {
             it("Should revert with InvalidPluginAddress", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
 
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                await expect(safeProtocolMediator.getPluginsPaginated.staticCall(moduleAddress, 1, safe))
+                await expect(safeProtocolMediator.getPluginsPaginated.staticCall(pluginAddress, 1, safe))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidPluginAddress")
-                    .withArgs(moduleAddress);
+                    .withArgs(pluginAddress);
             });
 
             it("Should revert with InvalidPageSize", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
                 await expect(
-                    safeProtocolMediator.getPluginsPaginated.staticCall(await module.getAddress(), 0, safe),
+                    safeProtocolMediator.getPluginsPaginated.staticCall(await plugin.getAddress(), 0, safe),
                 ).to.be.revertedWithCustomError(safeProtocolMediator, "ZeroPageSizeNotAllowed");
             });
 
-            it("Should return empty list if no modules are enabled", async () => {
+            it("Should return empty list if no plugins are enabled", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
                 expect(await safeProtocolMediator.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([[], SENTINEL_MODULES]);
             });
 
-            it("Should return list with one module", async () => {
-                const { safeProtocolMediator, safe, module } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should return list with one plugin", async () => {
+                const { safeProtocolMediator, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
 
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
-                await safeProtocolMediator.getPluginInfo(await safe.getAddress(), moduleAddress);
+                await safeProtocolMediator.getPluginInfo(await safe.getAddress(), pluginAddress);
                 expect(await safeProtocolMediator.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([
-                    [moduleAddress],
+                    [pluginAddress],
                     SENTINEL_MODULES,
                 ]);
             });
 
-            it("Should return list with 2 modules starting from sentinel address", async () => {
-                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should return list with 2 plugins starting from sentinel address", async () => {
+                const { safeProtocolMediator, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
 
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
 
-                const module2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                const module2Address = await module2.getAddress();
+                const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                const plugin2Address = await plugin2.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(module2Address);
-                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [module2Address, false]);
+                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
 
                 expect(await safeProtocolMediator.getPluginsPaginated.staticCall(SENTINEL_MODULES, 10, safe)).to.eql([
-                    [module2Address, moduleAddress],
+                    [plugin2Address, pluginAddress],
                     SENTINEL_MODULES,
                 ]);
             });
 
-            it("Should return list with 1 module starting from non-sentinel address", async () => {
-                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should return list with 1 plugin starting from non-sentinel address", async () => {
+                const { safeProtocolMediator, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
 
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
 
-                const module2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                const module2Address = await module2.getAddress();
-                await safeProtocolRegistry.connect(owner).addComponent(module2Address);
-                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [module2Address, false]);
+                const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                const plugin2Address = await plugin2.getAddress();
+                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
-                expect(await safeProtocolMediator.getPluginsPaginated.staticCall(module2Address, 10, safe)).to.eql([
-                    [moduleAddress],
+                expect(await safeProtocolMediator.getPluginsPaginated.staticCall(plugin2Address, 10, safe)).to.eql([
+                    [pluginAddress],
                     SENTINEL_MODULES,
                 ]);
             });
 
-            it("Should return list with 1 module when called with pageSize 1", async () => {
-                const { safeProtocolMediator, safe, module, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+            it("Should return list with 1 plugin when called with pageSize 1", async () => {
+                const { safeProtocolMediator, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
-                const moduleAddress = await module.getAddress();
+                const pluginAddress = await plugin.getAddress();
 
                 await safe.setPlugin(safeProtocolMediatorAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
-                const module2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
+                const plugin2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(module2Address);
-                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [module2Address, false]);
+                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
 
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
                 expect(await safeProtocolMediator.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([
-                    [module2Address],
-                    module2Address,
+                    [plugin2Address],
+                    plugin2Address,
                 ]);
 
-                expect(await safeProtocolMediator.getPluginsPaginated.staticCall(module2Address, 1, safe)).to.eql([
-                    [moduleAddress],
+                expect(await safeProtocolMediator.getPluginsPaginated.staticCall(plugin2Address, 1, safe)).to.eql([
+                    [pluginAddress],
                     SENTINEL_MODULES,
                 ]);
             });
         });
     });
 
-    describe("Execute transaction from module", async () => {
+    describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledMediatorFixture() {
             const { safeProtocolMediator, safeProtocolRegistry, safe } = await loadFixture(deployContractsFixture);
             await safe.setPlugin(await safeProtocolMediator.getAddress());
@@ -296,11 +296,11 @@ describe("SafeProtocolMediator", async () => {
         }
 
         describe("Plugin with non-root access", async () => {
-            it("Should not allow non-enabled module to execute tx from a safe", async () => {
+            it("Should not allow non-enabled plugin to execute tx from a safe", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithEnabledMediatorFixture);
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "MoudleNotEnabled",
                 );
@@ -309,11 +309,11 @@ describe("SafeProtocolMediator", async () => {
             it("Should process a SafeTransaction and transfer ETH from safe to an EOA", async function () {
                 const { safeProtocolMediator, safeProtocolRegistry, safe } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 const safeAddress = await safe.getAddress();
                 const amount = hre.ethers.parseEther("1");
@@ -326,7 +326,7 @@ describe("SafeProtocolMediator", async () => {
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await module.executeFromPlugin(safeProtocolMediator, safe, safeTx);
+                const tx = await plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -343,11 +343,11 @@ describe("SafeProtocolMediator", async () => {
                 const dataSetHook = safeProtocolMediator.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetHook);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 const safeAddress = await safe.getAddress();
                 const amount = hre.ethers.parseEther("1");
@@ -360,7 +360,7 @@ describe("SafeProtocolMediator", async () => {
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await module.executeFromPlugin(safeProtocolMediator, safe, safeTx);
+                const tx = await plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -370,7 +370,7 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx).to.emit(safeProtocolMediator, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
             });
 
-            it("Should fail executing a transaction through module when hook pre-check fails", async () => {
+            it("Should fail executing a transaction through plugin when hook pre-check fails", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 // Enable hook on a safe
                 const hook = await getHookWithFailingPrechecks();
@@ -378,19 +378,19 @@ describe("SafeProtocolMediator", async () => {
                 const dataSetHook = safeProtocolMediator.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, dataSetHook);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("pre-check failed");
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("pre-check failed");
             });
 
-            it("Should fail executing a transaction through module when hook post-check fails", async () => {
+            it("Should fail executing a transaction through plugin when hook post-check fails", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
                 // Enable hook on a safe
@@ -399,13 +399,13 @@ describe("SafeProtocolMediator", async () => {
                 const dataSetHook = safeProtocolMediator.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
                 await safe.exec(safeProtocolMediatorAddress, 0, dataSetHook);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                const moduleAddress = await module.getAddress();
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(moduleAddress);
+                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
 
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
@@ -416,17 +416,17 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
             });
 
             it("Should revert with ActionExecutionFailed error if Safe doesn't have enough ETH balance", async function () {
                 const { safeProtocolMediator, safeProtocolRegistry, safe } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
                 const safeTx = {
                     actions: [
@@ -441,7 +441,7 @@ describe("SafeProtocolMediator", async () => {
                 };
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
 
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "ActionExecutionFailed",
                 );
@@ -449,14 +449,14 @@ describe("SafeProtocolMediator", async () => {
                 expect(balanceAfter).to.eql(balanceBefore);
             });
 
-            it("Should not process a SafeTransaction if module is not permitted", async function () {
+            it("Should not process a SafeTransaction if plugin is not permitted", async function () {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), false]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const amount = hre.ethers.parseEther("1");
@@ -468,8 +468,8 @@ describe("SafeProtocolMediator", async () => {
                 ).wait();
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
-                await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await safeProtocolRegistry.connect(owner).flagComponent(await plugin.getAddress());
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginNotPermitted",
                 );
@@ -477,17 +477,17 @@ describe("SafeProtocolMediator", async () => {
         });
 
         describe("Plugin with root access", async () => {
-            it("Should run a transaction from root access enabled module", async () => {
+            it("Should run a transaction from root access enabled plugin", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 const safeAddress = await safe.getAddress();
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const amount = hre.ethers.parseEther("1");
@@ -507,7 +507,7 @@ describe("SafeProtocolMediator", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await module.executeFromPlugin(safeProtocolMediator, safe, safeTx);
+                const tx = await plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -517,7 +517,7 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx).to.emit(safeProtocolMediator, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
             });
 
-            it("Should execute a transaction from root access enabled module with hook enabled", async () => {
+            it("Should execute a transaction from root access enabled plugin with hook enabled", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 const safeAddress = await safe.getAddress();
                 // Enable hook on a safe
@@ -527,11 +527,11 @@ describe("SafeProtocolMediator", async () => {
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const amount = hre.ethers.parseEther("1");
@@ -551,7 +551,7 @@ describe("SafeProtocolMediator", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await module.executeFromPlugin(safeProtocolMediator, safe, safeTx);
+                const tx = await plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -561,7 +561,7 @@ describe("SafeProtocolMediator", async () => {
                 await expect(tx).to.emit(safeProtocolMediator, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
             });
 
-            it("Should fail to execute a transaction from root access enabled module when hook pre-check fails", async () => {
+            it("Should fail to execute a transaction from root access enabled plugin when hook pre-check fails", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 // Enable hook on a safe
                 const hook = await getHookWithFailingPrechecks();
@@ -571,11 +571,11 @@ describe("SafeProtocolMediator", async () => {
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const safeTx = buildRootTx(
@@ -586,12 +586,12 @@ describe("SafeProtocolMediator", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith(
                     "pre-check root access failed",
                 );
             });
 
-            it("Should fail to execute a transaction from root access enabled module when hook post-check fails", async () => {
+            it("Should fail to execute a transaction from root access enabled plugin when hook post-check fails", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
                 const safeAddress = await safe.getAddress();
                 const safeProtocolMediatorAddress = await safeProtocolMediator.getAddress();
@@ -603,13 +603,13 @@ describe("SafeProtocolMediator", async () => {
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                const moduleAddress = await module.getAddress();
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(moduleAddress);
+                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
@@ -628,19 +628,19 @@ describe("SafeProtocolMediator", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWith("post-check failed");
             });
 
-            it("Should not allow a transaction from root access if module is flagged", async () => {
+            it("Should not allow a transaction from root access if plugin is flagged", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
                 const testDelegateCallReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user2.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const amount = hre.ethers.parseEther("1");
@@ -659,36 +659,36 @@ describe("SafeProtocolMediator", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await safeProtocolRegistry.connect(owner).flagComponent(await plugin.getAddress());
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginNotPermitted",
                 );
             });
 
-            it("Should not allow non-enabled module to execute root tx from a safe", async () => {
+            it("Should not allow non-enabled plugin to execute root tx from a safe", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithEnabledMediatorFixture);
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const safeTx = buildRootTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "MoudleNotEnabled",
                 );
             });
 
-            it("Should revert with PluginRequiresRootAccess if module indicates it doesn't need root access anymore", async () => {
+            it("Should revert with PluginRequiresRootAccess if plugin indicates it doesn't need root access anymore", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
-                await module.setRequiresRootAccess(false);
+                await plugin.setRequiresRootAccess(false);
                 const safeTx = buildRootTx(
                     await testFallbackReceiver.getAddress(),
                     hre.ethers.parseEther("1"),
@@ -697,7 +697,7 @@ describe("SafeProtocolMediator", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginRequiresRootAccess",
                 );
@@ -708,11 +708,11 @@ describe("SafeProtocolMediator", async () => {
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiverReverter")).deploy();
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await module.getAddress());
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
 
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await module.getAddress(), true]);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 const safeTx = buildRootTx(
@@ -722,28 +722,28 @@ describe("SafeProtocolMediator", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "RootAccessActionExecutionFailed",
                 );
             });
 
-            it("Should emit PluginRequiresRootAccess for root access module", async () => {
+            it("Should emit PluginRequiresRootAccess for root access plugin", async () => {
                 const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledMediatorFixture);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiverReverter")).deploy();
 
-                // Enable module
-                const module = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                const moduleAddress = await module.getAddress();
-                await safeProtocolRegistry.connect(owner).addComponent(moduleAddress);
-                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [moduleAddress, false]);
-                // Required to set module to indicate that it does not require root access
-                await module.setRequiresRootAccess(false);
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                const pluginAddress = await plugin.getAddress();
+                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
+                const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
+                // Required to set plugin to indicate that it does not require root access
+                await plugin.setRequiresRootAccess(false);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
 
                 // Set root access flag back to true
-                await module.setRequiresRootAccess(true);
+                await plugin.setRequiresRootAccess(true);
 
                 const safeTx = buildRootTx(
                     await testFallbackReceiver.getAddress(),
@@ -752,9 +752,9 @@ describe("SafeProtocolMediator", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(module.executeFromPlugin(safeProtocolMediator, safe, safeTx))
+                await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx))
                     .to.be.revertedWithCustomError(safeProtocolMediator, "PluginRequiresRootAccess")
-                    .withArgs(moduleAddress);
+                    .withArgs(pluginAddress);
             });
         });
     });

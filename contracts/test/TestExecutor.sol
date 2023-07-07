@@ -3,11 +3,11 @@ pragma solidity ^0.8.18;
 import {ISafe} from "../interfaces/Accounts.sol";
 
 contract TestExecutor is ISafe {
-    address public module;
+    address public plugin;
     address[] public owners;
 
-    function setPlugin(address _module) external {
-        module = _module;
+    function setPlugin(address _plugin) external {
+        plugin = _plugin;
     }
 
     function exec(address payable to, uint256 value, bytes calldata data) external {
@@ -28,7 +28,7 @@ contract TestExecutor is ISafe {
         bytes calldata data,
         uint8 operation
     ) external returns (bool success) {
-        require(msg.sender == module, "Not authorized");
+        require(msg.sender == plugin, "Not authorized");
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data);
     }
@@ -39,7 +39,7 @@ contract TestExecutor is ISafe {
         bytes memory data,
         uint8 operation
     ) public returns (bool success, bytes memory returnData) {
-        require(msg.sender == module, "Not authorized");
+        require(msg.sender == plugin, "Not authorized");
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data); // solhint-disable-next-line no-inline-assembly
 

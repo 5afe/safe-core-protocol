@@ -10,14 +10,14 @@ import {RegistryManager} from "./base/RegistryManager.sol";
 import {HookManager} from "./base/HookManager.sol";
 
 /**
- * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
- *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
+ * @title SafeProtocolMediator contract allows Safe users to set plugin through a Mediator rather than directly enabling a plugin on Safe.
+ *        Users have to first enable SafeProtocolMediator as a plugin on a Safe and then enable other plugins through the mediator.
  */
 contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
-     * @notice Mapping of a mapping what stores information about modules that are enabled per Safe.
+     * @notice Mapping of a mapping what stores information about plugins that are enabled per Safe.
      *         address (Safe address) => address (component address) => EnabledPluginInfo
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
@@ -29,19 +29,19 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
     // Events
     event ActionsExecuted(address indexed safe, bytes32 metaHash, uint256 nonce);
     event RootAccessActionExecuted(address indexed safe, bytes32 metaHash);
-    event PluginEnabled(address indexed safe, address indexed module, bool allowRootAccess);
-    event PluginDisabled(address indexed safe, address indexed module);
+    event PluginEnabled(address indexed safe, address indexed plugin, bool allowRootAccess);
+    event PluginDisabled(address indexed safe, address indexed plugin);
 
     // Errors
     error PluginRequiresRootAccess(address sender);
-    error MoudleNotEnabled(address module);
-    error PluginEnabledOnlyForRootAccess(address module);
-    error PluginAccessMismatch(address module, bool requiresRootAccess, bool providedValue);
+    error MoudleNotEnabled(address plugin);
+    error PluginEnabledOnlyForRootAccess(address plugin);
+    error PluginAccessMismatch(address plugin, bool requiresRootAccess, bool providedValue);
     error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metaHash);
-    error PluginAlreadyEnabled(address safe, address module);
-    error InvalidPluginAddress(address module);
-    error InvalidPrevPluginAddress(address module);
+    error PluginAlreadyEnabled(address safe, address plugin);
+    error InvalidPluginAddress(address plugin);
+    error InvalidPrevPluginAddress(address plugin);
     error ZeroPageSizeNotAllowed();
 
     modifier onlyEnabledPlugin(address safe) {
@@ -51,9 +51,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
         _;
     }
 
-    modifier noZeroOrSentinelPlugin(address module) {
-        if (module == address(0) || module == SENTINEL_MODULES) {
-            revert InvalidPluginAddress(module);
+    modifier noZeroOrSentinelPlugin(address plugin) {
+        if (plugin == address(0) || plugin == SENTINEL_MODULES) {
+            revert InvalidPluginAddress(plugin);
         }
         _;
     }
@@ -61,7 +61,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
     constructor(address initialOwner, address _registry) RegistryManager(_registry, initialOwner) {}
 
     /**
-     * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
+     * @notice This function executes non-delegate call(s) on a safe if the plugin is enabled on the Safe.
      *         If any one of the actions fail, the transaction reverts.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
@@ -79,7 +79,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
         bytes memory preCheckData;
         if (isHookEnabled) {
             // TODO: Define execution meta
-            // executionType = 1 for module flow
+            // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHook(hookAddress).preCheck(safe, transaction, 1, "");
         }
 
@@ -109,7 +109,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
     }
 
     /**
-     * @notice This function executes a delegate call on a safe if the module is enabled and
+     * @notice This function executes a delegate call on a safe if the plugin is enabled and
      *         root access it granted.
      * @param safe A Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
@@ -128,7 +128,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
         bytes memory preCheckData;
         if (isHookEnabled) {
             // TODO: Define execution meta
-            // executionType = 1 for module flow
+            // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHook(hookAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
         if (!ISafeProtocolPlugin(msg.sender).requiresRootAccess() || !enabledPlugins[safeAddress][msg.sender].rootAddressGranted) {
@@ -156,21 +156,21 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
     }
 
     /**
-     * @notice Called by a Safe to enable a module on a Safe. To be called by a safe.
-     * @param module ISafeProtocolPlugin A module that has to be enabled
+     * @notice Called by a Safe to enable a plugin on a Safe. To be called by a safe.
+     * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enablePlugin(address module, bool allowRootAccess) external noZeroOrSentinelPlugin(module) onlyPermittedPlugin(module) {
+    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedPlugin(plugin) {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
-        PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][module];
+        PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 
         if (senderPlugin.nextPluginPointer != address(0)) {
-            revert PluginAlreadyEnabled(msg.sender, module);
+            revert PluginAlreadyEnabled(msg.sender, plugin);
         }
 
-        bool requiresRootAccess = ISafeProtocolPlugin(module).requiresRootAccess();
+        bool requiresRootAccess = ISafeProtocolPlugin(plugin).requiresRootAccess();
         if (allowRootAccess != requiresRootAccess) {
-            revert PluginAccessMismatch(module, requiresRootAccess, allowRootAccess);
+            revert PluginAccessMismatch(plugin, requiresRootAccess, allowRootAccess);
         }
 
         if (senderSentinelPlugin.nextPluginPointer == address(0)) {
@@ -180,54 +180,54 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
 
         senderPlugin.nextPluginPointer = senderSentinelPlugin.nextPluginPointer;
         senderPlugin.rootAddressGranted = allowRootAccess;
-        senderSentinelPlugin.nextPluginPointer = module;
+        senderSentinelPlugin.nextPluginPointer = plugin;
 
-        emit PluginEnabled(msg.sender, module, allowRootAccess);
+        emit PluginEnabled(msg.sender, plugin, allowRootAccess);
     }
 
     /**
-     * @notice Disable a module. This function should be called by Safe.
-     * @param module Plugin to be disabled
+     * @notice Disable a plugin. This function should be called by Safe.
+     * @param plugin Plugin to be disabled
      */
-    function disablePlugin(address prevPlugin, address module) external noZeroOrSentinelPlugin(module) {
+    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) {
         PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
-        PluginAccessInfo storage moduleInfo = enabledPlugins[msg.sender][module];
+        PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
 
-        if (prevPluginInfo.nextPluginPointer != module) {
+        if (prevPluginInfo.nextPluginPointer != plugin) {
             revert InvalidPrevPluginAddress(prevPlugin);
         }
 
-        prevPluginInfo = moduleInfo;
+        prevPluginInfo = pluginInfo;
 
-        moduleInfo.nextPluginPointer = address(0);
-        moduleInfo.rootAddressGranted = false;
-        emit PluginDisabled(msg.sender, module);
+        pluginInfo.nextPluginPointer = address(0);
+        pluginInfo.rootAddressGranted = false;
+        emit PluginDisabled(msg.sender, plugin);
     }
 
     /**
-     * @notice A view only function to get information about safe and a module
+     * @notice A view only function to get information about safe and a plugin
      * @param safe Address of a safe
-     * @param module Address of a module
+     * @param plugin Address of a plugin
      */
-    function getPluginInfo(address safe, address module) external view returns (PluginAccessInfo memory enabled) {
-        return enabledPlugins[safe][module];
+    function getPluginInfo(address safe, address plugin) external view returns (PluginAccessInfo memory enabled) {
+        return enabledPlugins[safe][plugin];
     }
 
     /**
-     * @notice Returns if an module is enabled
-     * @return True if the module is enabled
+     * @notice Returns if an plugin is enabled
+     * @return True if the plugin is enabled
      */
-    function isPluginEnabled(address safe, address module) public view returns (bool) {
-        return SENTINEL_MODULES != module && enabledPlugins[safe][module].nextPluginPointer != address(0);
+    function isPluginEnabled(address safe, address plugin) public view returns (bool) {
+        return SENTINEL_MODULES != plugin && enabledPlugins[safe][plugin].nextPluginPointer != address(0);
     }
 
     /**
-     * @notice Returns an array of modules enabled for a Safe address.
+     * @notice Returns an array of plugins enabled for a Safe address.
      *         If all entries fit into a single page, the next pointer will be 0x1.
      *         If another page is present, next will be the last element of the returned array.
-     * @param start Start of the page. Has to be a module or start pointer (0x1 address)
-     * @param pageSize Maximum number of modules that should be returned. Has to be > 0
-     * @return array Array of modules.
+     * @param start Start of the page. Has to be a plugin or start pointer (0x1 address)
+     * @param pageSize Maximum number of plugins that should be returned. Has to be > 0
+     * @return array Array of plugins.
      * @return next Start of the next page.
      */
     function getPluginsPaginated(
@@ -246,34 +246,34 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
         array = new address[](pageSize);
 
         // Populate return array
-        uint256 moduleCount = 0;
+        uint256 pluginCount = 0;
         next = enabledPlugins[safe][start].nextPluginPointer;
-        while (next != address(0) && next != SENTINEL_MODULES && moduleCount < pageSize) {
-            array[moduleCount] = next;
+        while (next != address(0) && next != SENTINEL_MODULES && pluginCount < pageSize) {
+            array[pluginCount] = next;
             next = enabledPlugins[safe][next].nextPluginPointer;
-            moduleCount++;
+            pluginCount++;
         }
 
-        // This check is required because the enabled module list might not be initialised yet. e.g. no enabled modules for a safe ever before
-        if (moduleCount == 0) {
+        // This check is required because the enabled plugin list might not be initialised yet. e.g. no enabled plugins for a safe ever before
+        if (pluginCount == 0) {
             next = SENTINEL_MODULES;
         }
 
         /**
-          Because of the argument validation, we can assume that the loop will always iterate over the valid module list values
-          and the `next` variable will either be an enabled module or a sentinel address (signalling the end). 
+          Because of the argument validation, we can assume that the loop will always iterate over the valid plugin list values
+          and the `next` variable will either be an enabled plugin or a sentinel address (signalling the end). 
           
-          If we haven't reached the end inside the loop, we need to set the next pointer to the last element of the modules array
-          because the `next` variable (which is a module by itself) acting as a pointer to the start of the next page is neither 
+          If we haven't reached the end inside the loop, we need to set the next pointer to the last element of the plugins array
+          because the `next` variable (which is a plugin by itself) acting as a pointer to the start of the next page is neither 
           included to the current page, nor will it be included in the next one if you pass it as a start.
         */
-        if (next != SENTINEL_MODULES && moduleCount != 0) {
-            next = array[moduleCount - 1];
+        if (next != SENTINEL_MODULES && pluginCount != 0) {
+            next = array[pluginCount - 1];
         }
         // Set correct size of returned array
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            mstore(array, moduleCount)
+            mstore(array, pluginCount)
         }
     }
 }
