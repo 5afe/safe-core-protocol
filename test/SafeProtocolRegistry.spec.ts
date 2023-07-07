@@ -13,53 +13,59 @@ describe("SafeProtocolRegistry", async () => {
         return { safeProtocolRegistry };
     }
 
-    it("Should allow add a component only once", async () => {
+    it("Should allow add a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
-        await expect(safeProtocolRegistry.connect(owner).addComponent(AddressZero)).to.be.revertedWithCustomError(
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
+        await expect(safeProtocolRegistry.connect(owner).addIntegration(AddressZero)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
-            "CannotAddComponent",
+            "CannotAddIntegration",
         );
     });
 
-    it("Should not allow non-owner to add a component", async () => {
+    it("Should not allow non-owner to add a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.connect(user1).addComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("Should not allow to flag non-listed component", async () => {
-        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.connect(owner).flagComponent(AddressZero)).to.be.revertedWithCustomError(
-            safeProtocolRegistry,
-            "CannotFlagComponent",
+        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero)).to.be.revertedWith(
+            "Ownable: caller is not the owner",
         );
     });
 
-    it("Should allow only owner to flag a component", async () => {
+    it("Should not allow to flag non-listed integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
+        await expect(safeProtocolRegistry.connect(owner).flagIntegration(AddressZero)).to.be.revertedWithCustomError(
+            safeProtocolRegistry,
+            "CannotFlagIntegration",
+        );
+    });
 
-        await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
+    it("Should allow only owner to flag a integration", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
 
-        expect(await safeProtocolRegistry.connect(owner).flagComponent(AddressZero));
+        await expect(safeProtocolRegistry.connect(user1).flagIntegration(AddressZero)).to.be.revertedWith(
+            "Ownable: caller is not the owner",
+        );
+
+        expect(await safeProtocolRegistry.connect(owner).flagIntegration(AddressZero));
 
         const [flaggedAt] = await safeProtocolRegistry.check.staticCall(AddressZero);
         expect(flaggedAt).to.be.gt(0);
     });
 
-    it("Should allow only owner to flag a component only once", async () => {
+    it("Should allow only owner to flag a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addComponent(AddressZero);
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
 
-        await expect(safeProtocolRegistry.connect(user1).flagComponent(AddressZero)).to.be.revertedWith("Ownable: caller is not the owner");
+        await expect(safeProtocolRegistry.connect(user1).flagIntegration(AddressZero)).to.be.revertedWith(
+            "Ownable: caller is not the owner",
+        );
 
-        await safeProtocolRegistry.connect(owner).flagComponent(AddressZero);
-        await expect(safeProtocolRegistry.connect(owner).flagComponent(AddressZero))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagComponent")
+        await safeProtocolRegistry.connect(owner).flagIntegration(AddressZero);
+        await expect(safeProtocolRegistry.connect(owner).flagIntegration(AddressZero))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagIntegration")
             .withArgs(AddressZero);
     });
 
-    it("Should return (0,0) for non-listed component", async () => {
+    it("Should return (0,0) for non-listed integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(AddressZero);
         expect(listedAt).to.be.equal(0);

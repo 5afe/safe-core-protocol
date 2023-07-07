@@ -5,66 +5,66 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
-    mapping(address => ComponentInfo) public listedComponents;
+    mapping(address => IntegrationInfo) public listedIntegrations;
 
-    struct ComponentInfo {
+    struct IntegrationInfo {
         uint64 listedAt;
         uint64 flaggedAt;
     }
 
-    error CannotFlagComponent(address component);
-    error CannotAddComponent(address component);
+    error CannotFlagIntegration(address integration);
+    error CannotAddIntegration(address integration);
 
-    event ComponentAdded(address component);
-    event ComponentFlagged(address component);
+    event IntegrationAdded(address integration);
+    event IntegrationFlagged(address integration);
 
     constructor(address initialOwner) {
         _transferOwnership(initialOwner);
     }
 
     /**
-     * @notice This function returns information about a component
-     * @param component Address of the component to be checked
-     * @return listedAt Timestamp of listing the component. This value will be 0 if not listed.
-     * @return flaggedAt Timestamp of falgging the component. This value will be 0 if not flagged.
+     * @notice This function returns information about a integration
+     * @param integration Address of the integration to be checked
+     * @return listedAt Timestamp of listing the integration. This value will be 0 if not listed.
+     * @return flaggedAt Timestamp of falgging the integration. This value will be 0 if not flagged.
      */
-    function check(address component) external view returns (uint64 listedAt, uint64 flaggedAt) {
-        ComponentInfo memory componentInfo = listedComponents[component];
-        listedAt = componentInfo.listedAt;
-        flaggedAt = componentInfo.flaggedAt;
+    function check(address integration) external view returns (uint64 listedAt, uint64 flaggedAt) {
+        IntegrationInfo memory integrationInfo = listedIntegrations[integration];
+        listedAt = integrationInfo.listedAt;
+        flaggedAt = integrationInfo.flaggedAt;
     }
 
     /**
-     * @notice Allows only owner to add a component. A component can be any address including zero address for now.
-     *         This function does not permit adding a component twice.
-     *         TODO: Add logic to validate if component implements correct interface.
-     * @param component Address of the component
+     * @notice Allows only owner to add a integration. A integration can be any address including zero address for now.
+     *         This function does not permit adding a integration twice.
+     *         TODO: Add logic to validate if integration implements correct interface.
+     * @param integration Address of the integration
      */
-    function addComponent(address component) external onlyOwner {
-        ComponentInfo memory componentInfo = listedComponents[component];
+    function addIntegration(address integration) external onlyOwner {
+        IntegrationInfo memory integrationInfo = listedIntegrations[integration];
 
-        if (componentInfo.listedAt != 0) {
-            revert CannotAddComponent(component);
+        if (integrationInfo.listedAt != 0) {
+            revert CannotAddIntegration(integration);
         }
-        listedComponents[component] = ComponentInfo(uint64(block.timestamp), 0);
-        emit ComponentAdded(component);
+        listedIntegrations[integration] = IntegrationInfo(uint64(block.timestamp), 0);
+        emit IntegrationAdded(integration);
     }
 
     /**
-     * @notice Allows only owner to flad a component. Only previously added component can be flagged.
-     *         This function does not permit flagging a component twice.
-     *         A component can be any address including zero address for now.
-     * @param component Address of the component
+     * @notice Allows only owner to flad a integration. Only previously added integration can be flagged.
+     *         This function does not permit flagging a integration twice.
+     *         A integration can be any address including zero address for now.
+     * @param integration Address of the integration
      */
-    function flagComponent(address component) external onlyOwner {
-        ComponentInfo memory componentInfo = listedComponents[component];
+    function flagIntegration(address integration) external onlyOwner {
+        IntegrationInfo memory integrationInfo = listedIntegrations[integration];
 
-        if (componentInfo.listedAt == 0 || componentInfo.flaggedAt != 0) {
-            revert CannotFlagComponent(component);
+        if (integrationInfo.listedAt == 0 || integrationInfo.flaggedAt != 0) {
+            revert CannotFlagIntegration(integration);
         }
 
-        listedComponents[component] = ComponentInfo(componentInfo.listedAt, uint64(block.timestamp));
-        emit ComponentFlagged(component);
+        listedIntegrations[integration] = IntegrationInfo(integrationInfo.listedAt, uint64(block.timestamp));
+        emit IntegrationFlagged(integration);
     }
 
     function supportsInterface(bytes4 interfaceId) external view override returns (bool) {

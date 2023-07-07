@@ -18,7 +18,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookMan
 
     /**
      * @notice Mapping of a mapping what stores information about plugins that are enabled per Safe.
-     *         address (Safe address) => address (component address) => EnabledPluginInfo
+     *         address (Safe address) => address (integration address) => EnabledPluginInfo
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
     struct PluginAccessInfo {

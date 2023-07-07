@@ -37,7 +37,7 @@ describe("SafeProtocolMediator", async () => {
         async function deployContractsWithPluginFixture() {
             const { safeProtocolMediator, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-            await safeProtocolRegistry.connect(owner).addComponent(plugin);
+            await safeProtocolRegistry.connect(owner).addIntegration(plugin);
             return { safeProtocolMediator, safe, plugin, safeProtocolRegistry };
         }
 
@@ -51,7 +51,7 @@ describe("SafeProtocolMediator", async () => {
                     .withArgs(hre.ethers.ZeroAddress);
             });
 
-            it("Should not allow a Safe to enable plugin if not added as a component in registry", async () => {
+            it("Should not allow a Safe to enable plugin if not added as a integration in registry", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
                 const pluginAddress = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
@@ -65,7 +65,7 @@ describe("SafeProtocolMediator", async () => {
             it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
                 const { safeProtocolMediator, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setPlugin(await safeProtocolMediator.getAddress());
-                await safeProtocolRegistry.connect(owner).flagComponent(plugin);
+                await safeProtocolRegistry.connect(owner).flagIntegration(plugin);
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data)).to.be.revertedWithCustomError(
@@ -230,7 +230,7 @@ describe("SafeProtocolMediator", async () => {
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
 
@@ -252,7 +252,7 @@ describe("SafeProtocolMediator", async () => {
 
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
-                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data2);
                 expect(await safeProtocolMediator.getPluginsPaginated.staticCall(plugin2Address, 10, safe)).to.eql([
@@ -271,7 +271,7 @@ describe("SafeProtocolMediator", async () => {
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
                 const plugin2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
                 const data2 = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
 
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data2);
@@ -311,7 +311,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -345,7 +345,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -380,7 +380,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -403,7 +403,7 @@ describe("SafeProtocolMediator", async () => {
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
@@ -424,7 +424,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -454,7 +454,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -468,7 +468,7 @@ describe("SafeProtocolMediator", async () => {
                 ).wait();
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
-                await safeProtocolRegistry.connect(owner).flagComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginNotPermitted",
@@ -485,7 +485,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -529,7 +529,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -573,7 +573,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -607,7 +607,7 @@ describe("SafeProtocolMediator", async () => {
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
                 await safe.exec(safeProtocolMediatorAddress, 0, data);
@@ -638,7 +638,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -659,7 +659,7 @@ describe("SafeProtocolMediator", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await safeProtocolRegistry.connect(owner).flagComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeFromPlugin(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
                     "PluginNotPermitted",
@@ -683,7 +683,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -710,7 +710,7 @@ describe("SafeProtocolMediator", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addComponent(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
 
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolMediator.getAddress(), 0, data);
@@ -736,7 +736,7 @@ describe("SafeProtocolMediator", async () => {
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const pluginAddress = await plugin.getAddress();
-                await safeProtocolRegistry.connect(owner).addComponent(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
                 const data = safeProtocolMediator.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 // Required to set plugin to indicate that it does not require root access
                 await plugin.setRequiresRootAccess(false);
