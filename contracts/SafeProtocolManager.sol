@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolMediator} from "./interfaces/Manager.sol";
+import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {ISafeProtocolPlugin, ISafeProtocolHook} from "./interfaces/Integrations.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
@@ -10,10 +10,10 @@ import {RegistryManager} from "./base/RegistryManager.sol";
 import {HookManager} from "./base/HookManager.sol";
 
 /**
- * @title SafeProtocolMediator contract allows Safe users to set plugin through a Mediator rather than directly enabling a plugin on Safe.
- *        Users have to first enable SafeProtocolMediator as a plugin on a Safe and then enable other plugins through the mediator.
+ * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
+ *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookManager {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**

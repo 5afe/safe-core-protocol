@@ -22,7 +22,7 @@ contract HookManager {
     }
 
     /**
-     * @notice Sets hook on an account. If Zero address is set, mediator will not perform pre and post checks for on Safe transaction.
+     * @notice Sets hook on an account. If Zero address is set, manager will not perform pre and post checks for on Safe transaction.
      * @param hook Address of the hook to be enabled for msg.sender.
      */
     function setHook(address hook) external {

@@ -4,12 +4,12 @@ import {ISafe} from "./Accounts.sol";
 import {SafeRootAccess, SafeTransaction} from "../DataTypes.sol";
 
 /**
- * @title ISafeProtocolMediator interface a Mediator should implement
+ * @title ISafeProtocolManager interface a Manager should implement
  * @notice A mediator checks the status of the integration through the registry and allows only
  *         listed and non-flagged integrations to execute transactions. A Safe account should
  *         add a mediator as a plugin.
  */
-interface ISafeProtocolMediator {
+interface ISafeProtocolManager {
     /**
      * @notice This function allows enabled plugins to execute non-delegate call transactions thorugh a Safe.
      *         It should validate the status of the plugin through the registry and allows only listed and non-flagged integrations to execute transactions.

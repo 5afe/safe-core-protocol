@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 
 import {ISafe} from "../interfaces/Accounts.sol";
 import {ISafeProtocolPlugin} from "../interfaces/Integrations.sol";
-import {ISafeProtocolMediator} from "../interfaces/Manager.sol";
+import {ISafeProtocolManager} from "../interfaces/Manager.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 
 abstract contract BaseTestPlugin is ISafeProtocolPlugin {
@@ -20,11 +20,11 @@ abstract contract BaseTestPlugin is ISafeProtocolPlugin {
 
 contract TestPlugin is BaseTestPlugin {
     function executeFromPlugin(
-        ISafeProtocolMediator mediator,
+        ISafeProtocolManager manager,
         ISafe safe,
         SafeTransaction calldata safetx
     ) external returns (bytes[] memory data) {
-        (data) = mediator.executeTransaction(safe, safetx);
+        (data) = manager.executeTransaction(safe, safetx);
     }
 }
 
@@ -34,10 +34,10 @@ contract TestPluginWithRootAccess is BaseTestPlugin {
     }
 
     function executeFromPlugin(
-        ISafeProtocolMediator mediator,
+        ISafeProtocolManager manager,
         ISafe safe,
         SafeRootAccess calldata safeRootAccesstx
     ) external returns (bytes memory data) {
-        (data) = mediator.executeRootAccess(safe, safeRootAccesstx);
+        (data) = manager.executeRootAccess(safe, safeRootAccesstx);
     }
 }
