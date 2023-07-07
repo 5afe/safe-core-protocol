@@ -102,7 +102,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
             }
         }
         if (isGuardEnabled) {
-            // TODO: Define execution meta
             // success = true because if transaction is not revereted till here, all actions executed successfully.
             ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), true, preCheckData);
         }
@@ -145,7 +144,6 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
         );
 
         if (isGuardEnabled) {
-            // TODO: Define execution meta
             // success = true because if transaction is not revereted till here, all actions executed successfully.
             ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), success, preCheckData);
         }
