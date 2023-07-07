@@ -39,17 +39,17 @@ interface ISafeProtocolStaticFallbackMethod {
 }
 
 /**
- * @title ISafeProtocolGuard - An interface that a Safe guard should implement
+ * @title ISafeProtocolGuard - An interface that a Safe guard should implement.
  * @notice In Safe protocol, a guard can approve or deny transactions based on the logic it implements.
- *         TODO: Add more explaination.
  */
 interface ISafeProtocolGuard is IERC165 {
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled
-     *         TODO: Add more explaination and update description of each param.
-     * @param safe ISafe
+     * @dev Add custom logic in this function to validate the pre-state and contents of transaction for non-root access.
+     * @param safe A Safe instance
+     * @param tx A struct of type SafeTransaction that contains the details of the transaction.
      * @param executionType uint256
-     * @param executionMeta bytes
+     * @param executionMeta Arbitrary length of bytes
      * @return preCheckData bytes
      */
     function preCheck(
@@ -62,8 +62,7 @@ interface ISafeProtocolGuard is IERC165 {
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled and
      *         transaction requies tool access.
-     *         TODO: Add more explaination and update description of each param.
-     * @param safe ISafe
+     * @param safe A Safe instance
      * @param rootAccess DataTypes.SafeRootAccess
      * @param executionType uint256
      * @param executionMeta bytes
@@ -77,11 +76,11 @@ interface ISafeProtocolGuard is IERC165 {
     ) external returns (bytes memory preCheckData);
 
     /**
-     * @notice A function that will be called by a safe after the execution of a transaction if the guard is enabled
-     *         TODO: Add more explaination and update description of each param.
+     * @notice A function that will be called by a safe after the execution of a transaction if the guard is enabled. A guard should revert if the post state of after the transaction is not as expected.
+     * @dev Add custom logic in this function to validate the post-state after the transaction is executed.
      * @param safe ISafe
      * @param success bool
-     * @param preCheckData bytes
+     * @param preCheckData Arbitrary length bytes
      */
     function postCheck(ISafe safe, bool success, bytes calldata preCheckData) external;
 }

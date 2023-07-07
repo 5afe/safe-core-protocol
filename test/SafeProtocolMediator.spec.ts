@@ -41,7 +41,16 @@ describe("SafeProtocolMediator", async () => {
             return { safeProtocolMediator, safe, module, safeProtocolRegistry };
         }
 
-        describe("Enabling module reverts with ModuleNotPermitted", async () => {
+        describe("Test enable module", async () => {
+            it("Should not allow a Safe to enable zero address module", async () => {
+                const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
+                await safe.setModule(await safeProtocolMediator.getAddress());
+                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
+                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
+                    .withArgs(hre.ethers.ZeroAddress);
+            });
+
             it("Should not allow a Safe to enable module if not added as a component in registry", async () => {
                 const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
                 await safe.setModule(await safeProtocolMediator.getAddress());
@@ -63,17 +72,6 @@ describe("SafeProtocolMediator", async () => {
                     safeProtocolMediator,
                     "ModuleNotPermitted",
                 );
-            });
-        });
-
-        describe("Test enable module", async () => {
-            it("Should not allow a Safe to enable zero address module", async () => {
-                const { safeProtocolMediator, safe } = await loadFixture(deployContractsWithModuleFixture);
-                await safe.setModule(await safeProtocolMediator.getAddress());
-                const data = safeProtocolMediator.interface.encodeFunctionData("enableModule", [hre.ethers.ZeroAddress, false]);
-                await expect(safe.exec(await safeProtocolMediator.getAddress(), 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolMediator, "InvalidModuleAddress")
-                    .withArgs(hre.ethers.ZeroAddress);
             });
 
             it("Should not allow a Safe to enable SENTINEL_MODULES module", async () => {
@@ -468,18 +466,7 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    actions: [
-                        {
-                            to: user2.address,
-                            value: hre.ethers.parseEther("1"),
-                            data: "0x",
-                        },
-                    ],
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+                const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
                 await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
@@ -663,16 +650,15 @@ describe("SafeProtocolMediator", async () => {
                         value: amount,
                     })
                 ).wait();
-                // TODO: Replace with builder function
-                const safeTx = {
-                    action: {
-                        to: await testDelegateCallReceiver.getAddress(),
-                        value: hre.ethers.parseEther("1"),
-                        data: "0x",
-                    },
-                    nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
-                };
+
+                const safeTx = buildRootTx(
+                    await testDelegateCallReceiver.getAddress(),
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
+
                 await safeProtocolRegistry.connect(owner).flagComponent(await module.getAddress());
                 await expect(module.executeFromModule(safeProtocolMediator, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolMediator,
