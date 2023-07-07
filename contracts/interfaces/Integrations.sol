@@ -5,11 +5,11 @@ import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe functionhandler should implement
+ * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement
  * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
-interface ISafeProtocolFallbackMethod {
+interface ISafeProtocolFunctionHandler {
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
@@ -22,11 +22,11 @@ interface ISafeProtocolFallbackMethod {
 }
 
 /**
- * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe functionhandler should implement in case when handling static calls
+ * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement in case when handling static calls
  * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
-interface ISafeProtocolStaticFallbackMethod {
+interface ISafeProtocolStaticFunctionHandler {
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
