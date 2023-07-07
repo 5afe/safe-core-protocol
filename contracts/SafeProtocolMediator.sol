@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolMediator} from "./interfaces/Mediator.sol";
-import {ISafeProtocolModule, ISafeProtocolGuard} from "./interfaces/Components.sol";
+import {ISafeProtocolModule, ISafeProtocolHook} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
-import {GuardManager} from "./base/GuardManager.sol";
+import {HookManager} from "./base/HookManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardManager {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, HookManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -65,7 +65,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
      *         If any one of the actions fail, the transaction reverts.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
-     *                    Users can add logic to validate metahash through a transaction guard.
+     *                    Users can add logic to validate metahash through a transaction hook.
      * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
@@ -74,13 +74,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
     ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
 
-        address guardAddress = enabledGuard[safeAddress];
-        bool isGuardEnabled = guardAddress != address(0);
+        address hookAddress = enabledHook[safeAddress];
+        bool isHookEnabled = hookAddress != address(0);
         bytes memory preCheckData;
-        if (isGuardEnabled) {
+        if (isHookEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for module flow
-            preCheckData = ISafeProtocolGuard(guardAddress).preCheck(safe, transaction, 1, "");
+            preCheckData = ISafeProtocolHook(hookAddress).preCheck(safe, transaction, 1, "");
         }
 
         data = new bytes[](transaction.actions.length);
@@ -101,9 +101,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
                 data[i] = resultData;
             }
         }
-        if (isGuardEnabled) {
+        if (isHookEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), true, preCheckData);
+            ISafeProtocolHook(hookAddress).postCheck(ISafe(safe), true, preCheckData);
         }
         emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
@@ -113,7 +113,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
      *         root access it granted.
      * @param safe A Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
-     *                   Users can add logic to validate metahash through a transaction guard.
+     *                   Users can add logic to validate metahash through a transaction hook.
      * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
@@ -123,13 +123,13 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
-        address guardAddress = enabledGuard[safeAddress];
-        bool isGuardEnabled = guardAddress != address(0);
+        address hookAddress = enabledHook[safeAddress];
+        bool isHookEnabled = hookAddress != address(0);
         bytes memory preCheckData;
-        if (isGuardEnabled) {
+        if (isHookEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for module flow
-            preCheckData = ISafeProtocolGuard(guardAddress).preCheckRootAccess(safe, rootAccess, 1, "");
+            preCheckData = ISafeProtocolHook(hookAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safeAddress][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
@@ -143,9 +143,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardMa
             1
         );
 
-        if (isGuardEnabled) {
+        if (isHookEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), success, preCheckData);
+            ISafeProtocolHook(hookAddress).postCheck(ISafe(safe), success, preCheckData);
         }
 
         if (success) {

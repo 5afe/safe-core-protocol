@@ -39,12 +39,12 @@ interface ISafeProtocolStaticFallbackMethod {
 }
 
 /**
- * @title ISafeProtocolGuard - An interface that a Safe guard should implement.
- * @notice In Safe protocol, a guard can approve or deny transactions based on the logic it implements.
+ * @title ISafeProtocolHook - An interface that a Safe hook should implement.
+ * @notice In Safe protocol, a hook can approve or deny transactions based on the logic it implements.
  */
-interface ISafeProtocolGuard is IERC165 {
+interface ISafeProtocolHook is IERC165 {
     /**
-     * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled
+     * @notice A function that will be called by a safe before the execution of a transaction if the hook is enabled
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for non-root access.
      * @param safe A Safe instance
      * @param tx A struct of type SafeTransaction that contains the details of the transaction.
@@ -60,7 +60,7 @@ interface ISafeProtocolGuard is IERC165 {
     ) external returns (bytes memory preCheckData);
 
     /**
-     * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled and
+     * @notice A function that will be called by a safe before the execution of a transaction if the hook is enabled and
      *         transaction requies tool access.
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for root access.
      * @param safe A Safe instance
@@ -77,7 +77,7 @@ interface ISafeProtocolGuard is IERC165 {
     ) external returns (bytes memory preCheckData);
 
     /**
-     * @notice A function that will be called by a safe after the execution of a transaction if the guard is enabled. A guard should revert if the post state of after the transaction is not as expected.
+     * @notice A function that will be called by a safe after the execution of a transaction if the hook is enabled. A hook should revert if the post state of after the transaction is not as expected.
      * @dev Add custom logic in this function to validate the post-state after the transaction is executed.
      * @param safe ISafe
      * @param success bool
