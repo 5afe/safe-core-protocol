@@ -87,9 +87,9 @@ interface ISafeProtocolHook is IERC165 {
 }
 
 /**
- * @title ISafeProtocolModule - An interface that a Safe module should implement
+ * @title ISafeProtocolPlugin - An interface that a Safe module should implement
  */
-interface ISafeProtocolModule {
+interface ISafeProtocolPlugin {
     /**
      * @notice A funtion that returns name of the module
      * @return name string name of the module

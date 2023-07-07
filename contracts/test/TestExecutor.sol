@@ -6,7 +6,7 @@ contract TestExecutor is ISafe {
     address public module;
     address[] public owners;
 
-    function setModule(address _module) external {
+    function setPlugin(address _module) external {
         module = _module;
     }
 
@@ -22,7 +22,7 @@ contract TestExecutor is ISafe {
         }
     }
 
-    function execTransactionFromModule(
+    function execTransactionFromPlugin(
         address payable to,
         uint256 value,
         bytes calldata data,
@@ -33,7 +33,7 @@ contract TestExecutor is ISafe {
         else (success, ) = to.call{value: value}(data);
     }
 
-    function execTransactionFromModuleReturnData(
+    function execTransactionFromPluginReturnData(
         address to,
         uint256 value,
         bytes memory data,
