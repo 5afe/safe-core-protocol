@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import {ISafe} from "../interfaces/Accounts.sol";
-import {ISafeProtocolPlugin} from "../interfaces/Components.sol";
+import {ISafeProtocolPlugin} from "../interfaces/Integrations.sol";
 import {ISafeProtocolMediator} from "../interfaces/Mediator.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 
