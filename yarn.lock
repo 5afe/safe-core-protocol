@@ -450,6 +450,10 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
+"@gnosis.pm/mock-contract@gnosis/mock-contract#b0f735ddc62d5000b50667011d69142a4dee9c71":
+  version "4.0.0"
+  resolved "https://codeload.github.com/gnosis/mock-contract/tar.gz/b0f735ddc62d5000b50667011d69142a4dee9c71"
+
 "@humanwhocodes/config-array@^0.11.10":
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.10.tgz#5a3ffe32cc9306365fb3fd572596cd602d5e12d2"

@@ -5,12 +5,14 @@ import {ISafeProtocolModule} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
+import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
+import {RegistryManager} from "./base/RegistryManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -55,6 +57,8 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
         _;
     }
 
+    constructor(address initialOwner, address _registry) RegistryManager(_registry, initialOwner) {}
+
     /**
      * @notice This function executes non-delegate call(s) on a safe if the module is enabled on the Safe.
      *         If any one of the actions fail, the transaction reverts.
@@ -66,7 +70,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledModule(address(safe)) returns (bytes[] memory data) {
+    ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
@@ -101,10 +105,9 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledModule(address(safe)) returns (bytes memory data) {
-        address safeAddress = address(safe);
-
+    ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes memory data) {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
+        address safeAddress = address(safe);
 
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safeAddress][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
@@ -129,7 +132,7 @@ contract SafeProtocolMediator is ISafeProtocolMediator {
      * @param module ISafeProtocolModule A module that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) {
+    function enableModule(address module, bool allowRootAccess) external noZeroOrSentinelModule(module) onlyPermittedModule(module) {
         ModuleAccessInfo storage senderSentinelModule = enabledModules[msg.sender][SENTINEL_MODULES];
         ModuleAccessInfo storage senderModule = enabledModules[msg.sender][module];
 
