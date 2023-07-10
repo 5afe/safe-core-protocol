@@ -10,7 +10,10 @@
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint 'test/**/*.ts' --max-warnings 0 --fix",
     "typechain": "TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-    "postinstall": "yarn typechain"
+    "postinstall": "yarn typechain",
+    "deploy": "hardhat deploy --network",
+    "prepack": "yarn build",
+    "deploy-all": "hardhat deploy-contracts --network"
   },
   "devDependencies": {
     "@gnosis.pm/mock-contract": "gnosis/mock-contract#b0f735ddc62d5000b50667011d69142a4dee9c71",
@@ -36,6 +39,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "ethers": "^6.4.0",
     "hardhat": "^2.15.0",
+    "hardhat-deploy": "^0.11.34",
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-typechain": "^0.3.5",
     "prettier": "^2.8.8",
@@ -54,5 +58,12 @@
   "main": "dist/index.js",
   "repository": "git@github.com:5afe/safe-protocol.git",
   "author": "safe.global",
-  "license": "LGPL-3.0"
+  "license": "LGPL-3.0",
+  "files": [
+    "contracts",
+    "dist",
+    "scripts",
+    "test",
+    "artifacts"
+  ]
 }
