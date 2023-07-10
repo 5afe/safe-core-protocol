@@ -44,7 +44,8 @@
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.2.0",
-    "typescript": "~5.0.0"
+    "typescript": "~5.0.0",
+    "yargs": "^17.7.2"
   },
   "name": "@safe-global/safe-protocol",
   "version": "0.1.0-alpha.0",
