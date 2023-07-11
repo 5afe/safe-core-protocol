@@ -26,7 +26,7 @@ npx hardhat test
 
 Example: Deploy contracts with [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol) network to goerli.
 ```bash
-npx hardhat deploy --network goerli --tags test-protocol
+npx hardhat deploy --network goerli --tags test-protocol --export-all deployments.ts
 ```
 
 ### Verify
