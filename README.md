@@ -21,3 +21,10 @@ npx hardhat compile
 ```bash
 npx hardhat test
 ```
+
+### Deploy
+
+Example: Deploy contracts with [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol) network to goerli.
+```bash
+npx hardhat deploy --network goerli --tags test-protocol
+```
