@@ -28,3 +28,15 @@ Example: Deploy contracts with [test registry](./contracts/test/TestSafeProtocol
 ```bash
 npx hardhat deploy --network goerli --tags test-protocol
 ```
+
+### Verify
+
+#### SafeProtocolRegistry.sol/TestSafeProtocolRegistryUnrestricted.sol
+```
+npx hardhat verify --network goerli <contract_address> <initial_owner>
+```
+
+#### SafeProtocolManager.sol
+```
+npx hardhat verify --network goerli <contract_address> <initial_owner> <registry_address>
+```
