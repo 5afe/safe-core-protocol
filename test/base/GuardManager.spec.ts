@@ -20,11 +20,11 @@ describe("GuardManager", async () => {
         return { guardManager, guard };
     }
 
-    it("Should emit GuardEnabled event when a guard is enabled", async () => {
+    it("Should emit GuardChanged event when a guard is enabled", async () => {
         const { guardManager, guard } = await loadFixture(deployContractsFixture);
         const guardAddress = await guard.getAddress();
         expect(await guardManager.connect(user1).setGuard(guardAddress))
-            .to.emit(guardManager, "GuardEnabled")
+            .to.emit(guardManager, "GuardChanged")
             .withArgs(user1, guardAddress);
     });
 

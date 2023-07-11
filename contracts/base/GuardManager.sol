@@ -6,7 +6,7 @@ contract GuardManager {
     mapping(address => address) public enabledGuard;
 
     // Events
-    event GuardEnabled(address indexed safe, address indexed guardAddress);
+    event GuardChanged(address indexed safe, address indexed guardAddress);
 
     // Errors
     error AddressDoesNotImplementGuardInterface(address guardAddress);
@@ -30,6 +30,6 @@ contract GuardManager {
             revert AddressDoesNotImplementGuardInterface(guard);
         }
         enabledGuard[msg.sender] = guard;
-        emit GuardEnabled(msg.sender, guard);
+        emit GuardChanged(msg.sender, guard);
     }
 }
