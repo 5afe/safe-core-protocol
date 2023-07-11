@@ -3,6 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { IntegrationType } from "./utils/constants";
 
 describe("SafeProtocolRegistry", async () => {
     let owner: SignerWithAddress, user1: SignerWithAddress;
@@ -15,8 +16,8 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow add a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
-        await expect(safeProtocolRegistry.connect(owner).addIntegration(AddressZero)).to.be.revertedWithCustomError(
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero, IntegrationType.Plugin);
+        await expect(safeProtocolRegistry.connect(owner).addIntegration(AddressZero, IntegrationType.Plugin)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
             "CannotAddIntegration",
         );
@@ -24,7 +25,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should not allow non-owner to add a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero)).to.be.revertedWith(
+        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero, IntegrationType.Plugin)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
     });
@@ -39,7 +40,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow only owner to flag a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero, IntegrationType.Plugin);
 
         await expect(safeProtocolRegistry.connect(user1).flagIntegration(AddressZero)).to.be.revertedWith(
             "Ownable: caller is not the owner",
@@ -53,7 +54,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow only owner to flag a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero);
+        await safeProtocolRegistry.connect(owner).addIntegration(AddressZero, IntegrationType.Plugin);
 
         await expect(safeProtocolRegistry.connect(user1).flagIntegration(AddressZero)).to.be.revertedWith(
             "Ownable: caller is not the owner",
