@@ -87,7 +87,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
-            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromPluginReturnData(
+            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
@@ -136,7 +136,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         }
 
         bool success;
-        (success, data) = safe.execTransactionFromPluginReturnData(
+        (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
             safeProtocolAction.data,
