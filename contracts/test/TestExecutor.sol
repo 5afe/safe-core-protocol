@@ -22,7 +22,7 @@ contract TestExecutor is ISafe {
         }
     }
 
-    function execTransactionFromPlugin(
+    function execTransactionFromModule(
         address payable to,
         uint256 value,
         bytes calldata data,
@@ -33,7 +33,7 @@ contract TestExecutor is ISafe {
         else (success, ) = to.call{value: value}(data);
     }
 
-    function execTransactionFromPluginReturnData(
+    function execTransactionFromModuleReturnData(
         address to,
         uint256 value,
         bytes memory data,

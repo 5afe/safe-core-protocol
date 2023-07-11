@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolManager} from "./interfaces/Manager.sol";
-import {ISafeProtocolPlugin, ISafeProtocolHook} from "./interfaces/Integrations.sol";
+import {ISafeProtocolPlugin, ISafeProtocolHooks} from "./interfaces/Integrations.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
@@ -80,14 +80,14 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         if (isHookEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHook(hookAddress).preCheck(safe, transaction, 1, "");
+            preCheckData = ISafeProtocolHooks(hookAddress).preCheck(safe, transaction, 1, "");
         }
 
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
-            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromPluginReturnData(
+            (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
                 safeProtocolAction.data,
@@ -103,7 +103,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         }
         if (isHookEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolHook(hookAddress).postCheck(ISafe(safe), true, preCheckData);
+            ISafeProtocolHooks(hookAddress).postCheck(ISafe(safe), true, preCheckData);
         }
         emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
@@ -129,14 +129,14 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         if (isHookEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHook(hookAddress).preCheckRootAccess(safe, rootAccess, 1, "");
+            preCheckData = ISafeProtocolHooks(hookAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
         if (!ISafeProtocolPlugin(msg.sender).requiresRootAccess() || !enabledPlugins[safeAddress][msg.sender].rootAddressGranted) {
             revert PluginRequiresRootAccess(msg.sender);
         }
 
         bool success;
-        (success, data) = safe.execTransactionFromPluginReturnData(
+        (success, data) = safe.execTransactionFromModuleReturnData(
             safeProtocolAction.to,
             safeProtocolAction.value,
             safeProtocolAction.data,
@@ -145,7 +145,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
 
         if (isHookEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolHook(hookAddress).postCheck(ISafe(safe), success, preCheckData);
+            ISafeProtocolHooks(hookAddress).postCheck(ISafe(safe), success, preCheckData);
         }
 
         if (success) {
