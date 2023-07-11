@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolMediator} from "./interfaces/Mediator.sol";
-import {ISafeProtocolModule} from "./interfaces/Components.sol";
+import {ISafeProtocolModule, ISafeProtocolGuard} from "./interfaces/Components.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
+import {GuardManager} from "./base/GuardManager.sol";
 
 /**
  * @title SafeProtocolMediator contract allows Safe users to set module through a Mediator rather than directly enabling a module on Safe.
  *        Users have to first enable SafeProtocolMediator as a module on a Safe and then enable other modules through the mediator.
  */
-contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
+contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager, GuardManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -72,6 +73,16 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
         SafeTransaction calldata transaction
     ) external override onlyEnabledModule(address(safe)) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
+
+        address guardAddress = enabledGuard[safeAddress];
+        bool isGuardEnabled = guardAddress != address(0);
+        bytes memory preCheckData;
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // executionType = 1 for module flow
+            preCheckData = ISafeProtocolGuard(guardAddress).preCheck(safe, transaction, 1, "");
+        }
+
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -90,7 +101,10 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
                 data[i] = resultData;
             }
         }
-
+        if (isGuardEnabled) {
+            // success = true because if transaction is not revereted till here, all actions executed successfully.
+            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), true, preCheckData);
+        }
         emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
 
@@ -109,6 +123,14 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
+        address guardAddress = enabledGuard[safeAddress];
+        bool isGuardEnabled = guardAddress != address(0);
+        bytes memory preCheckData;
+        if (isGuardEnabled) {
+            // TODO: Define execution meta
+            // executionType = 1 for module flow
+            preCheckData = ISafeProtocolGuard(guardAddress).preCheckRootAccess(safe, rootAccess, 1, "");
+        }
         if (!ISafeProtocolModule(msg.sender).requiresRootAccess() || !enabledModules[safeAddress][msg.sender].rootAddressGranted) {
             revert ModuleRequiresRootAccess(msg.sender);
         }
@@ -120,6 +142,12 @@ contract SafeProtocolMediator is ISafeProtocolMediator, RegistryManager {
             safeProtocolAction.data,
             1
         );
+
+        if (isGuardEnabled) {
+            // success = true because if transaction is not revereted till here, all actions executed successfully.
+            ISafeProtocolGuard(guardAddress).postCheck(ISafe(safe), success, preCheckData);
+        }
+
         if (success) {
             emit RootAccessActionExecuted(safeAddress, rootAccess.metaHash);
         } else {

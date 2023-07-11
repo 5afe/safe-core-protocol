@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 import {ISafe} from "./Accounts.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement
@@ -41,7 +42,7 @@ interface ISafeProtocolStaticFallbackMethod {
  * @title ISafeProtocolGuard - An interface that a Safe guard should implement.
  * @notice In Safe protocol, a guard can approve or deny transactions based on the logic it implements.
  */
-interface ISafeProtocolGuard {
+interface ISafeProtocolGuard is IERC165 {
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for non-root access.
