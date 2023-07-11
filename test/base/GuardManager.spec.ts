@@ -20,11 +20,11 @@ describe("HookManager", async () => {
         return { hookManager, hook };
     }
 
-    it("Should emit HookEnabled event when a hook is enabled", async () => {
+    it("Should emit HookChanged event when a hook is enabled", async () => {
         const { hookManager, hook } = await loadFixture(deployContractsFixture);
         const hookAddress = await hook.getAddress();
         expect(await hookManager.connect(user1).setHook(hookAddress))
-            .to.emit(hookManager, "HookEnabled")
+            .to.emit(hookManager, "HookChanged")
             .withArgs(user1, hookAddress);
     });
 

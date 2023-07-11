@@ -6,7 +6,7 @@ contract HookManager {
     mapping(address => address) public enabledHook;
 
     // Events
-    event HookEnabled(address indexed safe, address indexed hookAddress);
+    event HookChanged(address indexed safe, address indexed hookAddress);
 
     // Errors
     error AddressDoesNotImplementHookInterface(address hookAddress);
@@ -30,6 +30,6 @@ contract HookManager {
             revert AddressDoesNotImplementHookInterface(hook);
         }
         enabledHook[msg.sender] = hook;
-        emit HookEnabled(msg.sender, hook);
+        emit HookChanged(msg.sender, hook);
     }
 }
