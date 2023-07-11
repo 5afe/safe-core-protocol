@@ -6,6 +6,8 @@ import yargs from "yargs";
 import { HttpNetworkUserConfig } from "hardhat/types";
 import "hardhat-deploy";
 import { DeterministicDeploymentInfo } from "hardhat-deploy/dist/types";
+import { getSingletonFactoryInfo } from "@gnosis.pm/safe-singleton-factory";
+import { ethers } from "ethers";
 
 // Load environment variables.
 dotenv.config();
@@ -19,6 +21,23 @@ const argv : any = yargs
     .version(false).argv;
 
 const { NODE_URL, MNEMONIC, INFURA_KEY, ETHERSCAN_API_KEY} = process.env;
+
+const deterministicDeployment = (network: string): DeterministicDeploymentInfo => {
+  const info = getSingletonFactoryInfo(parseInt(network));
+  if (!info) {
+      throw new Error(`
+      Safe factory not found for network ${network}. You can request a new deployment at https://github.com/safe-global/safe-singleton-factory.
+      For more information, see https://github.com/safe-global/safe-contracts#replay-protection-eip-155
+    `);
+  }
+  return {
+      factory: info.address,
+      deployer: info.signerAddress,
+      funding: (ethers.toBigInt(info.gasLimit) * (ethers.toBigInt(info.gasPrice))).toString(),
+      signedTx: info.transaction,
+  };
+};
+
 
 if (["goerli", "mumbai"].includes(argv.network) && INFURA_KEY === undefined) {
   throw new Error(`Could not find NODE_URL in env, unable to connect to network ${argv.network}`);
@@ -54,6 +73,7 @@ const config: HardhatUserConfig = {
       url: "https://rpc.gnosischain.com",
     }
   },
+  deterministicDeployment,
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
   },
