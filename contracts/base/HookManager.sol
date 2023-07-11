@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolHook} from "../interfaces/Integrations.sol";
+import {ISafeProtocolHooks} from "../interfaces/Integrations.sol";
 
 contract HookManager {
     mapping(address => address) public enabledHook;
@@ -26,7 +26,7 @@ contract HookManager {
      * @param hook Address of the hook to be enabled for msg.sender.
      */
     function setHook(address hook) external {
-        if (hook != address(0) && !ISafeProtocolHook(hook).supportsInterface(type(ISafeProtocolHook).interfaceId)) {
+        if (hook != address(0) && !ISafeProtocolHooks(hook).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
             revert AddressDoesNotImplementHookInterface(hook);
         }
         enabledHook[msg.sender] = hook;

@@ -39,10 +39,10 @@ interface ISafeProtocolStaticFunctionHandler {
 }
 
 /**
- * @title ISafeProtocolHook - An interface that a Safe hook should implement.
+ * @title ISafeProtocolHooks - An interface that a Safe hook should implement.
  * @notice In Safe protocol, a hook can approve or deny transactions based on the logic it implements.
  */
-interface ISafeProtocolHook is IERC165 {
+interface ISafeProtocolHooks is IERC165 {
     /**
      * @notice A function that will be called by a safe before the execution of a transaction if the hook is enabled
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for non-root access.
