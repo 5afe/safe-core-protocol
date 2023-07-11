@@ -7,9 +7,4 @@ abstract contract Enum {
         Hooks,
         FunctionHandler
     }
-
-    enum ExecutionType {
-        MultiSignature,
-        Module
-    }
 }
