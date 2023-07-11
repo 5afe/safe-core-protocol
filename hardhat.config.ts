@@ -36,18 +36,22 @@ const config: HardhatUserConfig = {
     enabled: (process.env.REPORT_GAS) ? true : false
   },
   networks: {
-      hardhat: {
-          allowUnlimitedContractSize: true,
-          blockGasLimit: 100000000,
-          gas: 100000000,
-      },
-      goerli: {
-        ...sharedNetworkConfig,
-        url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
+    hardhat: {
+      allowUnlimitedContractSize: true,
+      blockGasLimit: 100000000,
+      gas: 100000000,
+    },
+    goerli: {
+      ...sharedNetworkConfig,
+      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
     },
     mumbai: {
-        ...sharedNetworkConfig,
-        url: `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`,
+      ...sharedNetworkConfig,
+      url: `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`,
+    },
+    gnosis: {
+      ...sharedNetworkConfig,
+      url: "https://rpc.gnosischain.com",
     }
   },
   etherscan: {
@@ -60,7 +64,7 @@ const config: HardhatUserConfig = {
     owner: {
       default: 1
     }
-}
+  }
 };
 
 if (NODE_URL) {
