@@ -3,6 +3,7 @@ pragma solidity ^0.8.18;
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Enum} from "./common/Enum.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => IntegrationInfo) public listedIntegrations;
@@ -10,6 +11,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     struct IntegrationInfo {
         uint64 listedAt;
         uint64 flaggedAt;
+        Enum.IntegrationType integrationType;
     }
 
     error CannotFlagIntegration(address integration);
@@ -40,13 +42,13 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
      *         TODO: Add logic to validate if integration implements correct interface.
      * @param integration Address of the integration
      */
-    function addIntegration(address integration) external onlyOwner {
+    function addIntegration(address integration, Enum.IntegrationType integrationType) external onlyOwner {
         IntegrationInfo memory integrationInfo = listedIntegrations[integration];
 
         if (integrationInfo.listedAt != 0) {
             revert CannotAddIntegration(integration);
         }
-        listedIntegrations[integration] = IntegrationInfo(uint64(block.timestamp), 0);
+        listedIntegrations[integration] = IntegrationInfo(uint64(block.timestamp), 0, integrationType);
         emit IntegrationAdded(integration);
     }
 
@@ -63,7 +65,11 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert CannotFlagIntegration(integration);
         }
 
-        listedIntegrations[integration] = IntegrationInfo(integrationInfo.listedAt, uint64(block.timestamp));
+        listedIntegrations[integration] = IntegrationInfo(
+            integrationInfo.listedAt,
+            uint64(block.timestamp),
+            integrationInfo.integrationType
+        );
         emit IntegrationFlagged(integration);
     }
 
