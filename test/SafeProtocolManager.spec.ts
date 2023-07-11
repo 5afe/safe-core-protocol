@@ -6,6 +6,7 @@ import { SENTINEL_MODULES } from "./utils/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHookWithFailingPrechecks, getHookWithPassingChecks, getHookWithFailingPostCheck } from "./utils/mockHookBuilder";
+import { IntegrationType } from "./utils/constants";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
@@ -37,7 +38,7 @@ describe("SafeProtocolManager", async () => {
         async function deployContractsWithPluginFixture() {
             const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-            await safeProtocolRegistry.connect(owner).addIntegration(plugin);
+            await safeProtocolRegistry.connect(owner).addIntegration(plugin, IntegrationType.Plugin);
             return { safeProtocolManager, safe, plugin, safeProtocolRegistry };
         }
 
@@ -230,7 +231,7 @@ describe("SafeProtocolManager", async () => {
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data2);
 
@@ -252,7 +253,7 @@ describe("SafeProtocolManager", async () => {
 
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
-                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data2);
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(plugin2Address, 10, safe)).to.eql([
@@ -271,7 +272,7 @@ describe("SafeProtocolManager", async () => {
                 await safe.exec(safeProtocolManagerAddress, 0, data);
                 const plugin2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
-                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address);
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
 
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data2);
@@ -311,7 +312,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -345,7 +346,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -380,7 +381,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -403,7 +404,7 @@ describe("SafeProtocolManager", async () => {
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress, IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
@@ -424,7 +425,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -454,7 +455,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -485,7 +486,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -529,7 +530,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -573,7 +574,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -607,7 +608,7 @@ describe("SafeProtocolManager", async () => {
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const pluginAddress = await plugin.getAddress();
 
-                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress, IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
@@ -638,7 +639,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -683,7 +684,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -710,7 +711,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress());
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, data);
@@ -736,7 +737,7 @@ describe("SafeProtocolManager", async () => {
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const pluginAddress = await plugin.getAddress();
-                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress);
+                await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress, IntegrationType.Plugin);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 // Required to set plugin to indicate that it does not require root access
                 await plugin.setRequiresRootAccess(false);
