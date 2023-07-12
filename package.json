@@ -58,7 +58,7 @@
   "name": "@safe-global/safe-protocol",
   "version": "0.1.0-alpha.0",
   "description": "Safe protocol contracts",
-  "main": "dist/index.js",
+  "main": "dist/deployments.js",
   "repository": "git@github.com:5afe/safe-protocol.git",
   "author": "safe.global",
   "license": "LGPL-3.0",
