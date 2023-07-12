@@ -90,6 +90,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
 
             // Restrict the `to` field in protocol actions to be different from the Safe address and the Safe Protocol Manager address
+            // In future, evaluate use of fine granined permissions model executing actions.
             if (safeProtocolAction.to == address(this) || safeProtocolAction.to == safeAddress) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metaHash, i);
             }
