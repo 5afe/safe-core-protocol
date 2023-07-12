@@ -5,11 +5,11 @@ import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement
- * @notice In Safe protocol, a fallback handler can be used to add additional functionality to a Safe.
+ * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement
+ * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
-interface ISafeProtocolFallbackMethod {
+interface ISafeProtocolFunctionHandler {
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
@@ -22,11 +22,11 @@ interface ISafeProtocolFallbackMethod {
 }
 
 /**
- * @title ISafeProtocolStaticFallbackMethod - An interface that a Safe fallbackhandler should implement in case when handling static calls
- * @notice In Safe protocol, a fallback handler can be used to add additional functionality to a Safe.
+ * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement in case when handling static calls
+ * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
-interface ISafeProtocolStaticFallbackMethod {
+interface ISafeProtocolStaticFunctionHandler {
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
@@ -39,12 +39,12 @@ interface ISafeProtocolStaticFallbackMethod {
 }
 
 /**
- * @title ISafeProtocolGuard - An interface that a Safe guard should implement.
- * @notice In Safe protocol, a guard can approve or deny transactions based on the logic it implements.
+ * @title ISafeProtocolHooks - An interface that a contract should implement to be enabled as hooks.
+ * @notice In Safe protocol, hooks can approve or deny transactions based on the logic it implements.
  */
-interface ISafeProtocolGuard is IERC165 {
+interface ISafeProtocolHooks is IERC165 {
     /**
-     * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled
+     * @notice A function that will be called by a Safe before the execution of a transaction if the hooks are enabled
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for non-root access.
      * @param safe A Safe instance
      * @param tx A struct of type SafeTransaction that contains the details of the transaction.
@@ -60,7 +60,7 @@ interface ISafeProtocolGuard is IERC165 {
     ) external returns (bytes memory preCheckData);
 
     /**
-     * @notice A function that will be called by a safe before the execution of a transaction if the guard is enabled and
+     * @notice A function that will be called by a safe before the execution of a transaction if the hooks are enabled and
      *         transaction requies tool access.
      * @dev Add custom logic in this function to validate the pre-state and contents of transaction for root access.
      * @param safe A Safe instance
@@ -77,7 +77,7 @@ interface ISafeProtocolGuard is IERC165 {
     ) external returns (bytes memory preCheckData);
 
     /**
-     * @notice A function that will be called by a safe after the execution of a transaction if the guard is enabled. A guard should revert if the post state of after the transaction is not as expected.
+     * @notice A function that will be called by a safe after the execution of a transaction if the hooks are enabled. Hooks should revert if the post state of after the transaction is not as expected.
      * @dev Add custom logic in this function to validate the post-state after the transaction is executed.
      * @param safe ISafe
      * @param success bool
@@ -87,23 +87,23 @@ interface ISafeProtocolGuard is IERC165 {
 }
 
 /**
- * @title ISafeProtocolModule - An interface that a Safe module should implement
+ * @title ISafeProtocolPlugin - An interface that a Safe plugin should implement
  */
-interface ISafeProtocolModule {
+interface ISafeProtocolPlugin {
     /**
-     * @notice A funtion that returns name of the module
-     * @return name string name of the module
+     * @notice A funtion that returns name of the plugin
+     * @return name string name of the plugin
      */
     function name() external view returns (string memory name);
 
     /**
-     * @notice A funtion that returns version of the module
-     * @return version string version of the module
+     * @notice A funtion that returns version of the plugin
+     * @return version string version of the plugin
      */
     function version() external view returns (string memory version);
 
     /**
-     * @notice A funtion that returns version of the module.
+     * @notice A funtion that returns version of the plugin.
      *         TODO: Define types of meta provider and possible values of location in each of the cases.
      * @return providerType uint256 Type of meta provider
      * @return location bytes
@@ -111,7 +111,7 @@ interface ISafeProtocolModule {
     function metaProvider() external view returns (uint256 providerType, bytes memory location);
 
     /**
-     * @notice A function that indicates if the module requires root access to a Safe.
+     * @notice A function that indicates if the plugin requires root access to a Safe.
      * @return requiresRootAccess True if root access is required, false otherwise.
      */
     function requiresRootAccess() external view returns (bool requiresRootAccess);
