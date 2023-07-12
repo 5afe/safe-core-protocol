@@ -5,7 +5,7 @@ import { ZeroAddress } from "ethers";
 import { SENTINEL_MODULES } from "./utils/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
-import { getHookWithFailingPrechecks, getHookWithPassingChecks, getHookWithFailingPostCheck } from "./utils/mockHookBuilder";
+import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
 
 describe("SafeProtocolManager", async () => {
@@ -337,12 +337,12 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
             });
 
-            it("Should process a SafeTransaction and transfer ETH from safe to an EOA hook enabled", async () => {
+            it("Should process a SafeTransaction with hooks enabled and transfer ETH from safe to an EOA", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
-                // Enable hook on a safe
-                const hook = await getHookWithPassingChecks();
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHook);
+                // Enable hooks on a safe
+                const hooks = await getHooksWithPassingChecks();
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
@@ -371,13 +371,13 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
             });
 
-            it("Should fail executing a transaction through plugin when hook pre-check fails", async () => {
+            it("Should fail executing a transaction through plugin when hooks pre-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
-                // Enable hook on a safe
-                const hook = await getHookWithFailingPrechecks();
+                // Enable hooks on a safe
+                const hooks = await getHooksWithFailingPrechecks();
 
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHook);
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
@@ -391,14 +391,14 @@ describe("SafeProtocolManager", async () => {
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith("pre-check failed");
             });
 
-            it("Should fail executing a transaction through plugin when hook post-check fails", async () => {
+            it("Should fail executing a transaction through plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
-                // Enable hook on a safe
-                const hook = await getHookWithFailingPostCheck();
+                // Enable hooks on a safe
+                const hooks = await getHooksWithFailingPostCheck();
 
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataSetHook);
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
@@ -518,13 +518,13 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
             });
 
-            it("Should execute a transaction from root access enabled plugin with hook enabled", async () => {
+            it("Should execute a transaction from root access enabled plugin with hooks enabled", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
-                // Enable hook on a safe
-                const hook = await getHookWithPassingChecks();
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHook);
+                // Enable hooks on a safe
+                const hooks = await getHooksWithPassingChecks();
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
@@ -562,13 +562,13 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
             });
 
-            it("Should fail to execute a transaction from root access enabled plugin when hook pre-check fails", async () => {
+            it("Should fail to execute a transaction from root access enabled plugin when hooks pre-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
-                // Enable hook on a safe
-                const hook = await getHookWithFailingPrechecks();
+                // Enable hooks on a safe
+                const hooks = await getHooksWithFailingPrechecks();
 
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHook);
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
@@ -592,15 +592,15 @@ describe("SafeProtocolManager", async () => {
                 );
             });
 
-            it("Should fail to execute a transaction from root access enabled plugin when hook post-check fails", async () => {
+            it("Should fail to execute a transaction from root access enabled plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
 
-                // Enable hook on a safe
-                const hook = await getHookWithFailingPostCheck();
-                const dataSetHook = safeProtocolManager.interface.encodeFunctionData("setHook", [await hook.getAddress()]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataSetHook);
+                // Enable hooks on a safe
+                const hooks = await getHooksWithFailingPostCheck();
+                const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
+                await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
