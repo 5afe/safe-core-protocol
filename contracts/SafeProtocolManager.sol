@@ -64,6 +64,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     /**
      * @notice This function executes non-delegate call(s) on a safe if the plugin is enabled on the Safe.
      *         If any one of the actions fail, the transaction reverts.
+     * @dev Restrict the `to` field in the actions so that a module cannot execute an action that changes the config such as
+     *      enabling/disabling other modules or make changes to its own access level for a Safe.
+     *      In future, evaluate use of fine granined permissions model executing actions.
+     *      For more information, follow the disuccsion here: https://github.com/5afe/safe-protocol-specs/discussions/7.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metahash through hooks.
@@ -89,8 +93,6 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
 
-            // Restrict the `to` field in protocol actions to be different from the Safe address and the Safe Protocol Manager address
-            // In future, evaluate use of fine granined permissions model executing actions.
             if (safeProtocolAction.to == address(this) || safeProtocolAction.to == safeAddress) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metaHash, i);
             }
