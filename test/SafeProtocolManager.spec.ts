@@ -337,6 +337,45 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
             });
 
+            it("Should revert with a InvalidToFieldInSafeProtocolAction when `to` address is safe address through which tx is executed", async function () {
+                const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsWithEnabledManagerFixture);
+
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
+
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                const safeAddress = await safe.getAddress();
+                const safeTx = buildSingleTx(safeAddress, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
+                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolManager,
+                    "InvalidToFieldInSafeProtocolAction",
+                );
+            });
+
+            it("Should revert with a InvalidToFieldInSafeProtocolAction when `to` address is Manager address", async function () {
+                const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsWithEnabledManagerFixture);
+                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
+                // Enable plugin
+                const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
+
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
+                await safe.exec(safeProtocolManagerAddress, 0, data);
+                const safeTx = buildSingleTx(
+                    safeProtocolManagerAddress,
+                    hre.ethers.parseEther("1"),
+                    "0x",
+                    BigInt(1),
+                    hre.ethers.randomBytes(32),
+                );
+                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                    safeProtocolManager,
+                    "InvalidToFieldInSafeProtocolAction",
+                );
+            });
+
             it("Should process a SafeTransaction with hooks enabled and transfer ETH from safe to an EOA", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 // Enable hooks on a safe

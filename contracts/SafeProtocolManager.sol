@@ -43,6 +43,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     error InvalidPluginAddress(address plugin);
     error InvalidPrevPluginAddress(address plugin);
     error ZeroPageSizeNotAllowed();
+    error InvalidToFieldInSafeProtocolAction(address safe, bytes32 metaHash, uint256 index);
 
     modifier onlyEnabledPlugin(address safe) {
         if (enabledPlugins[safe][msg.sender].nextPluginPointer == address(0)) {
@@ -87,6 +88,12 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         uint256 length = transaction.actions.length;
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
+
+            // Restrict the `to` field in protocol actions to be different from the Safe address and the Safe Protocol Manager address
+            if (safeProtocolAction.to == address(this) || safeProtocolAction.to == safeAddress) {
+                revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metaHash, i);
+            }
+
             (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
                 safeProtocolAction.to,
                 safeProtocolAction.value,
