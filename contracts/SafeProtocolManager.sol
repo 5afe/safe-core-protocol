@@ -7,13 +7,13 @@ import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
-import {HookManager} from "./base/HookManager.sol";
+import {HooksManager} from "./base/HooksManager.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManager {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -65,7 +65,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
      *         If any one of the actions fail, the transaction reverts.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
-     *                    Users can add logic to validate metahash through a transaction hook.
+     *                    Users can add logic to validate metahash through hooks.
      * @return data bytes types containing the result of the executed action.
      */
     function executeTransaction(
@@ -74,13 +74,13 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
     ) external override onlyEnabledPlugin(address(safe)) onlyPermittedPlugin(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
 
-        address hookAddress = enabledHook[safeAddress];
-        bool isHookEnabled = hookAddress != address(0);
+        address hooksAddress = enabledHooks[safeAddress];
+        bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
-        if (isHookEnabled) {
+        if (areHooksEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHooks(hookAddress).preCheck(safe, transaction, 1, "");
+            preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(safe, transaction, 1, "");
         }
 
         data = new bytes[](transaction.actions.length);
@@ -101,9 +101,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
                 data[i] = resultData;
             }
         }
-        if (isHookEnabled) {
+        if (areHooksEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolHooks(hookAddress).postCheck(ISafe(safe), true, preCheckData);
+            ISafeProtocolHooks(hooksAddress).postCheck(ISafe(safe), true, preCheckData);
         }
         emit ActionsExecuted(safeAddress, transaction.metaHash, transaction.nonce);
     }
@@ -113,7 +113,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
      *         root access it granted.
      * @param safe A Safe instance
      * @param rootAccess A struct of type SafeRootAccess containing information of about the action to be executed.
-     *                   Users can add logic to validate metahash through a transaction hook.
+     *                   Users can add logic to validate metahash through hooks.
      * @return data bytes types containing the result of the executed action.
      */
     function executeRootAccess(
@@ -123,13 +123,13 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
-        address hookAddress = enabledHook[safeAddress];
-        bool isHookEnabled = hookAddress != address(0);
+        address hooksAddress = enabledHooks[safeAddress];
+        bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
-        if (isHookEnabled) {
+        if (areHooksEnabled) {
             // TODO: Define execution meta
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHooks(hookAddress).preCheckRootAccess(safe, rootAccess, 1, "");
+            preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
         if (!ISafeProtocolPlugin(msg.sender).requiresRootAccess() || !enabledPlugins[safeAddress][msg.sender].rootAddressGranted) {
             revert PluginRequiresRootAccess(msg.sender);
@@ -143,9 +143,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HookManag
             1
         );
 
-        if (isHookEnabled) {
+        if (areHooksEnabled) {
             // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolHooks(hookAddress).postCheck(ISafe(safe), success, preCheckData);
+            ISafeProtocolHooks(hooksAddress).postCheck(ISafe(safe), success, preCheckData);
         }
 
         if (success) {
