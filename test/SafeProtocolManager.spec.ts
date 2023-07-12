@@ -30,7 +30,7 @@ describe("SafeProtocolManager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
             const { safeProtocolManager } = await loadFixture(deployContractsFixture);
-            expect(await safe.setPlugin(await safeProtocolManager.getAddress()));
+            expect(await safe.setModule(await safeProtocolManager.getAddress()));
         });
     });
 
@@ -45,7 +45,7 @@ describe("SafeProtocolManager", async () => {
         describe("Test enable plugin", async () => {
             it("Should not allow a Safe to enable zero address plugin", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [hre.ethers.ZeroAddress, false]);
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
@@ -54,7 +54,7 @@ describe("SafeProtocolManager", async () => {
 
             it("Should not allow a Safe to enable plugin if not added as a integration in registry", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 const pluginAddress = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
@@ -65,7 +65,7 @@ describe("SafeProtocolManager", async () => {
 
             it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
                 const { safeProtocolManager, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 await safeProtocolRegistry.connect(owner).flagIntegration(plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
@@ -93,7 +93,7 @@ describe("SafeProtocolManager", async () => {
 
             it("Should fail to enable a plugin (with non root access) with root access", async () => {
                 const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 const pluginAddress = await plugin.getAddress();
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
@@ -109,7 +109,7 @@ describe("SafeProtocolManager", async () => {
         describe("Test disable plugin", async () => {
             it("Should not allow a Safe to disable zero address plugin", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 const data = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [
                     hre.ethers.ZeroAddress,
                     hre.ethers.ZeroAddress,
@@ -122,7 +122,7 @@ describe("SafeProtocolManager", async () => {
             it("Should not allow a Safe to disable SENTINEL_MODULES plugin", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, SENTINEL_MODULES]);
                 await expect(safe.exec(safeProtocolManagerAddress, 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
@@ -132,7 +132,7 @@ describe("SafeProtocolManager", async () => {
             it("Should revert if nexPluginPtr and plugin address do not match", async () => {
                 const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [
                     SENTINEL_MODULES,
                     await plugin.getAddress(),
@@ -148,7 +148,7 @@ describe("SafeProtocolManager", async () => {
                 const pluginAddress = await plugin.getAddress();
                 const safeAddress = await safe.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
@@ -163,7 +163,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
                 expect(await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, SENTINEL_MODULES]);
@@ -182,7 +182,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 await expect(safeProtocolManager.getPluginsPaginated.staticCall(pluginAddress, 1, safe))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
                     .withArgs(pluginAddress);
@@ -190,7 +190,7 @@ describe("SafeProtocolManager", async () => {
 
             it("Should revert with InvalidPageSize", async () => {
                 const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 await expect(
                     safeProtocolManager.getPluginsPaginated.staticCall(await plugin.getAddress(), 0, safe),
                 ).to.be.revertedWithCustomError(safeProtocolManager, "ZeroPageSizeNotAllowed");
@@ -198,7 +198,7 @@ describe("SafeProtocolManager", async () => {
 
             it("Should return empty list if no plugins are enabled", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
-                await safe.setPlugin(await safeProtocolManager.getAddress());
+                await safe.setModule(await safeProtocolManager.getAddress());
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([[], SENTINEL_MODULES]);
             });
 
@@ -208,7 +208,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
                 await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress);
@@ -224,7 +224,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
 
@@ -247,7 +247,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
 
@@ -267,7 +267,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setPlugin(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await safe.exec(safeProtocolManagerAddress, 0, data);
                 const plugin2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
@@ -292,7 +292,7 @@ describe("SafeProtocolManager", async () => {
     describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledManagerFixture() {
             const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsFixture);
-            await safe.setPlugin(await safeProtocolManager.getAddress());
+            await safe.setModule(await safeProtocolManager.getAddress());
             return { safeProtocolManager, safe, safeProtocolRegistry };
         }
 

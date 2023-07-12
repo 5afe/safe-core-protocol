@@ -59,7 +59,7 @@ describe("RegistryManager", async () => {
         const safe = await hre.ethers.deployContract("TestExecutor");
 
         const { registryManager } = await loadFixture(deployContractsFixture);
-        await safe.setPlugin(await registryManager.getAddress());
+        await safe.setModule(await registryManager.getAddress());
 
         await expect(registryManager.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith("Ownable: caller is not the owner");
     });
