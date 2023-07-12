@@ -65,6 +65,7 @@
     "dist",
     "scripts",
     "test",
-    "artifacts"
+    "artifacts",
+    "deployments.ts"
   ]
 }
