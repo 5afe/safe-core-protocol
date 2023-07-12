@@ -26,7 +26,7 @@ contract HooksManager {
      * @param hooks Address of the hooks to be enabled for msg.sender.
      */
     function setHooks(address hooks) external {
-        if (hooks !=address(0) && !ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
+        if (hooks != address(0) && !ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
             revert AddressDoesNotImplementHooksInterface(hooks);
         }
         enabledHooks[msg.sender] = hooks;
