@@ -16,7 +16,6 @@
     "deploy-all": "hardhat deploy-contracts --network"
   },
   "devDependencies": {
-    "@gnosis.pm/mock-contract": "gnosis/mock-contract#b0f735ddc62d5000b50667011d69142a4dee9c71",
     "@gnosis.pm/safe-singleton-factory": "^1.0.14",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
@@ -24,6 +23,7 @@
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^1.0.0",
     "@openzeppelin/contracts": "^4.9.1",
+    "@safe-global/mock-contract": "^4.0.0",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
     "@types/chai": "^4.2.0",

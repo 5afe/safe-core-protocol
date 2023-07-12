@@ -450,10 +450,6 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@gnosis.pm/mock-contract@gnosis/mock-contract#b0f735ddc62d5000b50667011d69142a4dee9c71":
-  version "4.0.0"
-  resolved "https://codeload.github.com/gnosis/mock-contract/tar.gz/b0f735ddc62d5000b50667011d69142a4dee9c71"
-
 "@gnosis.pm/safe-singleton-factory@^1.0.14":
   version "1.0.14"
   resolved "https://registry.yarnpkg.com/@gnosis.pm/safe-singleton-factory/-/safe-singleton-factory-1.0.14.tgz#42dae9a91fda21b605f94bfe310a7fccc6a4d738"
@@ -791,6 +787,11 @@
   version "4.9.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.1.tgz#afa804d2c68398704b0175acc94d91a54f203645"
   integrity sha512-aLDTLu/If1qYIFW5g4ZibuQaUsFGWQPBq1mZKp/txaebUnGHDmmiBhRLY1tDNedN0m+fJtKZ1zAODS9Yk+V6uA==
+
+"@safe-global/mock-contract@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@safe-global/mock-contract/-/mock-contract-4.0.0.tgz#8e1e17e93af5d4b343a6bb6cef8c1f513cb7a92e"
+  integrity sha512-6ijStTgQI6JzYe8Nsc4j1VW4XQ89qCl7ZkRGxwwlxnaOMDYzVekwPACbg2kDDzhtJ4p8vSvE6ZroxSkvP7610A==
 
 "@scure/base@~1.1.0":
   version "1.1.1"
