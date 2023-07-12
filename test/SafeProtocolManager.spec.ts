@@ -303,7 +303,7 @@ describe("SafeProtocolManager", async () => {
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "MoudleNotEnabled",
+                    "PluginNotEnabled",
                 );
             });
 
@@ -673,7 +673,7 @@ describe("SafeProtocolManager", async () => {
                 const safeTx = buildRootTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "MoudleNotEnabled",
+                    "PluginNotEnabled",
                 );
             });
 

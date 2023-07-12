@@ -34,7 +34,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     // Errors
     error PluginRequiresRootAccess(address sender);
-    error MoudleNotEnabled(address plugin);
+    error PluginNotEnabled(address plugin);
     error PluginEnabledOnlyForRootAccess(address plugin);
     error PluginAccessMismatch(address plugin, bool requiresRootAccess, bool providedValue);
     error ActionExecutionFailed(address safe, bytes32 metaHash, uint256 index);
@@ -46,7 +46,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     modifier onlyEnabledPlugin(address safe) {
         if (enabledPlugins[safe][msg.sender].nextPluginPointer == address(0)) {
-            revert MoudleNotEnabled(msg.sender);
+            revert PluginNotEnabled(msg.sender);
         }
         _;
     }
