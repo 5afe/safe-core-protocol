@@ -5,7 +5,7 @@ export default {
       "chainId": "5",
       "contracts": {
         "SafeProtocolManager": {
-          "address": "0x77f119B89db8dA6607888eB9a3c010C2EaC9b4D6",
+          "address": "0x407E3AED9cbB556C9e286aB513E04B9C064e4ccA",
           "abi": [
             {
               "inputs": [
@@ -59,11 +59,11 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "hookAddress",
+                  "name": "hooksAddress",
                   "type": "address"
                 }
               ],
-              "name": "AddressDoesNotImplementHookInterface",
+              "name": "AddressDoesNotImplementHooksInterface",
               "type": "error"
             },
             {
@@ -237,11 +237,11 @@ export default {
                 {
                   "indexed": true,
                   "internalType": "address",
-                  "name": "hookAddress",
+                  "name": "hooksAddress",
                   "type": "address"
                 }
               ],
-              "name": "HookChanged",
+              "name": "HooksChanged",
               "type": "event"
             },
             {
@@ -415,7 +415,7 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "enabledHook",
+              "name": "enabledHooks",
               "outputs": [
                 {
                   "internalType": "address",
@@ -579,11 +579,11 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "getEnabledHook",
+              "name": "getEnabledHooks",
               "outputs": [
                 {
                   "internalType": "address",
-                  "name": "hookAddress",
+                  "name": "hooksAddress",
                   "type": "address"
                 }
               ],
@@ -734,11 +734,11 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "hook",
+                  "name": "hooks",
                   "type": "address"
                 }
               ],
-              "name": "setHook",
+              "name": "setHooks",
               "outputs": [],
               "stateMutability": "nonpayable",
               "type": "function"
