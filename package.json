@@ -55,11 +55,11 @@
     "typescript": "~5.0.0",
     "yargs": "^17.7.2"
   },
-  "name": "@safe-global/safe-protocol",
+  "name": "@safe-global/safe-core-protocol",
   "version": "0.1.0-alpha.0",
-  "description": "Safe protocol contracts",
+  "description": "Safe{Core} Protocol contracts",
   "main": "dist/deployments.js",
-  "repository": "git@github.com:5afe/safe-protocol.git",
+  "repository": "git@github.com:5afe/safe-core-protocol.git",
   "author": "safe.global",
   "license": "LGPL-3.0",
   "files": [
