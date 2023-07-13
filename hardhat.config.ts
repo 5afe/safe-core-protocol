@@ -6,7 +6,7 @@ import yargs from "yargs";
 import { HttpNetworkUserConfig } from "hardhat/types";
 import "hardhat-deploy";
 import { DeterministicDeploymentInfo } from "hardhat-deploy/dist/types";
-import { getSingletonFactoryInfo } from "@gnosis.pm/safe-singleton-factory";
+import { getSingletonFactoryInfo } from "@safe-global/safe-singleton-factory";
 import { ethers } from "ethers";
 
 // Load environment variables.
