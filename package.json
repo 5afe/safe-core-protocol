@@ -5,7 +5,7 @@
   "main": "dist/deployments.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/safe-global/safe-core-contracts.git"
+    "url": "git+https://github.com/5afe/safe-core-protocol"
   },
   "author": "safe.global",
   "license": "LGPL-3.0",
@@ -17,7 +17,7 @@
     "artifacts",
     "deployments.ts"
   ],
-  "homepage": "https://github.com/safe-global/safe-core-contracts/",
+  "homepage": "https://github.com/5afe/safe-core-protocol",
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
