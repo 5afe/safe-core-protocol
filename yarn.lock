@@ -450,11 +450,6 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@gnosis.pm/safe-singleton-factory@^1.0.14":
-  version "1.0.14"
-  resolved "https://registry.yarnpkg.com/@gnosis.pm/safe-singleton-factory/-/safe-singleton-factory-1.0.14.tgz#42dae9a91fda21b605f94bfe310a7fccc6a4d738"
-  integrity sha512-xZ26c9uKzpd5Sm8ux0sZHt5QC8n+Q2z1/X5xjPnd8aT5EcKH5t1GgLbAqjrMFmXVIOkiWSc7wi2Bj4XfgtiyaQ==
-
 "@humanwhocodes/config-array@^0.11.10":
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.10.tgz#5a3ffe32cc9306365fb3fd572596cd602d5e12d2"
@@ -792,6 +787,11 @@
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/@safe-global/mock-contract/-/mock-contract-4.0.0.tgz#8e1e17e93af5d4b343a6bb6cef8c1f513cb7a92e"
   integrity sha512-6ijStTgQI6JzYe8Nsc4j1VW4XQ89qCl7ZkRGxwwlxnaOMDYzVekwPACbg2kDDzhtJ4p8vSvE6ZroxSkvP7610A==
+
+"@safe-global/safe-singleton-factory@^1.0.14":
+  version "1.0.14"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-singleton-factory/-/safe-singleton-factory-1.0.14.tgz#a4c3937670946d21428b45f09c779d672cc716de"
+  integrity sha512-5dyEfPU8oVY/2whxcc14eqWS2WJ8V1j1h3XiretSi9bb09IA+/FTlpooArtOiNs14v6KsMMRnwsHhpDQuZV6Sw==
 
 "@scure/base@~1.1.0":
   version "1.1.1"
