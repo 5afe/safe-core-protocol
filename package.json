@@ -1,4 +1,23 @@
 {
+  "name": "@safe-global/safe-core-protocol",
+  "version": "0.1.0-alpha.2",
+  "description": "Safe{Core} Protocol contracts",
+  "main": "dist/deployments.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/5afe/safe-core-protocol"
+  },
+  "author": "safe.global",
+  "license": "LGPL-3.0",
+  "files": [
+    "contracts",
+    "dist",
+    "scripts",
+    "test",
+    "artifacts",
+    "deployments.ts"
+  ],
+  "homepage": "https://github.com/5afe/safe-core-protocol",
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
@@ -9,7 +28,7 @@
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint 'test/**/*.ts' --max-warnings 0 --fix",
-    "typechain": "TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+    "typechain": "TS_NODE_TRANSPILE_ONLY=true yarn hardhat typechain",
     "postinstall": "yarn typechain",
     "deploy": "hardhat deploy --network",
     "prepack": "yarn build",
@@ -18,7 +37,6 @@
     "build:ts": "yarn rimraf dist && tsc -p tsconfig.prod.json"
   },
   "devDependencies": {
-    "@safe-global/safe-singleton-factory": "^1.0.14",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
@@ -26,6 +44,7 @@
     "@nomicfoundation/hardhat-verify": "^1.0.0",
     "@openzeppelin/contracts": "^4.9.1",
     "@safe-global/mock-contract": "^4.0.0",
+    "@safe-global/safe-singleton-factory": "^1.0.14",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
     "@types/chai": "^4.2.0",
@@ -54,20 +73,5 @@
     "typechain": "^8.2.0",
     "typescript": "~5.0.0",
     "yargs": "^17.7.2"
-  },
-  "name": "@safe-global/safe-core-protocol",
-  "version": "0.1.0-alpha.0",
-  "description": "Safe{Core} Protocol contracts",
-  "main": "dist/deployments.js",
-  "repository": "git@github.com:5afe/safe-core-protocol.git",
-  "author": "safe.global",
-  "license": "LGPL-3.0",
-  "files": [
-    "contracts",
-    "dist",
-    "scripts",
-    "test",
-    "artifacts",
-    "deployments.ts"
-  ]
+  }
 }
