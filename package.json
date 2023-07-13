@@ -1,4 +1,23 @@
 {
+  "name": "@safe-global/safe-core-protocol",
+  "version": "0.1.0-alpha.2",
+  "description": "Safe{Core} Protocol contracts",
+  "main": "dist/deployments.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/safe-global/safe-core-contracts.git"
+  },
+  "author": "safe.global",
+  "license": "LGPL-3.0",
+  "files": [
+    "contracts",
+    "dist",
+    "scripts",
+    "test",
+    "artifacts",
+    "deployments.ts"
+  ],
+  "homepage": "https://github.com/safe-global/safe-core-contracts/",
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
@@ -54,20 +73,5 @@
     "typechain": "^8.2.0",
     "typescript": "~5.0.0",
     "yargs": "^17.7.2"
-  },
-  "name": "@safe-global/safe-core-protocol",
-  "version": "0.1.0-alpha.1",
-  "description": "Safe{Core} Protocol contracts",
-  "main": "dist/deployments.js",
-  "repository": "git@github.com:5afe/safe-core-protocol.git",
-  "author": "safe.global",
-  "license": "LGPL-3.0",
-  "files": [
-    "contracts",
-    "dist",
-    "scripts",
-    "test",
-    "artifacts",
-    "deployments.ts"
-  ]
+  }
 }
