@@ -1,6 +1,6 @@
 {
   "name": "@safe-global/safe-core-protocol",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Safe{Core} Protocol contracts",
   "main": "dist/deployments.js",
   "repository": {
@@ -28,8 +28,8 @@
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint 'test/**/*.ts' --max-warnings 0 --fix",
-    "typechain": "TS_NODE_TRANSPILE_ONLY=true yarn hardhat typechain",
-    "postinstall": "yarn typechain",
+    "typechain": "TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+    "postbuild": "yarn typechain",
     "deploy": "hardhat deploy --network",
     "prepack": "yarn build",
     "deploy-all": "hardhat deploy-contracts --network",
