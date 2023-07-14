@@ -5,7 +5,7 @@ export default {
       "chainId": "5",
       "contracts": {
         "SafeProtocolManager": {
-          "address": "0x4026BA244d773F17FFA2d3173dAFe3fdF94216b9",
+          "address": "0xb4Dc1B282706aB473cdD1b9899c57baD2BD3e2f3",
           "abi": [
             {
               "inputs": [
