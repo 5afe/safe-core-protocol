@@ -83,7 +83,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
         if (areHooksEnabled) {
-            // TODO: Define execution meta
+            // TODO: Define execution metadata
             // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(safe, transaction, 1, "");
         }
@@ -137,7 +137,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
         if (areHooksEnabled) {
-            // TODO: Define execution meta
+            // TODO: Define execution metadata
             // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, "");
         }
