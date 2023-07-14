@@ -20,7 +20,7 @@ const argv : any = yargs
     .help(false)
     .version(false).argv;
 
-const { NODE_URL, MNEMONIC, INFURA_KEY, ETHERSCAN_API_KEY} = process.env;
+const { NODE_URL, MNEMONIC, INFURA_KEY, ETHERSCAN_API_KEY, SAFE_PROTOCOL_OWNER_ADDRESS} = process.env;
 
 const deterministicDeployment = (network: string): DeterministicDeploymentInfo => {
   const info = getSingletonFactoryInfo(parseInt(network));
@@ -82,7 +82,7 @@ const config: HardhatUserConfig = {
       default: 0
     },
     owner: {
-      default: 1
+      default: SAFE_PROTOCOL_OWNER_ADDRESS || 1
     }
   }
 };

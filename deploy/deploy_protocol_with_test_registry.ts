@@ -12,7 +12,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         deterministicDeployment: true,
     });
 
-    await deploy("SafeProtocolManager", {
+    await deploy("TestSafeProtocolManager", {
         from: deployer,
         args: [owner, testRegistry.address],
         log: true,

@@ -24,7 +24,9 @@ npx hardhat test
 
 ### Deploy
 
-- Deploy contracts with [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol) network to goerli.
+- Deploy test contracts network to goerli.
+    - [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol)
+    - [test manager](./contracts/test/TestSafeProtocolManager.sol)
     ```bash
     yarn hardhat deploy --network goerli --tags test-protocol --export-all deployments.ts
     ```
