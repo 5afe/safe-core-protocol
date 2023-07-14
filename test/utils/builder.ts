@@ -1,6 +1,12 @@
 import { AddressLike } from "ethers";
 import { SafeRootAccess, SafeTransaction } from "./dataTypes";
-export const buildSingleTx = (address: AddressLike, value: bigint, data: string, nonce: bigint, metadataHash: Uint8Array): SafeTransaction => {
+export const buildSingleTx = (
+    address: AddressLike,
+    value: bigint,
+    data: string,
+    nonce: bigint,
+    metadataHash: Uint8Array,
+): SafeTransaction => {
     return {
         actions: [
             {
