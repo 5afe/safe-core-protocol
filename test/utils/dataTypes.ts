@@ -9,11 +9,11 @@ export interface SafeProtocolAction {
 export interface SafeTransaction {
     actions: SafeProtocolAction[];
     nonce: bigint;
-    metaHash: Uint8Array;
+    metadataHash: Uint8Array;
 }
 
 export interface SafeRootAccess {
     action: SafeProtocolAction;
     nonce: bigint;
-    metaHash: Uint8Array;
+    metadataHash: Uint8Array;
 }

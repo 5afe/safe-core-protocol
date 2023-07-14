@@ -334,7 +334,7 @@ describe("SafeProtocolManager", async () => {
                 expect(balanceAfter).to.eql(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
-                await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
+                await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metadataHash, 1);
             });
 
             it("Should revert with a InvalidToFieldInSafeProtocolAction when `to` address is safe address through which tx is executed", async function () {
@@ -407,7 +407,7 @@ describe("SafeProtocolManager", async () => {
                 expect(balanceAfter).to.eql(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
-                await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metaHash, 1);
+                await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metadataHash, 1);
             });
 
             it("Should fail executing a transaction through plugin when hooks pre-check fails", async () => {
@@ -477,7 +477,7 @@ describe("SafeProtocolManager", async () => {
                         },
                     ],
                     nonce: 1,
-                    metaHash: hre.ethers.randomBytes(32),
+                    metadataHash: hre.ethers.randomBytes(32),
                 };
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
 
@@ -554,7 +554,7 @@ describe("SafeProtocolManager", async () => {
                 expect(balanceAfter).to.eql(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
-                await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
+                await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
             });
 
             it("Should execute a transaction from root access enabled plugin with hooks enabled", async () => {
@@ -598,7 +598,7 @@ describe("SafeProtocolManager", async () => {
                 expect(balanceAfter).to.eql(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
-                await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metaHash);
+                await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
             });
 
             it("Should fail to execute a transaction from root access enabled plugin when hooks pre-check fails", async () => {
