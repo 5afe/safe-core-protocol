@@ -5,7 +5,7 @@ export default {
       "chainId": "5",
       "contracts": {
         "SafeProtocolManager": {
-          "address": "0x9bCb501eb2613351D0CfB6F3E510fb4B097754a5",
+          "address": "0xb4Dc1B282706aB473cdD1b9899c57baD2BD3e2f3",
           "abi": [
             {
               "inputs": [
@@ -792,8 +792,8 @@ export default {
             }
           ]
         },
-        "TestSafeProtocolRegistryUnrestricted": {
-          "address": "0x907a77aCE8c54B0F59181f135a1117477048DB7a",
+        "SafeProtocolRegistry": {
+          "address": "0x05c5fF0A6E6F6A4a069b2f7e91D02A094b11bA41",
           "abi": [
             {
               "inputs": [
@@ -1050,8 +1050,8 @@ export default {
             }
           ]
         },
-        "SafeProtocolRegistry": {
-          "address": "0x05c5fF0A6E6F6A4a069b2f7e91D02A094b11bA41",
+        "TestSafeProtocolRegistryUnrestricted": {
+          "address": "0x9EFbBcAD12034BC310581B9837D545A951761F5A",
           "abi": [
             {
               "inputs": [
