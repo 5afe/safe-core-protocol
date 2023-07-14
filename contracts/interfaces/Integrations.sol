@@ -104,11 +104,11 @@ interface ISafeProtocolPlugin {
 
     /**
      * @notice A funtion that returns version of the plugin.
-     *         TODO: Define types of meta provider and possible values of location in each of the cases.
-     * @return providerType uint256 Type of meta provider
+     *         TODO: Define types of metadata provider and possible values of location in each of the cases.
+     * @return providerType uint256 Type of metadata provider
      * @return location bytes
      */
-    function metaProvider() external view returns (uint256 providerType, bytes memory location);
+    function metadataProvider() external view returns (uint256 providerType, bytes memory location);
 
     /**
      * @notice A function that indicates if the plugin requires root access to a Safe.

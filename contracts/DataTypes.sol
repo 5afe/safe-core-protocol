@@ -10,11 +10,11 @@ struct SafeProtocolAction {
 struct SafeTransaction {
     SafeProtocolAction[] actions;
     uint256 nonce;
-    bytes32 metaHash;
+    bytes32 metadataHash;
 }
 
 struct SafeRootAccess {
     SafeProtocolAction action;
     uint256 nonce;
-    bytes32 metaHash;
+    bytes32 metadataHash;
 }
