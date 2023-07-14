@@ -108,7 +108,7 @@ interface ISafeProtocolPlugin {
      * @return providerType uint256 Type of metadata provider
      * @return location bytes
      */
-    function metaProvider() external view returns (uint256 providerType, bytes memory location);
+    function metadataProvider() external view returns (uint256 providerType, bytes memory location);
 
     /**
      * @notice A function that indicates if the plugin requires root access to a Safe.

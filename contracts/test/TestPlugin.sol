@@ -11,7 +11,7 @@ abstract contract BaseTestPlugin is ISafeProtocolPlugin {
     string public version = "";
     bool public requiresRootAccess = false;
 
-    function metaProvider() external view override returns (uint256 providerType, bytes memory location) {}
+    function metadataProvider() external view override returns (uint256 providerType, bytes memory location) {}
 
     function setRequiresRootAccess(bool _requiresRootAccess) external {
         requiresRootAccess = _requiresRootAccess;
