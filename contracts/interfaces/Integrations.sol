@@ -6,7 +6,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement
- * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
+ * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
 interface ISafeProtocolFunctionHandler {
@@ -23,7 +23,7 @@ interface ISafeProtocolFunctionHandler {
 
 /**
  * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement in case when handling static calls
- * @notice In Safe protocol, a function handler can be used to add additional functionality to a Safe.
+ * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
 interface ISafeProtocolStaticFunctionHandler {
@@ -40,7 +40,7 @@ interface ISafeProtocolStaticFunctionHandler {
 
 /**
  * @title ISafeProtocolHooks - An interface that a contract should implement to be enabled as hooks.
- * @notice In Safe protocol, hooks can approve or deny transactions based on the logic it implements.
+ * @notice In Safe{Core} Protocol, hooks can approve or deny transactions based on the logic it implements.
  */
 interface ISafeProtocolHooks is IERC165 {
     /**
