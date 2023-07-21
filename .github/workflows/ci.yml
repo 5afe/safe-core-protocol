@@ -1,4 +1,4 @@
-name: safe-protocol
+name: safe-core-protocol
 on: [ push, pull_request ]
 
 jobs:

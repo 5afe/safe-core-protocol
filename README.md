@@ -1,6 +1,6 @@
-# Safe protocol
+# Safe{Core} Protocol
 
-This project is an implementation of [Safe protocol specification](https://github.com/5afe/safe-protocol-specs)
+This project is an implementation of [Safe{Core} Protocol specification](https://github.com/5afe/safe-protocol-specs)
 
 ## Useful commands
 
@@ -24,13 +24,13 @@ npx hardhat test
 
 ### Deploy
 
-- Deploy test contracts network to goerli.
-    - [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol)
-    - [test manager](./contracts/test/TestSafeProtocolManager.sol)
+-   Deploy test contracts network to goerli.
+    -   [test registry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol)
+    -   [test manager](./contracts/test/TestSafeProtocolManager.sol)
     ```bash
     yarn hardhat deploy --network goerli --tags test-protocol --export-all deployments.ts
     ```
-- Deploy contracts with [SafeProtocolRegistry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol) registry network to goerli.
+-   Deploy contracts with [SafeProtocolRegistry](./contracts/test/TestSafeProtocolRegistryUnrestricted.sol) registry network to goerli.
     ```bash
     yarn hardhat deploy --network goerli --tags protocol --export-all deployments.ts
     ```
@@ -38,11 +38,13 @@ npx hardhat test
 ### Verify
 
 #### SafeProtocolRegistry.sol/TestSafeProtocolRegistryUnrestricted.sol
+
 ```
 yarn hardhat verify --network goerli <contract_address> <initial_owner>
 ```
 
 #### SafeProtocolManager.sol
+
 ```
 yarn hardhat verify --network goerli <contract_address> <initial_owner> <registry_address>
 ```

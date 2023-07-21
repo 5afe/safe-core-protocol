@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 /**
- * @title ISafe Declares the functions that are called on a Safe by Safe protocol.
+ * @title ISafe Declares the functions that are called on a Safe by Safe{Core} Protocol.
  */
 interface ISafe {
     function execTransactionFromModule(
