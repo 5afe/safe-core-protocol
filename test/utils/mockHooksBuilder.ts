@@ -11,7 +11,7 @@ export const getHooksWithFailingPrechecks = async (): Promise<ISafeProtocolHooks
     return hre.ethers.getContractAt("ISafeProtocolHooks", await hooks.getAddress());
 };
 
-export const getHooksWithPassingPreChecks = async (): Promise<ISafeProtocolHooks> => {
+export const getHooksWithFailingPreChecks = async (): Promise<ISafeProtocolHooks> => {
     const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
     await hooks.givenMethodReturnBool("0x01ffc9a7", true);
     // 0x7359b742 -> selector for preCheckRootAccess

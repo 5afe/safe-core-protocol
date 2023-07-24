@@ -16,6 +16,10 @@ abstract contract BaseTestPlugin is ISafeProtocolPlugin {
     function setRequiresRootAccess(bool _requiresRootAccess) external {
         requiresRootAccess = _requiresRootAccess;
     }
+
+    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+        return interfaceId == type(ISafeProtocolPlugin).interfaceId || interfaceId == 0x01ffc9a7;
+    }
 }
 
 contract TestPlugin is BaseTestPlugin {

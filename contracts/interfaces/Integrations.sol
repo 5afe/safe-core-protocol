@@ -9,7 +9,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
  *         TODO: Add more explaination.
  */
-interface ISafeProtocolFunctionHandler {
+interface ISafeProtocolFunctionHandler is IERC165 {
     /**
      * @notice TODO: Add more explaination
      * @param safe A Safe instance
@@ -89,7 +89,7 @@ interface ISafeProtocolHooks is IERC165 {
 /**
  * @title ISafeProtocolPlugin - An interface that a Safe plugin should implement
  */
-interface ISafeProtocolPlugin {
+interface ISafeProtocolPlugin is IERC165 {
     /**
      * @notice A funtion that returns name of the plugin
      * @return name string name of the plugin
