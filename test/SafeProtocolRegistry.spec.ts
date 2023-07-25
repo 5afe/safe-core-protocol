@@ -4,8 +4,9 @@ import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { IntegrationType } from "./utils/constants";
-import { getHooksWithPassingChecks } from "./utils/mockHooksBuilder";
-
+import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
+import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
+import { getFucntionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
 describe("SafeProtocolRegistry", async () => {
     let owner: SignerWithAddress, user1: SignerWithAddress;
 
@@ -19,15 +20,15 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
 
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Plugin);
+        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
         await expect(
-            safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Plugin),
+            safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks),
         ).to.be.revertedWithCustomError(safeProtocolRegistry, "CannotAddIntegration");
     });
 
     it("Should not allow non-owner to add a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero, IntegrationType.Plugin)).to.be.revertedWith(
+        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero, IntegrationType.Hooks)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
     });
@@ -43,7 +44,7 @@ describe("SafeProtocolRegistry", async () => {
     it("Should allow only owner to flag a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Plugin);
+        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
 
         await expect(safeProtocolRegistry.connect(user1).flagIntegration(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
@@ -59,7 +60,7 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
         const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
 
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Plugin);
+        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
 
         await expect(safeProtocolRegistry.connect(user1).flagIntegration(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
@@ -89,5 +90,29 @@ describe("SafeProtocolRegistry", async () => {
         expect(await safeProtocolRegistry.supportsInterface.staticCall("0x00000000")).to.be.false;
         expect(await safeProtocolRegistry.supportsInterface.staticCall("0xbaddad42")).to.be.false;
         expect(await safeProtocolRegistry.supportsInterface.staticCall("0xffffffff")).to.be.false;
+    });
+
+    it("Should revert when adding hooks not supporting expected interfaceId", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        const mockHookAddress = await (await getHooksWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+            .withArgs(mockHookAddress, "0x907e1c56");
+    });
+
+    it("Should revert when adding plugin not supporting expected interfaceId", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        const mockPluginAddress = await (await getPluginWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockPluginAddress, IntegrationType.Plugin))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+            .withArgs(mockPluginAddress, "0x3fce835e");
+    });
+
+    it("Should revert when adding function handler not supporting expected interfaceId", async () => {
+        const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
+        const mockFunctionHandlerAddress = await (await getFucntionHandlerWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockFunctionHandlerAddress, IntegrationType.FunctionHandler))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+            .withArgs(mockFunctionHandlerAddress, "0x25d6803f");
     });
 });

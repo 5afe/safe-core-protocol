@@ -23,7 +23,7 @@ export const getHooksWithFailingPreChecks = async (): Promise<ISafeProtocolHooks
 
 export const getHooksWithFailingCallToSupportsInterfaceMethod = async (): Promise<ISafeProtocolHooks> => {
     const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
-    await hooks.givenMethodReturnBool("0x01ffc9a7", false);
+    await hooks.givenMethodReturnBool("0x907e1c56", false);
     return hre.ethers.getContractAt("ISafeProtocolHooks", await hooks.getAddress());
 };
 
