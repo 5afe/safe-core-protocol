@@ -8,12 +8,14 @@ import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.s
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {HooksManager} from "./base/HooksManager.sol";
+import {BaseGuard} from "@safe-global/safe-contracts/contracts/base/GuardManager.sol";
+import {Enum} from "@safe-global/safe-contracts/contracts/common/Enum.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, BaseGuard {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -284,6 +286,71 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         // solhint-disable-next-line no-inline-assembly
         assembly {
             mstore(array, pluginCount)
+        }
+    }
+
+    /**
+     * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
+     * @param to address of the account
+     * @param value Amount of ETH to be sent
+     * @param data Artibtrary length bytes containing payload
+     * @param operation Call or DelegateCall operation
+     * @param safeTxGas uint256
+     * @param baseGas uint256
+     * @param gasPrice uint256
+     * @param gasToken address
+     * @param refundReceiver payable address
+     * @param signatures Arbitrary bytes containing ECDSA signatures
+     * @param msgSender Sender of the transaction
+     */
+    function checkTransaction(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address payable refundReceiver,
+        bytes memory signatures,
+        address msgSender
+    ) external {
+        address hooksAddress = enabledHooks[msg.sender];
+        bytes memory executionMetadata = abi.encode(
+            to,
+            value,
+            data,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            signatures,
+            msgSender
+        );
+        if (hooksAddress != address(0)) {
+            if (operation == Enum.Operation.Call) {
+                SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
+                actions[0] = SafeProtocolAction(payable(to), value, data);
+                SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
+                ISafeProtocolHooks(hooksAddress).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            } else if (operation == Enum.Operation.DelegateCall) {
+                SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
+                SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
+                ISafeProtocolHooks(hooksAddress).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            }
+        }
+    }
+
+    /**
+     * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
+     * @param success bool
+     */
+    function checkAfterExecution(bytes32, bool success) external {
+        address hooksAddress = enabledHooks[msg.sender];
+        if (hooksAddress != address(0)) {
+            ISafeProtocolHooks(hooksAddress).postCheck(ISafe(msg.sender), success, "");
         }
     }
 }

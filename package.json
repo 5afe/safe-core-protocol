@@ -44,6 +44,7 @@
     "@nomicfoundation/hardhat-verify": "^1.0.0",
     "@openzeppelin/contracts": "^4.9.1",
     "@safe-global/mock-contract": "^4.0.0",
+    "@safe-global/safe-contracts": "^1.4.1-build.0",
     "@safe-global/safe-singleton-factory": "^1.0.14",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
