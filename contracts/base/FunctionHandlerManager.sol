@@ -4,8 +4,10 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {BaseManager} from "./BaseManager.sol";
 
 /**
- * @title This contract manages the function handlers for the Safe Account. The contract stores the
- *        information about Safe account, Function selectr and the function handler contract address.
+ * @title FunctionHandlerManager
+ * @notice This contract manages the function handlers for the Safe Account. The contract stores the
+ *        information about Safe account, bytes4 function selector and the function handler contract address.
+ * @dev This contract inherits BaseManager so that `onlyPermittedIntegration` modifier can be used.
  */
 abstract contract FunctionHandlerManager is BaseManager {
     // Storage
@@ -43,5 +45,7 @@ abstract contract FunctionHandlerManager is BaseManager {
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
-    fallback() external {}
+    fallback() external {
+
+    }
 }
