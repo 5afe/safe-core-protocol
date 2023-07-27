@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {ISafeProtocolPlugin, ISafeProtocolHooks} from "./interfaces/Integrations.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
@@ -11,12 +10,14 @@ import {HooksManager} from "./base/HooksManager.sol";
 import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
 import {BaseGuard} from "@safe-global/safe-contracts/contracts/base/GuardManager.sol";
 import {Enum} from "@safe-global/safe-contracts/contracts/common/Enum.sol";
+import {BaseManager} from "./base/BaseManager.sol";
+import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, FunctionHandlerManager, BaseGuard {
+contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHandlerManager, BaseGuard {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -79,7 +80,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedPlugin(msg.sender) returns (bytes[] memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
 
         address hooksAddress = enabledHooks[safeAddress];
@@ -132,7 +133,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedPlugin(msg.sender) returns (bytes memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes memory data) {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
@@ -173,7 +174,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedPlugin(plugin) {
+    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 

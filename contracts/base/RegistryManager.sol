@@ -9,14 +9,14 @@ contract RegistryManager is Ownable2Step {
 
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
-    error PluginNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
+    error IntegrationNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
     error AccountDoesNotImplementValidInterfaceId(address account);
 
-    modifier onlyPermittedPlugin(address plugin) {
+    modifier onlyPermittedIntegration(address plugin) {
         // Only allow registered and non-flagged plugins
         (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(plugin);
         if (listedAt == 0 || flaggedAt != 0) {
-            revert PluginNotPermitted(plugin, listedAt, flaggedAt);
+            revert IntegrationNotPermitted(plugin, listedAt, flaggedAt);
         }
         _;
     }

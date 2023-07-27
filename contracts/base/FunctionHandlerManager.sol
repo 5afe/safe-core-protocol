@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {BaseManager} from "./BaseManager.sol";
 
 /**
  * @title This contract manages the function handlers for the Safe Account. The contract stores the
  *        information about Safe account, Function selectr and the function handler contract address.
  */
-contract FunctionHandlerManager {
+abstract contract FunctionHandlerManager is BaseManager {
     // Storage
     /** @dev Mapping that stores information about Safe account, function selector, and address of the account.
      */
@@ -33,7 +34,7 @@ contract FunctionHandlerManager {
      * @param selector bytes4 function selector
      * @param functionHandler Address of the contract to be set as a function handler
      */
-    function setFunctionHandler(bytes4 selector, address functionHandler) external {
+    function setFunctionHandler(bytes4 selector, address functionHandler) external onlyPermittedIntegration(functionHandler) {
         if (functionHandler != address(0) && !IERC165(functionHandler).supportsInterface(0x00000000)) {
             revert AddressDoesNotImplementFunctionHandlerInterface(functionHandler);
         }
@@ -41,4 +42,6 @@ contract FunctionHandlerManager {
         functionHandlers[msg.sender][selector] = functionHandler;
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
+
+    fallback() external {}
 }
