@@ -8,6 +8,7 @@ import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.s
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {HooksManager} from "./base/HooksManager.sol";
+import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
 import {BaseGuard} from "@safe-global/safe-contracts/contracts/base/GuardManager.sol";
 import {Enum} from "@safe-global/safe-contracts/contracts/common/Enum.sol";
 
@@ -15,7 +16,7 @@ import {Enum} from "@safe-global/safe-contracts/contracts/common/Enum.sol";
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, BaseGuard {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, FunctionHandlerManager, BaseGuard {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
