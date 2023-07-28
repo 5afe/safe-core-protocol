@@ -8,6 +8,7 @@ import "hardhat-deploy";
 import { DeterministicDeploymentInfo } from "hardhat-deploy/dist/types";
 import { getSingletonFactoryInfo } from "@safe-global/safe-singleton-factory";
 import { ethers } from "ethers";
+import "./src/tasks/generate_deployments_markdown";
 
 // Load environment variables.
 dotenv.config();

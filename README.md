@@ -2,6 +2,10 @@
 
 This project is an implementation of [Safe{Core} Protocol specification](https://github.com/5afe/safe-protocol-specs)
 
+## Deployments
+
+All the deployed addresses of contracts are available in [deployments.ts](./deployments.ts) for each network along with contract abis. Alternatively, all the addresses are also available in a [markdown file](./docs/deployments.md)
+
 ## Useful commands
 
 ### Install
