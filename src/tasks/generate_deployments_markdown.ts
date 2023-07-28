@@ -30,7 +30,8 @@ task("generate:deployments", "Generate markdown file with deployed contract addr
         Object.keys(contracts.contracts).forEach((contractName) => {
           const contractAddress = contracts.contracts[contractName].address;
           const etherscanUrl = `${NETWORK_ID_URL_MAPPING[network]}/address/${contractAddress}`;
-          markdownContent += `| ${contractName} | [${contractAddress}](${etherscanUrl}) |\n`;
+          markdownContent += `| ${contractName} | <a href="${etherscanUrl}" target="_blank">${contractAddress}</a> |\n`;
+
         });
 
         markdownContent += "\n";

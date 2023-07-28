@@ -38,17 +38,10 @@ npx hardhat test
     ```bash
     yarn hardhat deploy --network goerli --tags protocol --export-all deployments.ts
     ```
+### Other commands
 
-### Verify
-
-#### SafeProtocolRegistry.sol/TestSafeProtocolRegistryUnrestricted.sol
-
-```
-yarn hardhat verify --network goerli <contract_address> <initial_owner>
-```
-
-#### SafeProtocolManager.sol
-
-```
-yarn hardhat verify --network goerli <contract_address> <initial_owner> <registry_address>
-```
+| Command                                                                                            | Description                                                                                                                           |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| ``` yarn hardhat generate:deployments ```                                                          | Generate deployments markdown in [./docs/deployments.md](./docs/deployments.md) from [./deployments.ts](./deployments.ts)             |
+| ``` yarn hardhat verify --network goerli <contract_address> <initial_owner> ```                    | Verify Registry contract(s)<br/>  Applicable for<br/> - SafeProtocolRegistry.sol<br/> - TestSafeProtocolRegistryUnrestricted.sol<br/> |
+| ``` yarn hardhat verify --network goerli <contract_address> <initial_owner> <registry_address> ``` | Verify SafeProtocolManager.sol                                                                                                        |
