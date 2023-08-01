@@ -18,7 +18,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow add a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
+        const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
         await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
         await expect(
@@ -43,7 +43,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow only owner to flag a integration", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
+        const mockHookAddress = (await getHooksWithPassingChecks()).target;
         await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
 
         await expect(safeProtocolRegistry.connect(user1).flagIntegration(mockHookAddress)).to.be.revertedWith(
@@ -58,7 +58,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should allow only owner to flag a integration only once", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockHookAddress = await (await getHooksWithPassingChecks()).getAddress();
+        const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
         await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
 
@@ -94,7 +94,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should revert when adding hooks not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockHookAddress = await (await getHooksWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        const mockHookAddress = (await getHooksWithFailingCallToSupportsInterfaceMethod()).target;
         await expect(safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
             .withArgs(mockHookAddress, "0x907e1c56");
@@ -102,7 +102,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should revert when adding plugin not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockPluginAddress = await (await getPluginWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        const mockPluginAddress = (await getPluginWithFailingCallToSupportsInterfaceMethod()).target;
         await expect(safeProtocolRegistry.connect(owner).addIntegration(mockPluginAddress, IntegrationType.Plugin))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
             .withArgs(mockPluginAddress, "0x3fce835e");
@@ -110,7 +110,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should revert when adding function handler not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await loadFixture(deployContractFixture);
-        const mockFunctionHandlerAddress = await (await getFucntionHandlerWithFailingCallToSupportsInterfaceMethod()).getAddress();
+        const mockFunctionHandlerAddress = (await getFucntionHandlerWithFailingCallToSupportsInterfaceMethod()).target;
         await expect(safeProtocolRegistry.connect(owner).addIntegration(mockFunctionHandlerAddress, IntegrationType.FunctionHandler))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
             .withArgs(mockFunctionHandlerAddress, "0x25d6803f");
