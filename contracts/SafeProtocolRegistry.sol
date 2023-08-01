@@ -19,8 +19,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     error CannotAddIntegration(address integration);
     error IntegrationDoesNotSupportExpectedInterfaceId(address integration, bytes4 expectedInterfaceId);
 
-    event IntegrationAdded(address integration);
-    event IntegrationFlagged(address integration);
+    event IntegrationAdded(address indexed integration);
+    event IntegrationFlagged(address indexed integration);
 
     constructor(address initialOwner) {
         _transferOwnership(initialOwner);
