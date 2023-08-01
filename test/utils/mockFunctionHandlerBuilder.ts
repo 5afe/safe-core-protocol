@@ -6,5 +6,5 @@ export const getFucntionHandlerWithFailingCallToSupportsInterfaceMethod = async 
 
     // 0x25d6803f -> type(ISafeProtocolFunctionHandler).interfaceId
     await hooks.givenMethodReturnBool("0x25d6803f", false);
-    return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", await hooks.getAddress());
+    return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", hooks.target);
 };
