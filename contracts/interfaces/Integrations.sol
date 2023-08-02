@@ -13,7 +13,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  */
 interface ISafeProtocolFunctionHandler is IERC165 {
     /**
-     * @notice Handles call to the Safe contract that are forwarded by the fallback function.
+     * @notice Handles calls to the Safe contract forwarded by the fallback function.
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
