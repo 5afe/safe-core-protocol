@@ -1,6 +1,60 @@
 # Safe{Core} Protocol
 
 This project is an implementation of [Safe{Core} Protocol specification](https://github.com/5afe/safe-protocol-specs)
+## Architecture
+
+Safe{Core} Protocol implementation consists of following main components:
+- [SafeProtocolManager](./contracts/SafeProtocolManager.sol)
+- [SafeProtocolRegistry](./contracts/SafeProtocolRegistry.sol)
+- [Interfaces for Integrations](./contracts/interfaces/Integrations.sol)
+
+A high level overview of the architecture is as follows:
+
+```mermaid
+graph TD
+    Safe -->|Execute transaction| Monitor
+    Safe -->|Manage Integrations| Store
+    Safe -->|SafeProtocolManager handling fallback functionality| FunctionHandlerSupport
+    PluginInstance(Plugin Instance) -->|Execute transaction from Plugin| Monitor
+    RegistryOwner("Registry Owner") --> Maintain
+    RegistryOwner("Registry Owner") --> Flag
+
+subgraph SafeProtocolManager
+	Store(Maintain Enabled Integrations per Safe)
+    Monitor(Mediate Safe transaction execution)
+    FunctionHandlerSupport("Provide additional functionality using Function Handler(s)")
+    HooksSupport("Hooks for validating transaction execution")
+    Monitor -.- HooksSupport
+end
+
+subgraph SafeProtocolRegistry
+	AllowQuery(Provide information about Integrations)
+    Maintain("Maintain list of permitted Integrations")
+    Flag("Mark Integration as Malicious")
+    Monitor -.- AllowQuery
+    Store -.- AllowQuery
+end
+```
+
+### Integrations
+
+```mermaid
+graph TD
+style Integrations font-size:20px;
+subgraph Integrations
+	Plugin(Plugin)
+	Hooks(Hooks)
+	FunctionHandler(Function Handler)
+	SignatureVerifier(Signature verifier)
+end
+```
+
+Currently implemented components of the Safe{Core} Protocol are:
+- **SafeProtocolManager**
+- **SafeProtocolRegistry**
+- **Plugins**
+- **Hooks** for transaction execution through Plugin(s)
+- Additionally a test version of registry **TestSafeProtocolRegistryUnrestricted** is also available.
 
 ## Deployments
 
