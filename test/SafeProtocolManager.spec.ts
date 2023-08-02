@@ -1,4 +1,4 @@
-import hre from "hardhat";
+import hre, {deployments} from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { ZeroAddress } from "ethers";
@@ -12,11 +12,11 @@ describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
     });
 
-    async function deployContractsFixture() {
-        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
+    const setupTests = deployments.createFixture(async ({ deployments }) => {
+        await deployments.fixture();
         const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         const safe = await hre.ethers.deployContract("TestExecutor");
         const safeProtocolManager = await (
@@ -24,19 +24,19 @@ describe("SafeProtocolManager", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         return { safeProtocolManager, safeProtocolRegistry, safe };
-    }
+    });
 
     describe("Setup manager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
-            const { safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager } = await setupTests()
             expect(await safe.setModule(await safeProtocolManager.getAddress()));
         });
     });
 
     describe("Plugins", async () => {
         async function deployContractsWithPluginFixture() {
-            const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safe, safeProtocolRegistry } = await setupTests()
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
             await safeProtocolRegistry.connect(owner).addIntegration(plugin, IntegrationType.Plugin);
             return { safeProtocolManager, safe, plugin, safeProtocolRegistry };
@@ -291,7 +291,7 @@ describe("SafeProtocolManager", async () => {
 
     describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledManagerFixture() {
-            const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safeProtocolRegistry, safe } = await setupTests()
             await safe.setModule(await safeProtocolManager.getAddress());
             return { safeProtocolManager, safe, safeProtocolRegistry };
         }
@@ -797,5 +797,9 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(pluginAddress);
             });
         });
+    });
+
+    describe("Test SafeProtocolManager as Guard on a Safe", async () => {
+
     });
 });
