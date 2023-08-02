@@ -3,8 +3,6 @@ import { AddressLike, BaseContract } from "ethers";
 import hre from "hardhat";
 import { AddressZero } from "@ethersproject/constants";
 import { Safe, SafeProxyFactory } from "../../typechain-types";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-
 export const getInstance = async <T extends BaseContract>(name: string, address: string): Promise<T> => {
     // TODO: this typecasting should be refactored
     return (await hre.ethers.getContractAt(name, address)) as unknown as T;

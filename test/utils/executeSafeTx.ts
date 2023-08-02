@@ -16,7 +16,7 @@ export const execTransaction = async function (
 
     const transactionHash = await safe.getTransactionHash(to, value, data, operation, 0, 0, 0, ADDRESS_0, ADDRESS_0, nonce);
     let signatureBytes = "0x";
-    const bytesDataHash = hre.ethers.utils.arrayify(transactionHash);
+    const bytesDataHash = hre.ethers.getBytes(transactionHash);
 
     const sorted = Array.from(wallets).sort((a, b) => {
         return a.address.localeCompare(b.address, "en", { sensitivity: "base" });

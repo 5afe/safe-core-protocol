@@ -291,6 +291,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     /**
      * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
+     * @dev A Safe must enable SafeProtocolManager as a Guard (for Safe v1.x) and enable a contract address as Hooks.
+     *      If there is no hooks enabled for the Safe, transaction will revert as call to address(0) will fail.
      * @param to address of the account
      * @param value Amount of ETH to be sent
      * @param data Artibtrary length bytes containing payload
@@ -329,17 +331,20 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             signatures,
             msgSender
         );
-        if (hooksAddress != address(0)) {
-            if (operation == Enum.Operation.Call) {
-                SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
-                actions[0] = SafeProtocolAction(payable(to), value, data);
-                SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
-                ISafeProtocolHooks(hooksAddress).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
-            } else if (operation == Enum.Operation.DelegateCall) {
-                SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
-                SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
-                ISafeProtocolHooks(hooksAddress).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
-            }
+
+        // The call below will work only if the hook is registered for the Safe.
+        // If there is no hook registered, tx will fail. This is done on purpose to avoid cases where users might
+        // enable SafeProtocolManager as Guard but forget to register the hook in SafeProtocolManager.
+        // Possible improvement: Explictly check if the hooks is not address(0) and revert with appropriate error if so.
+        if (operation == Enum.Operation.Call) {
+            SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
+            actions[0] = SafeProtocolAction(payable(to), value, data);
+            SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
+            ISafeProtocolHooks(hooksAddress).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+        } else if (operation == Enum.Operation.DelegateCall) {
+            SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
+            SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
+            ISafeProtocolHooks(hooksAddress).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
         }
     }
 
@@ -348,9 +353,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param success bool
      */
     function checkAfterExecution(bytes32, bool success) external {
+        // If hooks get updated in the middle of a transaction, this call will refer to updated hooks address. Looks like a bug.
         address hooksAddress = enabledHooks[msg.sender];
-        if (hooksAddress != address(0)) {
-            ISafeProtocolHooks(hooksAddress).postCheck(ISafe(msg.sender), success, "");
-        }
+        ISafeProtocolHooks(hooksAddress).postCheck(ISafe(msg.sender), success, "");
     }
 }
