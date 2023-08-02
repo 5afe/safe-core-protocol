@@ -83,9 +83,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
         if (areHooksEnabled) {
-            // TODO: Define execution metadata
+            // execution metadata for transaction execution through plugin is encoded address of the plugin i.e. msg.sender.
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(safe, transaction, 1, "");
+            preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(safe, transaction, 1, abi.encode(msg.sender));
         }
 
         data = new bytes[](transaction.actions.length);
@@ -137,9 +137,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
         if (areHooksEnabled) {
-            // TODO: Define execution metadata
+            // execution metadata for transaction execution through plugin is encoded address of the plugin i.e. msg.sender.
             // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, "");
+            preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, abi.encode(msg.sender));
         }
         if (!ISafeProtocolPlugin(msg.sender).requiresRootAccess() || !enabledPlugins[safeAddress][msg.sender].rootAddressGranted) {
             revert PluginRequiresRootAccess(msg.sender);
