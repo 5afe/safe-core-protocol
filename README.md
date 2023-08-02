@@ -56,6 +56,8 @@ Currently implemented components of the Safe{Core} Protocol are:
 - **Hooks** for transaction execution through Plugin(s)
 - Additionally a test version of registry **TestSafeProtocolRegistryUnrestricted** is also available.
 
+[Execution flows](./docs/execution_flows.md) give a high-level overview of the different flows for the Safe{Core} Protocol.
+
 ## Deployments
 
 All the deployed addresses of contracts are available in [deployments.ts](./deployments.ts) for each network along with contract abis. Alternatively, all the addresses are also available in a [markdown file](./docs/deployments.md)
