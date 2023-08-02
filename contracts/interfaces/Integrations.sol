@@ -107,7 +107,7 @@ interface ISafeProtocolPlugin is IERC165 {
     function version() external view returns (string memory version);
 
     /**
-     * @notice A funtion that returns information about the type of metadata provider and its location.
+     * @notice A function that returns information about the type of metadata provider and its location.
      *         For more information on metadata provider, refer to https://github.com/safe-global/safe-core-protocol-specs/tree/main/metadata#metadata-provider.
      * @return providerType uint256 Type of metadata provider
      * @return location bytes
