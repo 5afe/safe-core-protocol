@@ -1,4 +1,4 @@
-import hre, {deployments} from "hardhat";
+import hre, { deployments } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { ZeroAddress } from "ethers";
@@ -29,14 +29,14 @@ describe("SafeProtocolManager", async () => {
     describe("Setup manager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
-            const { safeProtocolManager } = await setupTests()
+            const { safeProtocolManager } = await setupTests();
             expect(await safe.setModule(await safeProtocolManager.getAddress()));
         });
     });
 
     describe("Plugins", async () => {
         async function deployContractsWithPluginFixture() {
-            const { safeProtocolManager, safe, safeProtocolRegistry } = await setupTests()
+            const { safeProtocolManager, safe, safeProtocolRegistry } = await setupTests();
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
             await safeProtocolRegistry.connect(owner).addIntegration(plugin, IntegrationType.Plugin);
             return { safeProtocolManager, safe, plugin, safeProtocolRegistry };
@@ -291,7 +291,7 @@ describe("SafeProtocolManager", async () => {
 
     describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledManagerFixture() {
-            const { safeProtocolManager, safeProtocolRegistry, safe } = await setupTests()
+            const { safeProtocolManager, safeProtocolRegistry, safe } = await setupTests();
             await safe.setModule(await safeProtocolManager.getAddress());
             return { safeProtocolManager, safe, safeProtocolRegistry };
         }
@@ -799,7 +799,5 @@ describe("SafeProtocolManager", async () => {
         });
     });
 
-    describe("Test SafeProtocolManager as Guard on a Safe", async () => {
-
-    });
+    describe("Test SafeProtocolManager as Guard on a Safe", async () => {});
 });

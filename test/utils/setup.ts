@@ -34,8 +34,8 @@ export const getSafeWithOwners = async (walletOwners: SignerWithAddress[], thres
 
     const receipt = await safeTx.wait();
 
-    const events = await proxyFactory.queryFilter(proxyFactory.filters.ProxyCreation, receipt?.blockNumber, receipt?.blockNumber)
-  
-    let safeAddress = events[0].args[0];
+    const events = await proxyFactory.queryFilter(proxyFactory.filters.ProxyCreation, receipt?.blockNumber, receipt?.blockNumber);
+
+    const safeAddress = events[0].args[0];
     return await getInstance("Safe", safeAddress);
 };
