@@ -5,7 +5,7 @@ import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe function handler should implement to handle non-static calls.
+ * @title ISafeProtocolFunctionHandler - An interface that a Safe function handler should implement to handle static calls.
  * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
  *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the Safe
  *         and enable the contract implementing ISafeProtocolFunctionHandler interface as a function handler in the
