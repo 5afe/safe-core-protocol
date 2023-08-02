@@ -13,7 +13,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  */
 interface ISafeProtocolFunctionHandler is IERC165 {
     /**
-     * @notice Handles call to the Safe contract that are forwarded by the fallback function.
+     * @notice Handles calls to the Safe contract forwarded by the fallback function.
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
@@ -32,7 +32,7 @@ interface ISafeProtocolFunctionHandler is IERC165 {
  */
 interface ISafeProtocolStaticFunctionHandler {
     /**
-     * @notice Handles a static call to the Safe contract that are forwarded by the fallback function.
+     * @notice Handles static calls to the Safe contract forwarded by the fallback function.
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
@@ -107,7 +107,7 @@ interface ISafeProtocolPlugin is IERC165 {
     function version() external view returns (string memory version);
 
     /**
-     * @notice A funtion that returns information about the type of metadata provider and its location.
+     * @notice A function that returns information about the type of metadata provider and its location.
      *         For more information on metadata provider, refer to https://github.com/safe-global/safe-core-protocol-specs/tree/main/metadata#metadata-provider.
      * @return providerType uint256 Type of metadata provider
      * @return location bytes
