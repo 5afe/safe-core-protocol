@@ -5,13 +5,15 @@ import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement
+ * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe function handler should implement to handle non-static calls.
  * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
- *         TODO: Add more explaination.
+ *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the Safe
+ *         and enable the contract implementing ISafeProtocolFunctionHandler interface as a function handler in the
+ *         SafeProtocolManager for the specific function identifier.
  */
 interface ISafeProtocolFunctionHandler is IERC165 {
     /**
-     * @notice TODO: Add more explaination
+     * @notice Handles call to the Safe contract that are forwarded by the fallback function.
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
@@ -24,11 +26,13 @@ interface ISafeProtocolFunctionHandler is IERC165 {
 /**
  * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe functionhandler should implement in case when handling static calls
  * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
- *         TODO: Add more explaination.
+ *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the Safe
+ *         and enable the contract implementing ISafeProtocolStaticFunctionHandler interface as a function handler in the
+ *         SafeProtocolManager for the specific function identifier.
  */
 interface ISafeProtocolStaticFunctionHandler {
     /**
-     * @notice TODO: Add more explaination
+     * @notice Handles a static call to the Safe contract that are forwarded by the fallback function.
      * @param safe A Safe instance
      * @param sender Address of the sender
      * @param value Amount of ETH
@@ -97,14 +101,14 @@ interface ISafeProtocolPlugin is IERC165 {
     function name() external view returns (string memory name);
 
     /**
-     * @notice A funtion that returns version of the plugin
+     * @notice A function that returns version of the plugin
      * @return version string version of the plugin
      */
     function version() external view returns (string memory version);
 
     /**
-     * @notice A funtion that returns version of the plugin.
-     *         TODO: Define types of metadata provider and possible values of location in each of the cases.
+     * @notice A funtion that returns information about the type of metadata provider and its location.
+     *         For more information on metadata provider, refer to https://github.com/safe-global/safe-core-protocol-specs/tree/main/metadata#metadata-provider.
      * @return providerType uint256 Type of metadata provider
      * @return location bytes
      */
