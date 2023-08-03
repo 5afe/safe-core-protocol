@@ -926,12 +926,9 @@ describe("SafeProtocolManager", async () => {
             expect(balanceAfter).to.be.equal(balanceBefore + amount);
         });
 
-        it("Possible bug: hooks get updated in between tx", async () => {
-            // In below flow: pre-check of hooksWithFailingPostCheck is executed, but post-check of hooks is executed because hooks get updated in between tx.
-            // This can be prevented by caching hooks address or hooks should validate tx data.
-            // Users should be aware of what they are executing.
-            // Possible attack vector: Users unknowingly execute tx that updates hooks whose
-            // post check will pass and following tx that were expected to be reverted by hooks in post-checks are not.
+        it("Test if hooks get updated in between tx old hooks should be used for checkAfterExecution", async () => {
+            // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
+            // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
             const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await loadFixture(deployContractsFixture);
             // Step 1: Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
@@ -942,8 +939,9 @@ describe("SafeProtocolManager", async () => {
             await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
 
             const txData = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            // Discuss with team: Should this revert or not?
-            expect(await execTransaction([owner], safe, safeProtocolManager.target, 0, txData, 0));
+
+            // Should revert because old hooks should be used for checkAfterExecution
+            await expect(execTransaction([owner], safe, safeProtocolManager.target, 0, txData, 0)).to.be.revertedWith("post-check failed");
         });
     });
 });

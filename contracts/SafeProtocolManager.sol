@@ -318,7 +318,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bytes memory signatures,
         address msgSender
     ) external {
-        address hooksAddress = enabledHooks[msg.sender];
+        // Store hooks address in tempHooksAddress
+        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
         bytes memory executionMetadata = abi.encode(
             to,
             value,
@@ -340,13 +341,13 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
             SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
-            ISafeProtocolHooks(hooksAddress).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddress[msg.sender]).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
         } else {
             // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
             // and Safe allows only Call and DelegateCall operations.
             SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
             SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
-            ISafeProtocolHooks(hooksAddress).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddress[msg.sender]).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
         }
     }
 
@@ -355,8 +356,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param success bool
      */
     function checkAfterExecution(bytes32, bool success) external {
-        // If hooks get updated in the middle of a transaction, this call will refer to updated hooks address. Looks like a bug.
-        address hooksAddress = enabledHooks[msg.sender];
-        ISafeProtocolHooks(hooksAddress).postCheck(ISafe(msg.sender), success, "");
+        // Use tempHooksAddress to avoid a case where hooks get updated in the middle of a transaction.
+        ISafeProtocolHooks(tempHooksAddress[msg.sender]).postCheck(ISafe(msg.sender), success, "");
+
+        // Should reset tempHooksAddress to 0x0 after the call?
+        // tempHooksAddress[msg.sender] = address(0);
     }
 }

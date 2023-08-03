@@ -5,6 +5,11 @@ import {ISafeProtocolHooks} from "../interfaces/Integrations.sol";
 contract HooksManager {
     mapping(address => address) public enabledHooks;
 
+    /// @notice This variable should store the address of the hooks contract whenever
+    /// checkTransaction(...) is called and use it in checkAfterExecution(...) to avoid
+    /// any side effects of changed hooks address inbetween transaction.
+    mapping(address => address) public tempHooksAddress;
+
     // Events
     event HooksChanged(address indexed safe, address indexed hooksAddress);
 
