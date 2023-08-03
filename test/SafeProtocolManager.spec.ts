@@ -553,7 +553,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -597,7 +597,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -873,7 +873,7 @@ describe("SafeProtocolManager", async () => {
             await expect(execTransaction([owner], safe, user1.address, 1n, "0x", 0)).to.be.revertedWith("post-check failed");
         });
 
-        it("Should execute transaction because hooks checks passed", async () => {
+        it("Should execute transaction with passing hooks checks", async () => {
             const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
             // Step 1: Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
@@ -895,7 +895,35 @@ describe("SafeProtocolManager", async () => {
             const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
             expect(await execTransaction([owner], safe, user1.address, amount, "0x", 0));
             const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
-            expect(balanceAfter).to.eql(balanceBefore + amount);
+            expect(balanceAfter).to.be.equal(balanceBefore + amount);
+        });
+
+        it("Should execute delegateCall transaction with passing hooks checks", async () => {
+            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+
+            const testFallbackReceiver = await hre.ethers.deployContract("TestFallbackReceiver", [user1.address]);
+
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            // Send 1n ETH to Safe
+            const amount = 1n;
+            await (
+                await deployer.sendTransaction({
+                    to: safe.target,
+                    value: amount,
+                })
+            ).wait();
+
+            const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
+            expect(await execTransaction([owner], safe, testFallbackReceiver.target, 0, "0x", 1));
+            const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
+            expect(balanceAfter).to.be.equal(balanceBefore + amount);
         });
 
         it("Possible bug: hooks get updated in between tx", async () => {

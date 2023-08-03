@@ -341,7 +341,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             actions[0] = SafeProtocolAction(payable(to), value, data);
             SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
             ISafeProtocolHooks(hooksAddress).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
-        } else if (operation == Enum.Operation.DelegateCall) {
+        } else {
+            // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
+            // and Safe allows only Call and DelegateCall operations.
             SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
             SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
             ISafeProtocolHooks(hooksAddress).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
