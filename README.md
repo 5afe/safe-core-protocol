@@ -33,8 +33,8 @@ subgraph SafeProtocolRegistry
 	AllowQuery(Provide information about Integrations)
     Maintain("Maintain list of permitted Integrations")
     Flag("Mark Integration as Malicious")
-    Monitor -.- AllowQuery
-    Store -.- AllowQuery
+    Monitor -...- AllowQuery
+    Store -...- AllowQuery
 end
 ```
 
@@ -63,6 +63,44 @@ Currently implemented components of the Safe{Core} Protocol are:
 ## Deployments
 
 All the deployed addresses of contracts are available in [deployments.ts](./deployments.ts) for each network along with contract abis. Alternatively, all the addresses are also available in a [markdown file](./docs/deployments.md)
+
+## Using solidity interfaces
+
+The solidity interfaces for the Safe{Core} Protocol contracts are available in [interfaces](./contracts/interfaces) directory. These interfaces are available for import into solidity smart contracts via the npm artifact.
+
+To install the npm package, run the following command:
+
+```bash
+npm i @safe-global/safe-core-protocol
+```
+
+E.g. Create a plugin
+
+```solidity
+import {ISafeProtocolPlugin} from "@safe-global/safe-core-protocol/contracts/interfaces/Integrations.sol";
+
+contract SamplePlugin is ISafeProtocolPlugin {
+
+    function name() external view returns (string memory name) {
+        ...
+    }
+
+    function version() external view returns (string memory version){
+        ...
+    }
+  
+    function metadataProvider() external view returns (uint256 providerType, bytes memory location){
+        ...
+    }
+
+    function requiresRootAccess() external view returns (bool requiresRootAccess){
+        ...
+    }
+
+}
+```
+
+For more examples and information on adding Integration(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/5afe/safe-core-protocol-demo/tree/main/contracts)
 
 ## Useful commands
 
