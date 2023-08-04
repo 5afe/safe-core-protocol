@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/5afe/safe-core-protocol/badge.svg)](https://coveralls.io/github/5afe/safe-core-protocol)
+
 # Safe{Core} Protocol
 
 This project is an implementation of [Safe{Core} Protocol specification](https://github.com/5afe/safe-protocol-specs)
