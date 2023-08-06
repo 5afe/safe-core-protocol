@@ -2,6 +2,8 @@
 pragma solidity ^0.8.18;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {BaseManager} from "./BaseManager.sol";
+import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
+import {ISafe} from "../interfaces/Accounts.sol";
 
 /**
  * @title FunctionHandlerManager
@@ -20,6 +22,7 @@ abstract contract FunctionHandlerManager is BaseManager {
 
     // Errors
     error AddressDoesNotImplementFunctionHandlerInterface(address functionHandler);
+    error FunctionHandlerNotSet(address safe, bytes4 functionSelector);
 
     /**
      * @notice Returns the function handler for a Safe account and function selector.
@@ -37,7 +40,7 @@ abstract contract FunctionHandlerManager is BaseManager {
      * @param functionHandler Address of the contract to be set as a function handler
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyPermittedIntegration(functionHandler) {
-        if (functionHandler != address(0) && !IERC165(functionHandler).supportsInterface(0x00000000)) {
+        if (functionHandler != address(0) && !IERC165(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)) {
             revert AddressDoesNotImplementFunctionHandlerInterface(functionHandler);
         }
 
@@ -45,7 +48,19 @@ abstract contract FunctionHandlerManager is BaseManager {
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
-    fallback() external {
+    fallback() external payable {
+        address safe = msg.sender;
+        bytes4 functionSelector = bytes4(msg.data);
 
+        address functionHandler = functionHandlers[safe][functionSelector];
+
+        // Revert if functionHandler is not set
+        if (functionHandler == address(0)) {
+            revert FunctionHandlerNotSet(safe, functionSelector);
+        }
+
+        bytes memory data = ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), address(0), msg.value, msg.data);
     }
+
+    receive() external payable {}
 }

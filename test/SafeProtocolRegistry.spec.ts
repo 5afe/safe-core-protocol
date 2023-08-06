@@ -5,7 +5,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { IntegrationType } from "./utils/constants";
 import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
 import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
-import { getFucntionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
+import { getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
 describe("SafeProtocolRegistry", async () => {
     let owner: SignerWithAddress, user1: SignerWithAddress;
 
@@ -13,7 +13,7 @@ describe("SafeProtocolRegistry", async () => {
         await deployments.fixture();
         [owner, user1] = await ethers.getSigners();
         const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address]);
-        const mockFunctionHandlerAddress = (await getFucntionHandlerWithFailingCallToSupportsInterfaceMethod()).target;
+        const mockFunctionHandlerAddress = (await getFunctionHandlerWithFailingCallToSupportsInterfaceMethod()).target;
         return { safeProtocolRegistry, mockFunctionHandlerAddress };
     });
 
