@@ -4,6 +4,7 @@ import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
+import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "./interfaces/Integrations.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => IntegrationInfo) public listedIntegrations;
@@ -16,9 +17,10 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
 
     error CannotFlagIntegration(address integration);
     error CannotAddIntegration(address integration);
+    error IntegrationDoesNotSupportExpectedInterfaceId(address integration, bytes4 expectedInterfaceId);
 
-    event IntegrationAdded(address integration);
-    event IntegrationFlagged(address integration);
+    event IntegrationAdded(address indexed integration);
+    event IntegrationFlagged(address indexed integration);
 
     constructor(address initialOwner) {
         _transferOwnership(initialOwner);
@@ -38,16 +40,33 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
 
     /**
      * @notice Allows only owner to add a integration. A integration can be any address including zero address for now.
-     *         This function does not permit adding a integration twice.
-     *         TODO: Add logic to validate if integration implements correct interface.
+     *         This function does not permit adding a integration twice. This function validates if integration supports expected interfaceId.
      * @param integration Address of the integration
+     * @param integrationType Enum.IntegrationType indicating the type of integration
      */
-    function addIntegration(address integration, Enum.IntegrationType integrationType) external onlyOwner {
+    function addIntegration(address integration, Enum.IntegrationType integrationType) external virtual onlyOwner {
         IntegrationInfo memory integrationInfo = listedIntegrations[integration];
 
         if (integrationInfo.listedAt != 0) {
             revert CannotAddIntegration(integration);
         }
+
+        // Check if integration supports expected interface
+        if (
+            integrationType == Enum.IntegrationType.Hooks && !IERC165(integration).supportsInterface(type(ISafeProtocolHooks).interfaceId)
+        ) {
+            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolHooks).interfaceId);
+        } else if (
+            integrationType == Enum.IntegrationType.Plugin && !IERC165(integration).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
+        ) {
+            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolPlugin).interfaceId);
+        } else if (
+            integrationType == Enum.IntegrationType.FunctionHandler &&
+            !IERC165(integration).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
+        ) {
+            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolFunctionHandler).interfaceId);
+        }
+
         listedIntegrations[integration] = IntegrationInfo(uint64(block.timestamp), 0, integrationType);
         emit IntegrationAdded(integration);
     }

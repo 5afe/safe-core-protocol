@@ -1,4 +1,4 @@
-import hre from "hardhat";
+import hre, { deployments } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import { ZeroAddress } from "ethers";
@@ -7,16 +7,18 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
+import { getSafeWithOwners } from "./utils/setup";
+import { execTransaction } from "./utils/executeSafeTx";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
     });
 
-    async function deployContractsFixture() {
-        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
+    const setupTests = deployments.createFixture(async ({ deployments }) => {
+        await deployments.fixture();
         const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         const safe = await hre.ethers.deployContract("TestExecutor");
         const safeProtocolManager = await (
@@ -24,19 +26,19 @@ describe("SafeProtocolManager", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         return { safeProtocolManager, safeProtocolRegistry, safe };
-    }
+    });
 
     describe("Setup manager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
-            const { safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager } = await setupTests();
             expect(await safe.setModule(await safeProtocolManager.getAddress()));
         });
     });
 
     describe("Plugins", async () => {
         async function deployContractsWithPluginFixture() {
-            const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safe, safeProtocolRegistry } = await setupTests();
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
             await safeProtocolRegistry.connect(owner).addIntegration(plugin, IntegrationType.Plugin);
             return { safeProtocolManager, safe, plugin, safeProtocolRegistry };
@@ -291,7 +293,7 @@ describe("SafeProtocolManager", async () => {
 
     describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledManagerFixture() {
-            const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safeProtocolRegistry, safe } = await setupTests();
             await safe.setModule(await safeProtocolManager.getAddress());
             return { safeProtocolManager, safe, safeProtocolRegistry };
         }
@@ -551,7 +553,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -595,7 +597,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -796,6 +798,150 @@ describe("SafeProtocolManager", async () => {
                     .to.be.revertedWithCustomError(safeProtocolManager, "PluginRequiresRootAccess")
                     .withArgs(pluginAddress);
             });
+        });
+    });
+
+    describe("Test SafeProtocolManager as Guard on a Safe", async () => {
+        const deployContractsFixture = async () => {
+            [deployer, owner, user1] = await hre.ethers.getSigners();
+            const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
+            const safeProtocolManager = await (
+                await hre.ethers.getContractFactory("SafeProtocolManager")
+            ).deploy(owner.address, safeProtocolRegistry.target);
+
+            const safe = await getSafeWithOwners([owner], 1, hre.ethers.ZeroAddress);
+
+            const hooks = await getHooksWithPassingChecks();
+            const hooksWithFailingPreChecks = await getHooksWithFailingPrechecks();
+            const hooksWithFailingPostCheck = await getHooksWithFailingPostCheck();
+
+            await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
+            await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
+
+            return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
+        };
+
+        it("Should revert as no hooks registered on SafeProtocolManager", async () => {
+            const { safe, safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const amount = hre.ethers.parseEther("1");
+
+            // Set SafeProtocolManager as guard
+            const data = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, data, 0);
+            await (
+                await deployer.sendTransaction({
+                    to: safe.target,
+                    value: amount,
+                })
+            ).wait();
+
+            await expect(execTransaction([owner], safe, user1.address, 1n, "0x", 0)).to.be.reverted;
+        });
+
+        it("Should revert because hooks reverted in pre-check", async () => {
+            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await loadFixture(deployContractsFixture);
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPreChecks.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            await expect(execTransaction([owner], safe, user1.address, 1n, "0x", 0)).to.be.revertedWith("pre-check failed");
+        });
+
+        it("Should revert because hooks reverted in post-check", async () => {
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await loadFixture(deployContractsFixture);
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            // Send 1n ETH to Safe
+            const amount = 1n;
+            await (
+                await deployer.sendTransaction({
+                    to: safe.target,
+                    value: amount,
+                })
+            ).wait();
+
+            await expect(execTransaction([owner], safe, user1.address, 1n, "0x", 0)).to.be.revertedWith("post-check failed");
+        });
+
+        it("Should execute transaction with passing hooks checks", async () => {
+            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            // Send 1n ETH to Safe
+            const amount = 1n;
+            await (
+                await deployer.sendTransaction({
+                    to: safe.target,
+                    value: amount,
+                })
+            ).wait();
+
+            const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
+            expect(await execTransaction([owner], safe, user1.address, amount, "0x", 0));
+            const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
+            expect(balanceAfter).to.be.equal(balanceBefore + amount);
+        });
+
+        it("Should execute delegateCall transaction with passing hooks checks", async () => {
+            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+
+            const testFallbackReceiver = await hre.ethers.deployContract("TestFallbackReceiver", [user1.address]);
+
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            // Send 1n ETH to Safe
+            const amount = 1n;
+            await (
+                await deployer.sendTransaction({
+                    to: safe.target,
+                    value: amount,
+                })
+            ).wait();
+
+            const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
+            expect(await execTransaction([owner], safe, testFallbackReceiver.target, 0, "0x", 1));
+            const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
+            expect(balanceAfter).to.be.equal(balanceBefore + amount);
+        });
+
+        it("Test if hooks get updated in between tx old hooks should be used for checkAfterExecution", async () => {
+            // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
+            // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await loadFixture(deployContractsFixture);
+            // Step 1: Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
+            await execTransaction([owner], safe, safeProtocolManager.target, 0, dataSetHooks, 0);
+
+            // Step 2: Set SafeProtocolManager as guard
+            const dataSetGuard = safe.interface.encodeFunctionData("setGuard", [safeProtocolManager.target]);
+            await execTransaction([owner], safe, safe.target, 0, dataSetGuard, 0);
+
+            const txData = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+
+            // Should revert because old hooks should be used for checkAfterExecution
+            await expect(execTransaction([owner], safe, safeProtocolManager.target, 0, txData, 0)).to.be.revertedWith("post-check failed");
         });
     });
 });
