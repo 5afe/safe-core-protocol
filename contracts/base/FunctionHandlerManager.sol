@@ -4,7 +4,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {BaseManager} from "./BaseManager.sol";
 import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
-
 /**
  * @title FunctionHandlerManager
  * @notice This contract manages the function handlers for the Safe Account. The contract stores the
@@ -45,7 +44,7 @@ abstract contract FunctionHandlerManager is BaseManager {
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
-    fallback() external payable {
+    fallback(bytes calldata) external payable returns (bytes memory) {
         address safe = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
 
@@ -56,7 +55,12 @@ abstract contract FunctionHandlerManager is BaseManager {
             revert FunctionHandlerNotSet(safe, functionSelector);
         }
 
-        bytes memory data = ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), address(0), msg.value, msg.data);
+        address sender;
+        assembly {
+            sender := shr(96, calldataload(sub(calldatasize(), 20)))
+        }
+
+        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, msg.value, msg.data);
     }
 
     receive() external payable {}
