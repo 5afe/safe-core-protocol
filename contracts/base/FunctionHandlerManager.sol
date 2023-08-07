@@ -40,10 +40,7 @@ abstract contract FunctionHandlerManager is BaseManager {
      * @param functionHandler Address of the contract to be set as a function handler
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyPermittedIntegration(functionHandler) {
-        if (functionHandler != address(0) && !IERC165(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)) {
-            revert AddressDoesNotImplementFunctionHandlerInterface(functionHandler);
-        }
-
+        // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.
         functionHandlers[msg.sender][selector] = functionHandler;
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }

@@ -3,8 +3,6 @@ import { ISafeProtocolFunctionHandler } from "../../typechain-types";
 
 export const getFunctionHandlerWithFailingCallToSupportsInterfaceMethod = async (): Promise<ISafeProtocolFunctionHandler> => {
     const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
-
-    // 0x25d6803f -> type(ISafeProtocolFunctionHandler).interfaceId
     await hooks.givenMethodReturnBool("0x01ffc9a7", false);
     return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", hooks.target);
 };
