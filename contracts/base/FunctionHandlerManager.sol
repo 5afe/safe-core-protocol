@@ -79,7 +79,7 @@ abstract contract FunctionHandlerManager is BaseManager {
     }
 
     receive() external payable {
-        // No way to recover ethers if this call succeeds. It is no expected for Manager to hold any ethers using receive.
+        // No way to recover ethers if this call succeeds. It is not expected for Manager to hold any ethers using receive.
         // So, should revert here?
     }
 }
