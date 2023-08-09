@@ -46,11 +46,12 @@ abstract contract FunctionHandlerManager is BaseManager {
     }
 
     /**
-     * @notice This fallback handler function checks if a safe (msg.sender) has a function handler enabled. 
+     * @notice This fallback handler function checks if a safe (msg.sender) has a function handler enabled.
      *         If enabled, calls handle function and returns the result back.
      *         Currently, the handle(...) function is non-payable and has same signature for both ISafeProtocolFunctionHandler
      *         and ISafeProtocolStaticFunctionHandler. So, ISafeProtocolFunctionHandler.handle is used even for static calls.
      */
+    // solhint-disable-next-line no-complex-fallback
     fallback(bytes calldata) external payable returns (bytes memory) {
         address safe = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
