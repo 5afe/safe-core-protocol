@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { Safe } from "../../typechain-types";
-import { AddressLike, BigNumberish, ContractTransactionResponse } from "ethers";
+import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroAddress } from "ethers";
 import hre from "hardhat";
 
 export const execTransaction = async function (
@@ -11,10 +11,9 @@ export const execTransaction = async function (
     data: string,
     operation: number,
 ): Promise<ContractTransactionResponse> {
-    const ADDRESS_0 = "0x0000000000000000000000000000000000000000";
     const nonce = await safe.nonce();
 
-    const transactionHash = await safe.getTransactionHash(to, value, data, operation, 0, 0, 0, ADDRESS_0, ADDRESS_0, nonce);
+    const transactionHash = await safe.getTransactionHash(to, value, data, operation, 0, 0, 0, ZeroAddress, ZeroAddress, nonce);
     let signatureBytes = "0x";
     const bytesDataHash = hre.ethers.getBytes(transactionHash);
 
@@ -27,5 +26,5 @@ export const execTransaction = async function (
         signatureBytes += flatSig.slice(2);
     }
 
-    return await safe.execTransaction(to, value, data, operation, 0, 0, 0, ADDRESS_0, ADDRESS_0, signatureBytes);
+    return await safe.execTransaction(to, value, data, operation, 0, 0, 0, ZeroAddress, ZeroAddress, signatureBytes);
 };

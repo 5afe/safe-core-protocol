@@ -361,7 +361,7 @@ contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHand
         // Use tempHooksAddress to avoid a case where hooks get updated in the middle of a transaction.
         ISafeProtocolHooks(tempHooksAddress[msg.sender]).postCheck(ISafe(msg.sender), success, "");
 
-        // Should reset tempHooksAddress to 0x0 after the call?
-        // tempHooksAddress[msg.sender] = address(0);
+        // Reset to address(0) so that there is no unattended storage
+        tempHooksAddress[msg.sender] = address(0);
     }
 }
