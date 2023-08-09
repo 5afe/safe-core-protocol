@@ -113,6 +113,6 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry, mockFunctionHandlerAddress } = await setupTests();
         await expect(safeProtocolRegistry.connect(owner).addIntegration(mockFunctionHandlerAddress, IntegrationType.FunctionHandler))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
-            .withArgs(mockFunctionHandlerAddress, "0x25d6803f");
+            .withArgs(mockFunctionHandlerAddress, "0xf601ad15");
     });
 });

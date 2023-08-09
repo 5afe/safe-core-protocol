@@ -10,7 +10,6 @@ export const getFunctionHandlerWithFailingCallToSupportsInterfaceMethod = async 
 export const getMockFunctionHandler = async (): Promise<ISafeProtocolFunctionHandler> => {
     const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
 
-    // 0x25d6803f -> type(ISafeProtocolFunctionHandler).interfaceId
     await hooks.givenMethodReturnBool("0x01ffc9a7", true);
 
     // 0xf8a8fd6d -> function test() external {}

@@ -4,6 +4,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {BaseManager} from "./BaseManager.sol";
 import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
+
 /**
  * @title FunctionHandlerManager
  * @notice This contract manages the function handlers for the Safe Account. The contract stores the
@@ -56,6 +57,7 @@ abstract contract FunctionHandlerManager is BaseManager {
         }
 
         address sender;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }

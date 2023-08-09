@@ -7,15 +7,15 @@ import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
 
 describe("Test Function Handler", async () => {
-    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
+    let deployer: SignerWithAddress, owner: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
+        [deployer, owner] = await hre.ethers.getSigners();
     });
 
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
-        [owner, user1] = await ethers.getSigners();
+        [owner] = await ethers.getSigners();
         const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address], { signer: deployer });
         const mockFunctionHandler = await getMockFunctionHandler();
 

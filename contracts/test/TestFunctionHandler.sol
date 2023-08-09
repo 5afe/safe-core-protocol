@@ -11,7 +11,10 @@ contract TestFunctionHandler is ISafeProtocolFunctionHandler {
         return type(IERC165).interfaceId == interfaceId || type(ISafeProtocolFunctionHandler).interfaceId == interfaceId;
     }
 
-    function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external override returns (bytes memory result) {
+    function handle(ISafe, address, uint256, bytes calldata) external override returns (bytes memory result) {
         inc++;
+        result = abi.encode(inc);
     }
+
+    function metadataProvider() external view override returns (uint256 providerType, bytes memory location) {}
 }
