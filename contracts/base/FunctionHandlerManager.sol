@@ -45,6 +45,12 @@ abstract contract FunctionHandlerManager is BaseManager {
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
+    /**
+     * @notice This fallback handler function checks if a safe (msg.sender) has a function handler enabled. 
+     *         If enabled, calls handle function and returns the result back.
+     *         Currently, the handle(...) function is non-payable and has same signature for both ISafeProtocolFunctionHandler
+     *         and ISafeProtocolStaticFunctionHandler. So, ISafeProtocolFunctionHandler.handle is used even for static calls.
+     */
     fallback(bytes calldata) external payable returns (bytes memory) {
         address safe = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
@@ -56,14 +62,23 @@ abstract contract FunctionHandlerManager is BaseManager {
             revert FunctionHandlerNotSet(safe, functionSelector);
         }
 
+        // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
         address sender;
+        // remove last 20 bytes from calldata.
+        // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
+        // Possible improvement: Use assembly
+        bytes memory data = msg.data[0:(msg.data.length - 20)];
         // solhint-disable-next-line no-inline-assembly
         assembly {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
-        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, msg.value, msg.data);
+        // With safe v1.x, msg.data contains 20 bytes of sender address.
+        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, msg.value, data);
     }
 
-    receive() external payable {}
+    receive() external payable {
+        // No way to recover ethers if this call succeeds. It is no expected for Manager to hold any ethers using receive.
+        // So, should revert here?
+    }
 }

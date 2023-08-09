@@ -1,9 +1,9 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { AddressLike, BaseContract } from "ethers";
+import { AddressLike, Addressable, BaseContract } from "ethers";
 import hre from "hardhat";
 import { AddressZero } from "@ethersproject/constants";
 import { Safe, SafeProxyFactory } from "../../typechain-types";
-export const getInstance = async <T extends BaseContract>(name: string, address: string): Promise<T> => {
+export const getInstance = async <T extends BaseContract>(name: string, address: string | Addressable): Promise<T> => {
     // TODO: this typecasting should be refactored
     return (await hre.ethers.getContractAt(name, address)) as unknown as T;
 };

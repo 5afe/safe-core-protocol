@@ -1,10 +1,11 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments, ethers } from "hardhat";
-import { getMockFunctionHandler, getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
-import { getSafeWithOwners } from "./utils/setup";
+import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
+import { getInstance, getSafeWithOwners } from "./utils/setup";
 import { execTransaction } from "./utils/executeSafeTx";
 import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
+import { TestStaticFunctionHandler } from "../typechain-types";
 
 describe("Test Function Handler", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
@@ -30,9 +31,12 @@ describe("Test Function Handler", async () => {
         const testFunctionHandler = await ethers.deployContract("TestFunctionHandler", { signer: deployer });
         await safeProtocolRegistry.addIntegration(testFunctionHandler.target, IntegrationType.FunctionHandler);
 
+        const testStaticFunctionHandler = await ethers.deployContract("TestStaticFunctionHandler", { signer: deployer });
+        await safeProtocolRegistry.addIntegration(testStaticFunctionHandler.target, IntegrationType.FunctionHandler);
+
         const safe = await getSafeWithOwners([owner], 1, functionHandlerManager.target);
 
-        return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry, testFunctionHandler };
+        return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry, testFunctionHandler, testStaticFunctionHandler };
     });
 
     it("Should emit FunctionHandlerChanged event when Function Handler is set", async () => {
@@ -94,17 +98,31 @@ describe("Test Function Handler", async () => {
         ]);
 
         await execTransaction([owner], safe, functionHandlerManager, 0n, dataSetFunctionHandler, 0);
-
-        expect(
-            await (
-                await deployer.sendTransaction({
-                    to: safe.target,
-                    value: 0,
-                    data: data,
-                })
-            ).wait(),
-        );
+        await (
+            await deployer.sendTransaction({
+                to: safe.target,
+                value: 0,
+                data: data,
+            })
+        ).wait();
 
         expect(await testFunctionHandler.inc()).to.equal(1);
+    });
+
+    it("Should call to handle function of function handler (static)", async () => {
+        const { safe, functionHandlerManager, testStaticFunctionHandler } = await setupTests();
+        // 0xf8a8fd6d -> function test() external {}
+        const data = "0xf8a8fd6d";
+
+        const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            data,
+            testStaticFunctionHandler.target,
+        ]);
+        await execTransaction([owner], safe, functionHandlerManager, 0n, dataSetFunctionHandler, 0);
+        // Attach Safe to a contract with test function in the ABI
+        const testSafe = await getInstance<TestStaticFunctionHandler>("TestStaticFunctionHandler", safe.target);
+
+        // 0x3078626164646164 -> abi.encode("0xbaddad")
+        expect(await testSafe.test.staticCall()).to.be.eq("0x3078626164646164");
     });
 });
