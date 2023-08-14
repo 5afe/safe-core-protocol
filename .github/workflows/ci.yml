@@ -16,6 +16,9 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn build
       - run: yarn coverage
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+
   lint:
     runs-on: ubuntu-latest
     steps:
