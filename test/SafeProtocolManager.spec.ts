@@ -1,22 +1,23 @@
-import hre from "hardhat";
+import hre, { deployments } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
-import { ZeroAddress } from "ethers";
+import { MaxUint256, ZeroAddress } from "ethers";
 import { SENTINEL_MODULES } from "./utils/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
+import { getMockTestExecutorInstance } from "./utils/contracts";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
     });
 
-    async function deployContractsFixture() {
-        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
+    const setupTests = deployments.createFixture(async ({ deployments }) => {
+        await deployments.fixture();
         const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
         const safe = await hre.ethers.deployContract("TestExecutor");
         const safeProtocolManager = await (
@@ -24,19 +25,35 @@ describe("SafeProtocolManager", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         return { safeProtocolManager, safeProtocolRegistry, safe };
-    }
+    });
 
     describe("Setup manager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
             const safe = await hre.ethers.deployContract("TestExecutor");
-            const { safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager } = await setupTests();
             expect(await safe.setModule(await safeProtocolManager.getAddress()));
+        });
+    });
+
+    describe("Check for IERC165 support", async () => {
+        it("Should return true when supported interfaceId is passed as parameter", async () => {
+            const { safeProtocolManager } = await setupTests();
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x945b8148")).to.be.true;
+            expect(await safeProtocolManager.supportsInterface.staticCall("0xe6d7a83a")).to.be.true;
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x01ffc9a7")).to.be.true;
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x3f6c68ec")).to.be.true;
+        });
+
+        it("Should return false when non-supported interfaceId is passed as parameter", async () => {
+            const { safeProtocolManager } = await setupTests();
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x00000000")).to.be.false;
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x11223344")).to.be.false;
         });
     });
 
     describe("Plugins", async () => {
         async function deployContractsWithPluginFixture() {
-            const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safe, safeProtocolRegistry } = await setupTests();
             const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
             await safeProtocolRegistry.connect(owner).addIntegration(plugin, IntegrationType.Plugin);
             return { safeProtocolManager, safe, plugin, safeProtocolRegistry };
@@ -291,7 +308,7 @@ describe("SafeProtocolManager", async () => {
 
     describe("Execute transaction from plugin", async () => {
         async function deployContractsWithEnabledManagerFixture() {
-            const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsFixture);
+            const { safeProtocolManager, safeProtocolRegistry, safe } = await setupTests();
             await safe.setModule(await safeProtocolManager.getAddress());
             return { safeProtocolManager, safe, safeProtocolRegistry };
         }
@@ -551,7 +568,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -612,7 +629,7 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.be.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
@@ -815,6 +832,274 @@ describe("SafeProtocolManager", async () => {
                     .to.be.revertedWithCustomError(safeProtocolManager, "PluginRequiresRootAccess")
                     .withArgs(pluginAddress);
             });
+        });
+    });
+
+    describe("Test SafeProtocolManager as Guard on a Safe", async () => {
+        const setupTests = deployments.createFixture(async ({ deployments }) => {
+            await deployments.fixture();
+            [deployer, owner, user1] = await hre.ethers.getSigners();
+            const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
+            const safeProtocolManager = await (
+                await hre.ethers.getContractFactory("SafeProtocolManager")
+            ).deploy(owner.address, safeProtocolRegistry.target);
+
+            const safe = await getMockTestExecutorInstance();
+
+            const hooks = await getHooksWithPassingChecks();
+            const hooksWithFailingPreChecks = await getHooksWithFailingPrechecks();
+            const hooksWithFailingPostCheck = await getHooksWithFailingPostCheck();
+
+            await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
+            await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
+
+            return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
+        });
+
+        it("Should not revert when no hooks registered on SafeProtocolManager", async () => {
+            const { safe, safeProtocolManager } = await setupTests();
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("Should not revert when no hooks registered on SafeProtocolManager for module transaction", async () => {
+            const { safe, safeProtocolManager } = await setupTests();
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                ZeroAddress,
+            ]);
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("Should revert because hooks reverted in pre-check", async () => {
+            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPreChecks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            const execChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                1n,
+                "0x",
+                0, // Call operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+
+            await expect(safe.executeCallViaMock(safeProtocolManager.target, 0, execChecks, MaxUint256)).to.be.revertedWith(
+                "pre-check failed",
+            );
+        });
+
+        it("Should revert because hooks reverted in post-check", async () => {
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            // Required to execute pre-checks to set tempHooksAddress[msg.sender]
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256);
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            await expect(safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256)).to.be.revertedWith(
+                "post-check failed",
+            );
+        });
+
+        it("Should pass hooks checks", async () => {
+            const { safe, safeProtocolManager, hooks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("Should pass hooks checks for module transaction with call operation", async () => {
+            const { safe, safeProtocolManager, hooks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                ZeroAddress,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("Should pass hooks checks for module transaction with delegateCall operation", async () => {
+            const { safe, safeProtocolManager, hooks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                1, // DelegateCall operation
+                ZeroAddress,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("Should execute pass hooks checks for delegateCall operation", async () => {
+            const { safe, safeProtocolManager, hooks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                1, // DelegateCall operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256));
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+        });
+
+        it("uses old hooks in checkAfterExecution if hooks get updated in between transactions", async () => {
+            // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
+            // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await setupTests();
+            // Set Hooks contract for the Safe
+            const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+
+            // Required to execute pre-checks to set tempHooksAddress[msg.sender]
+            const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
+                user2.address,
+                0n,
+                "0x",
+                0, // Call operation
+                0,
+                0,
+                0,
+                ZeroAddress,
+                ZeroAddress,
+                "0x",
+                ZeroAddress,
+            ]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256);
+
+            const txData = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+            await safe.executeCallViaMock(safeProtocolManager.target, 0, txData, MaxUint256);
+
+            const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
+                hre.ethers.randomBytes(32),
+                true,
+            ]);
+
+            await expect(safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256)).to.be.revertedWith(
+                "post-check failed",
+            );
         });
     });
 });
