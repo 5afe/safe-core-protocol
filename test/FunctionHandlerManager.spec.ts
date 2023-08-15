@@ -1,11 +1,11 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
-import { getInstance, getSafeWithOwners } from "./utils/setup";
-import { execTransaction } from "./utils/executeSafeTx";
 import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
 import { TestStaticFunctionHandler } from "../typechain-types";
+import { getInstance, getMockTestExecutorInstance } from "./utils/contracts";
+import { MaxUint256 } from "ethers";
 
 describe("Test Function Handler", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
@@ -34,7 +34,7 @@ describe("Test Function Handler", async () => {
         const testStaticFunctionHandler = await ethers.deployContract("TestStaticFunctionHandler", { signer: deployer });
         await safeProtocolRegistry.addIntegration(testStaticFunctionHandler.target, IntegrationType.FunctionHandler);
 
-        const safe = await getSafeWithOwners([owner], 1, functionHandlerManager.target);
+        const safe = await getMockTestExecutorInstance();
 
         return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry, testFunctionHandler, testStaticFunctionHandler };
     });
@@ -49,7 +49,7 @@ describe("Test Function Handler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        const tx = await execTransaction([owner], safe, functionHandlerManager, 0n, dataSetFunctionHandler, 0);
+        const tx = await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
         const receipt = await tx.wait();
         const events = (
             await functionHandlerManager.queryFilter(
@@ -96,8 +96,7 @@ describe("Test Function Handler", async () => {
             data,
             testFunctionHandler.target,
         ]);
-
-        await execTransaction([owner], safe, functionHandlerManager, 0n, dataSetFunctionHandler, 0);
+        await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
         await (
             await deployer.sendTransaction({
                 to: safe.target,
@@ -118,7 +117,8 @@ describe("Test Function Handler", async () => {
             data,
             testStaticFunctionHandler.target,
         ]);
-        await execTransaction([owner], safe, functionHandlerManager, 0n, dataSetFunctionHandler, 0);
+
+        await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
         // Attach Safe to a contract with test function in the ABI
         const testSafe = await getInstance<TestStaticFunctionHandler>("TestStaticFunctionHandler", safe.target);
 

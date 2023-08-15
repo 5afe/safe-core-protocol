@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {BaseManager} from "./BaseManager.sol";
 import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
+import {RegistryManager} from "./RegistryManager.sol";
 
 /**
  * @title FunctionHandlerManager
@@ -11,7 +11,7 @@ import {ISafe} from "../interfaces/Accounts.sol";
  *        information about Safe account, bytes4 function selector and the function handler contract address.
  * @dev This contract inherits BaseManager so that `onlyPermittedIntegration` modifier can be used.
  */
-abstract contract FunctionHandlerManager is BaseManager {
+abstract contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about Safe account, function selector, and address of the account.
      */

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafe} from "../interfaces/Accounts.sol";
+import {MockContract} from "@safe-global/mock-contract/contracts/MockContract.sol";
 
-contract TestExecutor is ISafe {
+contract TestExecutor is ISafe, MockContract {
     address public module;
     address[] public owners;
 
@@ -59,5 +60,18 @@ contract TestExecutor is ISafe {
         }
     }
 
-    receive() external payable {}
+    function executeCallViaMock(
+        address payable to,
+        uint256 value,
+        bytes memory data,
+        uint256 gas
+    ) external returns (bool success, bytes memory response) {
+        (success, response) = to.call{value: value, gas: gas}(data);
+        if (!success) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                revert(add(response, 32), mload(response))
+            }
+        }
+    }
 }

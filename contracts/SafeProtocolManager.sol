@@ -8,16 +8,16 @@ import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {HooksManager} from "./base/HooksManager.sol";
 import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
-import {BaseGuard} from "@safe-global/safe-contracts/contracts/base/GuardManager.sol";
-import {Enum} from "@safe-global/safe-contracts/contracts/common/Enum.sol";
-import {BaseManager} from "./base/BaseManager.sol";
 import {ISafeProtocolManager} from "./interfaces/Manager.sol";
+
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Enum} from "./common/Enum.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHandlerManager, BaseGuard {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, FunctionHandlerManager, IERC165 {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -294,7 +294,7 @@ contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHand
     /**
      * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
      * @dev A Safe must enable SafeProtocolManager as a Guard (for Safe v1.x) and enable a contract address as Hooks.
-     *      If there is no hooks enabled for the Safe, transaction will revert as call to address(0) will fail.
+     *      If there is no hooks enabled for the Safe, transaction will pass through without any checks.
      * @param to address of the account
      * @param value Amount of ETH to be sent
      * @param data Artibtrary length bytes containing payload
@@ -320,8 +320,10 @@ contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHand
         bytes memory signatures,
         address msgSender
     ) external {
-        // Store hooks address in tempHooksAddress
-        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
+        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+
+        if (tempHooksAddressForSafe == address(0)) return;
         bytes memory executionMetadata = abi.encode(
             to,
             value,
@@ -334,6 +336,52 @@ contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHand
             signatures,
             msgSender
         );
+        // The call below will work only if the hook is registered for the Safe.
+        // If there is no hook registered, tx will fail. This is done on purpose to avoid cases where users might
+        // enable SafeProtocolManager as Guard but forget to register the hook in SafeProtocolManager.
+        // Possible improvement: Explictly check if the hooks is not address(0) and revert with appropriate error if so.
+        if (operation == Enum.Operation.Call) {
+            SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
+            actions[0] = SafeProtocolAction(payable(to), value, data);
+            SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+        } else {
+            // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
+            // and Safe allows only Call and DelegateCall operations.
+            SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
+            SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+        }
+    }
+
+    /**
+     * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
+     * @param success bool
+     */
+    function checkAfterExecution(bytes32, bool success) external {
+        address tempHooksAddressForSafe = tempHooksAddress[msg.sender];
+        if (tempHooksAddressForSafe == address(0)) return;
+
+        // Use tempHooksAddress to avoid a case where hooks get updated in the middle of a transaction.
+        ISafeProtocolHooks(tempHooksAddressForSafe).postCheck(ISafe(msg.sender), success, "");
+
+        // Reset to address(0) so that there is no unattended storage
+        tempHooksAddress[msg.sender] = address(0);
+    }
+
+    function checkModuleTransaction(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        address module /* onlyPermittedPlugin(module) uncomment this? */ // Use term plugin?
+    ) external returns (bytes32 moduleTxHash) {
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
+        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+
+        bytes memory executionMetadata = abi.encode(to, value, data, operation, module);
+
+        if (tempHooksAddressForSafe == address(0)) return keccak256(executionMetadata);
 
         // The call below will work only if the hook is registered for the Safe.
         // If there is no hook registered, tx will fail. This is done on purpose to avoid cases where users might
@@ -343,25 +391,23 @@ contract SafeProtocolManager is ISafeProtocolManager, HooksManager, FunctionHand
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
             SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
-            ISafeProtocolHooks(tempHooksAddress[msg.sender]).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
         } else {
             // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
             // and Safe allows only Call and DelegateCall operations.
             SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
             SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
-            ISafeProtocolHooks(tempHooksAddress[msg.sender]).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
         }
+
+        return keccak256(executionMetadata);
     }
 
-    /**
-     * @notice Implement BaseGuard interface to allow Safe to add Manager as a guard for existing Safe accounts (upto version 1.5.x).
-     * @param success bool
-     */
-    function checkAfterExecution(bytes32, bool success) external {
-        // Use tempHooksAddress to avoid a case where hooks get updated in the middle of a transaction.
-        ISafeProtocolHooks(tempHooksAddress[msg.sender]).postCheck(ISafe(msg.sender), success, "");
-
-        // Reset to address(0) so that there is no unattended storage
-        tempHooksAddress[msg.sender] = address(0);
+    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
+        return
+            interfaceId == 0x945b8148 || //type(Guard).interfaceId with Module Guard
+            interfaceId == 0xe6d7a83a || //type(Guard).interfaceId without Module Guard
+            interfaceId == type(ISafeProtocolManager).interfaceId ||
+            interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
     }
 }
