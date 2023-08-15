@@ -334,10 +334,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             signatures,
             msgSender
         );
-        // The call below will work only if the hook is registered for the Safe.
-        // If there is no hook registered, tx will fail. This is done on purpose to avoid cases where users might
-        // enable SafeProtocolManager as Guard but forget to register the hook in SafeProtocolManager.
-        // Possible improvement: Explictly check if the hooks is not address(0) and revert with appropriate error if so.
+
         if (operation == Enum.Operation.Call) {
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
@@ -381,10 +378,6 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
         if (tempHooksAddressForSafe == address(0)) return keccak256(executionMetadata);
 
-        // The call below will work only if the hook is registered for the Safe.
-        // If there is no hook registered, tx will fail. This is done on purpose to avoid cases where users might
-        // enable SafeProtocolManager as Guard but forget to register the hook in SafeProtocolManager.
-        // Possible improvement: Explictly check if the hooks is not address(0) and revert with appropriate error if so.
         if (operation == Enum.Operation.Call) {
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
