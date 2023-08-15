@@ -93,7 +93,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
 
-            if (safeProtocolAction.to == address(this) || safeProtocolAction.to == safeAddress) {
+            if (
+                safeProtocolAction.to == address(this) ||
+                (safeProtocolAction.to == safeAddress && !enabledPlugins[safeAddress][msg.sender].rootAddressGranted)
+            ) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metadataHash, i);
             }
 

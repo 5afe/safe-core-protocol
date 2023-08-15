@@ -517,7 +517,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         describe("Plugin with root access", async () => {
-            it("Should run a transaction from root access enabled plugin", async () => {
+            it("Should execute a transaction from root access enabled plugin", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
 
@@ -547,7 +547,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await plugin.executeFromPlugin(safeProtocolManager, safe, safeTx);
+                const tx = await plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -555,6 +555,23 @@ describe("SafeProtocolManager", async () => {
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
+            });
+
+            it("Should execute call to executeTransaction(...) from root access enabled plugin", async () => {
+                const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
+                const safeAddress = await safe.getAddress();
+
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
+
+                // Enable plugin
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+
+                const safeTx = buildSingleTx(safeAddress, 0n, "0x", BigInt(1), hre.ethers.randomBytes(32));
+                expect(await plugin.executeFromPlugin(safeProtocolManager.target, safeAddress, safeTx))
+                    .to.emit(safeProtocolManager, "ActionsExecuted")
+                    .withArgs(safeAddress, safeTx.metadataHash, safeTx.nonce);
             });
 
             it("Should execute a transaction from root access enabled plugin with hooks enabled", async () => {
@@ -591,7 +608,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await plugin.executeFromPlugin(safeProtocolManager, safe, safeTx);
+                const tx = await plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -626,7 +643,7 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
                     "pre-check root access failed",
                 );
             });
@@ -668,7 +685,9 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith("post-check failed");
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
+                    "post-check failed",
+                );
             });
 
             it("Should not allow a transaction from root access if plugin is flagged", async () => {
@@ -700,7 +719,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "PluginNotPermitted",
                 );
@@ -710,7 +729,7 @@ describe("SafeProtocolManager", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const safeTx = buildRootTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "PluginNotEnabled",
                 );
@@ -737,7 +756,7 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "PluginRequiresRootAccess",
                 );
@@ -762,7 +781,7 @@ describe("SafeProtocolManager", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "RootAccessActionExecutionFailed",
                 );
@@ -792,7 +811,7 @@ describe("SafeProtocolManager", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx))
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx))
                     .to.be.revertedWithCustomError(safeProtocolManager, "PluginRequiresRootAccess")
                     .withArgs(pluginAddress);
             });
