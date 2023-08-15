@@ -817,7 +817,8 @@ describe("SafeProtocolManager", async () => {
     });
 
     describe("Test SafeProtocolManager as Guard on a Safe", async () => {
-        const deployContractsFixture = async () => {
+        const setupTests = deployments.createFixture(async ({ deployments }) => {
+            await deployments.fixture();
             [deployer, owner, user1] = await hre.ethers.getSigners();
             const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
             const safeProtocolManager = await (
@@ -834,10 +835,10 @@ describe("SafeProtocolManager", async () => {
             await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
 
             return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
-        };
+        });
 
         it("Should not revert when no hooks registered on SafeProtocolManager", async () => {
-            const { safe, safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager } = await setupTests();
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
                 user2.address,
@@ -863,7 +864,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should not revert when no hooks registered on SafeProtocolManager for module transaction", async () => {
-            const { safe, safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager } = await setupTests();
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
                 user2.address,
@@ -883,7 +884,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should revert because hooks reverted in pre-check", async () => {
-            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPreChecks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -908,7 +909,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should revert because hooks reverted in post-check", async () => {
-            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -940,7 +941,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -969,7 +970,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks for module transaction with call operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -993,7 +994,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks for module transaction with delegateCall operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -1017,7 +1018,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should execute pass hooks checks for delegateCall operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -1048,7 +1049,7 @@ describe("SafeProtocolManager", async () => {
         it("Test if hooks get updated in between tx old hooks should be used for checkAfterExecution", async () => {
             // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
             // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
-            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
