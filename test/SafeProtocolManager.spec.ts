@@ -1046,7 +1046,7 @@ describe("SafeProtocolManager", async () => {
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
         });
 
-        it("Test if hooks get updated in between tx old hooks should be used for checkAfterExecution", async () => {
+        it("uses old hooks in checkAfterExecution if hooks get updated in between transactions", async () => {
             // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
             // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
             const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await setupTests();
