@@ -5,13 +5,13 @@ import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
 import { getMockTestExecutorInstance, getInstance } from "./utils/contracts";
 import { MaxUint256 } from "ethers";
-import { MockContract } from "../typechain-types";
+import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
 
 describe("Test Function Handler", async () => {
-    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
+    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1] = await hre.ethers.getSigners();
+        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
     });
 
     const setupTests = deployments.createFixture(async ({ deployments }) => {
@@ -87,17 +87,22 @@ describe("Test Function Handler", async () => {
         const data = "0xf8a8fd6d";
 
         await functionHandlerManager.connect(user1).setFunctionHandler(data, mockFunctionHandler.target);
-
+        const sender = user2.address;
         await (
             await user1.sendTransaction({
                 to: functionHandlerManager.target,
                 value: 0,
-                data: data + user1.address.slice(2), // Handler expects additional 20 bytes data at the end that indicates original sender of transaction.
+                data: data + sender.slice(2), // Handler expects additional 20 bytes data at the end that indicates original sender of transaction.
             })
         ).wait();
 
         const mockContract = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
         expect(await mockContract.invocationCountForMethod("0x25d6803f")).to.equal(1n);
+
+        const handlerInterface = ISafeProtocolFunctionHandler__factory.createInterface();
+        const expectedCallData = handlerInterface.encodeFunctionData("handle", [user1.address, user2.address, 0, "0xf8a8fd6d"]);
+
+        expect(await mockContract.invocationCountForCalldata(expectedCallData)).to.equal(1n);
         expect(await mockContract.invocationCount()).to.equal(1n);
     });
 });
