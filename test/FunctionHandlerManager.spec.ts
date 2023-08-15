@@ -3,8 +3,9 @@ import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
 import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
-import { getMockTestExecutorInstance } from "./utils/contracts";
+import { getMockTestExecutorInstance, getInstance } from "./utils/contracts";
 import { MaxUint256 } from "ethers";
+import { MockContract } from "../typechain-types";
 
 describe("Test Function Handler", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
@@ -27,14 +28,9 @@ describe("Test Function Handler", async () => {
 
         await safeProtocolRegistry.addIntegration(mockFunctionHandler.target, IntegrationType.FunctionHandler);
 
-        const testFunctionHandler = await ethers.deployContract("MockContract", { signer: deployer });
-        await testFunctionHandler.givenMethodReturnBool("0x01ffc9a7", true);
-
-        await safeProtocolRegistry.addIntegration(testFunctionHandler.target, IntegrationType.FunctionHandler);
-
         const safe = await getMockTestExecutorInstance();
 
-        return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry, testFunctionHandler };
+        return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };
     });
 
     it("Should emit FunctionHandlerChanged event when Function Handler is set", async () => {
@@ -85,13 +81,12 @@ describe("Test Function Handler", async () => {
     });
 
     it("Should call handle function of function handler", async () => {
-        const { functionHandlerManager, testFunctionHandler } = await setupTests();
+        const { functionHandlerManager, mockFunctionHandler } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const data = "0xf8a8fd6d";
 
-        await functionHandlerManager.connect(user1).setFunctionHandler(data, testFunctionHandler.target);
-        await testFunctionHandler.givenMethodReturnBool("0xe962001f", true);
+        await functionHandlerManager.connect(user1).setFunctionHandler(data, mockFunctionHandler.target);
 
         await (
             await user1.sendTransaction({
@@ -101,7 +96,8 @@ describe("Test Function Handler", async () => {
             })
         ).wait();
 
-        expect(await testFunctionHandler.invocationCountForMethod("0x25d6803f")).to.equal(1n);
-        expect(await testFunctionHandler.invocationCount()).to.equal(1);
+        const mockContract = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
+        expect(await mockContract.invocationCountForMethod("0x25d6803f")).to.equal(1n);
+        expect(await mockContract.invocationCount()).to.equal(1n);
     });
 });

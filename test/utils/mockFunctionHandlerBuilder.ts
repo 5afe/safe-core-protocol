@@ -8,12 +8,13 @@ export const getFunctionHandlerWithFailingCallToSupportsInterfaceMethod = async 
 };
 
 export const getMockFunctionHandler = async (): Promise<ISafeProtocolFunctionHandler> => {
-    const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+    const functionHandler = await (await hre.ethers.getContractFactory("MockContract")).deploy();
 
-    await hooks.givenMethodReturnBool("0x01ffc9a7", true);
+    // Supports IERC165
+    await functionHandler.givenMethodReturnBool("0x01ffc9a7", true);
 
-    // 0xf8a8fd6d -> function test() external {}
-    await hooks.givenMethodReturnBool("0xf8a8fd6d", true);
+    // Call to handle(address,address,uint256,bytes)
+    await functionHandler.givenMethodReturn("0x25d6803f", "0x");
 
-    return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", hooks.target);
+    return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", functionHandler.target);
 };
