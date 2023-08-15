@@ -14,7 +14,7 @@ export const getMockFunctionHandler = async (): Promise<ISafeProtocolFunctionHan
     await functionHandler.givenMethodReturnBool("0x01ffc9a7", true);
 
     // Call to handle(address,address,uint256,bytes)
-    await functionHandler.givenMethodReturn("0x25d6803f", "0x");
+    await functionHandler.givenMethodReturn("0x25d6803f", hre.ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], ["0x1234"]));
 
     return hre.ethers.getContractAt("ISafeProtocolFunctionHandler", functionHandler.target);
 };
