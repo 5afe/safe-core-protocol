@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolHooks} from "../interfaces/Integrations.sol";
+import {RegistryManager} from "./RegistryManager.sol";
 
-contract HooksManager {
+abstract contract HooksManager is RegistryManager {
     mapping(address => address) public enabledHooks;
 
     /// @notice This variable should store the address of the hooks contract whenever
@@ -12,9 +13,6 @@ contract HooksManager {
 
     // Events
     event HooksChanged(address indexed safe, address indexed hooksAddress);
-
-    // Errors
-    error AddressDoesNotImplementHooksInterface(address hooksAddress);
 
     /**
      * @notice Returns the address of hooks for a Safe account provided as a fucntion parameter.
@@ -31,9 +29,7 @@ contract HooksManager {
      * @param hooks Address of the hooks to be enabled for msg.sender.
      */
     function setHooks(address hooks) external {
-        if (hooks != address(0) && !ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
-            revert AddressDoesNotImplementHooksInterface(hooks);
-        }
+        if (hooks != address(0)) checkPermittedIntegration(hooks);
         enabledHooks[msg.sender] = hooks;
         emit HooksChanged(msg.sender, hooks);
     }

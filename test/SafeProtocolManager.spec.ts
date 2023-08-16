@@ -397,6 +397,7 @@ describe("SafeProtocolManager", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 // Enable hooks on a safe
                 const hooks = await getHooksWithPassingChecks();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
@@ -431,6 +432,7 @@ describe("SafeProtocolManager", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPrechecks();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
@@ -452,6 +454,7 @@ describe("SafeProtocolManager", async () => {
                 const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
@@ -577,8 +580,11 @@ describe("SafeProtocolManager", async () => {
             it("Should execute a transaction from root access enabled plugin with hooks enabled", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
+
                 // Enable hooks on a safe
                 const hooks = await getHooksWithPassingChecks();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
+
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
 
@@ -622,6 +628,7 @@ describe("SafeProtocolManager", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPrechecks();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
@@ -655,6 +662,8 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
+                await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
+
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
                 await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
 
@@ -832,6 +841,7 @@ describe("SafeProtocolManager", async () => {
 
             await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
             await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
+            await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPostCheck.target, IntegrationType.Hooks);
 
             return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
         };
