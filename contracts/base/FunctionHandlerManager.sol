@@ -53,8 +53,8 @@ abstract contract FunctionHandlerManager is RegistryManager {
      *         Currently, the handle(...) function is non-payable and has same signature for both ISafeProtocolFunctionHandler
      *         and ISafeProtocolStaticFunctionHandler. So, ISafeProtocolFunctionHandler.handle is used even for static calls.
      */
-    // solhint-disable-next-line no-complex-fallback
-    fallback(bytes calldata) external payable returns (bytes memory) {
+    // solhint-disable-next-line no-complex-fallback, payable-fallback
+    fallback(bytes calldata) external returns (bytes memory) {
         address safe = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
 
@@ -65,23 +65,16 @@ abstract contract FunctionHandlerManager is RegistryManager {
             revert FunctionHandlerNotSet(safe, functionSelector);
         }
 
-        // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
-        // remove last 20 bytes from calldata and store it in `data`.
-        // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
-        // Possible improvement: Use assembly
-        bytes memory data = msg.data[0:(msg.data.length - 20)];
-
         address sender;
         // solhint-disable-next-line no-inline-assembly
         assembly {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
-        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, msg.value, data);
-    }
 
-    receive() external payable {
-        // No way to recover ethers if this call succeeds. It is not expected for Manager to hold any ethers using receive.
-        // So, should revert here?
+        // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
+        // remove last 20 bytes from calldata and store it in `data`.
+        // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
+        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, 0, msg.data[0:(msg.data.length - 20)]);
     }
 }
