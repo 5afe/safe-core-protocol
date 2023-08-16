@@ -398,8 +398,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
         return
-            interfaceId == 0x945b8148 || //type(Guard).interfaceId with Module Guard
-            interfaceId == 0xe6d7a83a || //type(Guard).interfaceId without Module Guard
+            interfaceId == 0x945b8148 || // type(Guard).interfaceId with Module Guard
+            interfaceId == 0xe6d7a83a || // type(Guard).interfaceId without Module Guard (required for backward compatibility for Safe v1.4 and below)
             interfaceId == type(ISafeProtocolManager).interfaceId ||
             interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
     }

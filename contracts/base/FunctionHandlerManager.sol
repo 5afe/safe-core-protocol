@@ -64,17 +64,17 @@ abstract contract FunctionHandlerManager is RegistryManager {
         }
 
         // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
-        address sender;
-        // remove last 20 bytes from calldata.
+        // remove last 20 bytes from calldata and store it in `data`.
         // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
         // Possible improvement: Use assembly
         bytes memory data = msg.data[0:(msg.data.length - 20)];
+
+        address sender;
         // solhint-disable-next-line no-inline-assembly
         assembly {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
-        // With safe v1.x, msg.data contains 20 bytes of sender address.
         return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, msg.value, data);
     }
 
