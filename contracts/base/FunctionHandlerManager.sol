@@ -21,7 +21,6 @@ abstract contract FunctionHandlerManager is RegistryManager {
     event FunctionHandlerChanged(address indexed safe, bytes4 indexed selector, address indexed functionHandler);
 
     // Errors
-    error AddressDoesNotImplementFunctionHandlerInterface(address functionHandler);
     error FunctionHandlerNotSet(address safe, bytes4 functionSelector);
 
     /**
@@ -36,10 +35,13 @@ abstract contract FunctionHandlerManager is RegistryManager {
 
     /**
      * @notice Sets the function handler for a Safe account and function selector. The msg.sender must be the account.
+     *         This function checks if the functionHandler address is listed and not flagged in the registry.
      * @param selector bytes4 function selector
      * @param functionHandler Address of the contract to be set as a function handler
      */
-    function setFunctionHandler(bytes4 selector, address functionHandler) external onlyPermittedIntegration(functionHandler) {
+    function setFunctionHandler(bytes4 selector, address functionHandler) external {
+        if (functionHandler != address(0)) checkPermittedIntegration(functionHandler);
+
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.
         functionHandlers[msg.sender][selector] = functionHandler;
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);

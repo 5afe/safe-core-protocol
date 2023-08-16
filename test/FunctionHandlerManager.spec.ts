@@ -4,7 +4,7 @@ import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
 import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
 import { getMockTestExecutorInstance, getInstance } from "./utils/contracts";
-import { MaxUint256 } from "ethers";
+import { MaxUint256, ZeroAddress } from "ethers";
 import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
 
 describe("Test Function Handler", async () => {
@@ -57,11 +57,42 @@ describe("Test Function Handler", async () => {
         expect(await functionHandlerManager.getFunctionHandler.staticCall(safe.target, functionId)).to.be.equal(mockFunctionHandler.target);
     });
 
-    it("Should not allow non permitted function handler", async () => {
+    it("Should allow removing function handler", async () => {
+        const { safe, functionHandlerManager, mockFunctionHandler } = await setupTests();
+
+        // 0xf8a8fd6d -> function test() external {}
+        const functionId = "0xf8a8fd6d";
+        const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            functionId,
+            mockFunctionHandler.target,
+        ]);
+
+        await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
+
+        const dataSetFunctionHandler2 = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            functionId,
+            ZeroAddress,
+        ]);
+        const tx = await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler2, MaxUint256);
+
+        const receipt = await tx.wait();
+        const events = (
+            await functionHandlerManager.queryFilter(
+                functionHandlerManager.filters.FunctionHandlerChanged,
+                receipt?.blockNumber,
+                receipt?.blockNumber,
+            )
+        )[0];
+        expect(events.args).to.deep.equal([safe.target, functionId, ZeroAddress]);
+
+        expect(await functionHandlerManager.getFunctionHandler.staticCall(safe.target, functionId)).to.be.equal(ZeroAddress);
+    });
+
+    it("Should not allow non-permitted function handler", async () => {
         const { functionHandlerManager } = await setupTests();
-        await expect(functionHandlerManager.setFunctionHandler("0x00000000", hre.ethers.ZeroAddress))
+        await expect(functionHandlerManager.setFunctionHandler("0x00000000", user1.address))
             .to.be.revertedWithCustomError(functionHandlerManager, "IntegrationNotPermitted")
-            .withArgs(hre.ethers.ZeroAddress, 0, 0);
+            .withArgs(user1.address, 0, 0);
     });
 
     it("Should revert with FunctionHandlerNotSet when function handler is not enabled", async () => {
