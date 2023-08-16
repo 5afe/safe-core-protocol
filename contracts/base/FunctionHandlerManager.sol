@@ -71,7 +71,6 @@ abstract contract FunctionHandlerManager is RegistryManager {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
-
         // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
         // remove last 20 bytes from calldata and store it in `data`.
         // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
