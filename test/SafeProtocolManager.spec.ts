@@ -286,6 +286,27 @@ describe("SafeProtocolManager", async () => {
                     SENTINEL_MODULES,
                 ]);
             });
+
+            it("Should return empty list after disabling a only enabled plugin", async () => {
+                const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
+                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
+                const pluginAddress = await plugin.getAddress();
+                const safeAddress = await safe.getAddress();
+
+                await safe.setModule(safeProtocolManagerAddress);
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
+                await safe.exec(safeProtocolManagerAddress, 0, data);
+                expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
+
+                const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
+                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, ZeroAddress]);
+
+                expect(await safeProtocolManager.getPluginsPaginated(SENTINEL_MODULES, 100, safeAddress)).to.deep.equal([
+                    [],
+                    SENTINEL_MODULES,
+                ]);
+            });
         });
     });
 
