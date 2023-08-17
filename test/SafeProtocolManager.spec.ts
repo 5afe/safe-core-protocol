@@ -307,6 +307,38 @@ describe("SafeProtocolManager", async () => {
                     SENTINEL_MODULES,
                 ]);
             });
+
+            it("Should return list with 2 plugins after disabling a 1 out of 3", async () => {
+                const { safeProtocolManager, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
+                await safe.setModule(safeProtocolManagerAddress);
+
+                // enable plugin 1
+                const dataEnablePlugin1 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin.target, false]);
+                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin1);
+
+                // enable plugin 2
+                const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin2.target, IntegrationType.Plugin);
+                const dataEnablePlugin2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2.target, false]);
+                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin2);
+
+                // enable plugin 3
+                const plugin3 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(plugin3.target, IntegrationType.Plugin);
+                const dataEnablePlugin3 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin3.target, false]);
+                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin3);
+
+                // Disable plugin 2
+                const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [plugin3.target, plugin2.target]);
+                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                expect(await safeProtocolManager.getPluginInfo(safe.target, plugin2.target)).to.eql([false, ZeroAddress]);
+
+                expect(await safeProtocolManager.getPluginsPaginated(SENTINEL_MODULES, 100, safe.target)).to.deep.equal([
+                    [plugin3.target, plugin.target],
+                    SENTINEL_MODULES,
+                ]);
+            });
         });
     });
 
