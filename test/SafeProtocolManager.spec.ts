@@ -76,7 +76,7 @@ describe("SafeProtocolManager", async () => {
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolManager, "PluginNotPermitted")
+                    .to.be.revertedWithCustomError(safeProtocolManager, "IntegrationNotPermitted")
                     .withArgs(pluginAddress, 0, 0);
             });
 
@@ -88,7 +88,7 @@ describe("SafeProtocolManager", async () => {
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
 
@@ -528,7 +528,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
         });
@@ -719,7 +719,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
 
