@@ -213,7 +213,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             revert InvalidPrevPluginAddress(prevPlugin);
         }
 
-        prevPluginInfo = pluginInfo;
+        prevPluginInfo.nextPluginPointer = pluginInfo.nextPluginPointer;
+        prevPluginInfo.rootAddressGranted = pluginInfo.rootAddressGranted;
 
         pluginInfo.nextPluginPointer = address(0);
         pluginInfo.rootAddressGranted = false;
