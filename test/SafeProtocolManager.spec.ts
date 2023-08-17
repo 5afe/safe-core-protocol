@@ -301,6 +301,7 @@ describe("SafeProtocolManager", async () => {
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
                 await safe.exec(safeProtocolManagerAddress, 0, data2);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, ZeroAddress]);
+                expect(await safeProtocolManager.isPluginEnabled(safe.target, plugin.target)).to.be.false;
 
                 expect(await safeProtocolManager.getPluginsPaginated(SENTINEL_MODULES, 100, safeAddress)).to.deep.equal([
                     [],
@@ -333,6 +334,7 @@ describe("SafeProtocolManager", async () => {
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [plugin3.target, plugin2.target]);
                 await safe.exec(safeProtocolManagerAddress, 0, data2);
                 expect(await safeProtocolManager.getPluginInfo(safe.target, plugin2.target)).to.eql([false, ZeroAddress]);
+                expect(await safeProtocolManager.isPluginEnabled(safe.target, plugin2.target)).to.be.false;
 
                 expect(await safeProtocolManager.getPluginsPaginated(SENTINEL_MODULES, 100, safe.target)).to.deep.equal([
                     [plugin3.target, plugin.target],
