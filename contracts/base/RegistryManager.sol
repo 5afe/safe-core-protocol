@@ -9,11 +9,15 @@ contract RegistryManager is Ownable2Step {
 
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
-    error IntegrationNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
+    error PluginNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
     error AccountDoesNotImplementValidInterfaceId(address account);
 
-    modifier onlyPermittedIntegration(address integration) {
-        checkPermittedIntegration(integration);
+    modifier onlyPermittedPlugin(address plugin) {
+        // Only allow registered and non-flagged plugins
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(plugin);
+        if (listedAt == 0 || flaggedAt != 0) {
+            revert PluginNotPermitted(plugin, listedAt, flaggedAt);
+        }
         _;
     }
 
@@ -23,19 +27,6 @@ contract RegistryManager is Ownable2Step {
             revert AccountDoesNotImplementValidInterfaceId(_registry);
         }
         registry = _registry;
-    }
-
-    /**
-     * @notice Checks if given integration address is listed and not flagged in the registry.
-     *         Reverts if given address is not-listed or flagged.
-     * @param integration Address of the integration
-     */
-    function checkPermittedIntegration(address integration) internal view {
-        // Only allow registered and non-flagged integrations
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(integration);
-        if (listedAt == 0 || flaggedAt != 0) {
-            revert IntegrationNotPermitted(integration, listedAt, flaggedAt);
-        }
     }
 
     /**

@@ -5,7 +5,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { IntegrationType } from "./utils/constants";
 import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
 import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
-import { getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
+import { getFucntionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
 describe("SafeProtocolRegistry", async () => {
     let owner: SignerWithAddress, user1: SignerWithAddress;
 
@@ -13,7 +13,7 @@ describe("SafeProtocolRegistry", async () => {
         await deployments.fixture();
         [owner, user1] = await ethers.getSigners();
         const safeProtocolRegistry = await ethers.deployContract("SafeProtocolRegistry", [owner.address]);
-        const mockFunctionHandlerAddress = (await getFunctionHandlerWithFailingCallToSupportsInterfaceMethod()).target;
+        const mockFunctionHandlerAddress = (await getFucntionHandlerWithFailingCallToSupportsInterfaceMethod()).target;
         return { safeProtocolRegistry, mockFunctionHandlerAddress };
     });
 
@@ -113,6 +113,6 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry, mockFunctionHandlerAddress } = await setupTests();
         await expect(safeProtocolRegistry.connect(owner).addIntegration(mockFunctionHandlerAddress, IntegrationType.FunctionHandler))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
-            .withArgs(mockFunctionHandlerAddress, "0xf601ad15");
+            .withArgs(mockFunctionHandlerAddress, "0x25d6803f");
     });
 });
