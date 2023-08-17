@@ -32,12 +32,12 @@ contract TestPlugin is BaseTestPlugin {
     }
 }
 
-contract TestPluginWithRootAccess is BaseTestPlugin {
+contract TestPluginWithRootAccess is TestPlugin {
     constructor() {
         requiresRootAccess = true;
     }
 
-    function executeFromPlugin(
+    function executeRootAccessTxFromPlugin(
         ISafeProtocolManager manager,
         ISafe safe,
         SafeRootAccess calldata safeRootAccesstx

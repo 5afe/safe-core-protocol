@@ -534,7 +534,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         describe("Plugin with root access", async () => {
-            it("Should run a transaction from root access enabled plugin", async () => {
+            it("Should execute a transaction from root access enabled plugin", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
 
@@ -564,7 +564,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await plugin.executeFromPlugin(safeProtocolManager, safe, safeTx);
+                const tx = await plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -572,6 +572,23 @@ describe("SafeProtocolManager", async () => {
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
+            });
+
+            it("Should execute call to executeTransaction(...) from root access enabled plugin", async () => {
+                const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
+                const safeAddress = await safe.getAddress();
+
+                const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+                await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
+
+                // Enable plugin
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
+                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+
+                const safeTx = buildSingleTx(safeAddress, 0n, "0x", BigInt(1), hre.ethers.randomBytes(32));
+                expect(await plugin.executeFromPlugin(safeProtocolManager.target, safeAddress, safeTx))
+                    .to.emit(safeProtocolManager, "ActionsExecuted")
+                    .withArgs(safeAddress, safeTx.metadataHash, safeTx.nonce);
             });
 
             it("Should execute a transaction from root access enabled plugin with hooks enabled", async () => {
@@ -608,7 +625,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 const balanceBefore = await hre.ethers.provider.getBalance(user1.address);
-                const tx = await plugin.executeFromPlugin(safeProtocolManager, safe, safeTx);
+                const tx = await plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx);
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
@@ -643,7 +660,7 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
                     "pre-check root access failed",
                 );
             });
@@ -685,7 +702,9 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith("post-check failed");
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWith(
+                    "post-check failed",
+                );
             });
 
             it("Should not allow a transaction from root access if plugin is flagged", async () => {
@@ -717,7 +736,7 @@ describe("SafeProtocolManager", async () => {
                 );
 
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "IntegrationNotPermitted",
                 );
@@ -727,7 +746,7 @@ describe("SafeProtocolManager", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
                 const safeTx = buildRootTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "PluginNotEnabled",
                 );
@@ -754,7 +773,7 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "PluginRequiresRootAccess",
                 );
@@ -779,7 +798,7 @@ describe("SafeProtocolManager", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
                     "RootAccessActionExecutionFailed",
                 );
@@ -809,7 +828,7 @@ describe("SafeProtocolManager", async () => {
                     BigInt(1),
                     hre.ethers.randomBytes(32),
                 );
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx))
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx))
                     .to.be.revertedWithCustomError(safeProtocolManager, "PluginRequiresRootAccess")
                     .withArgs(pluginAddress);
             });
@@ -817,7 +836,8 @@ describe("SafeProtocolManager", async () => {
     });
 
     describe("Test SafeProtocolManager as Guard on a Safe", async () => {
-        const deployContractsFixture = async () => {
+        const setupTests = deployments.createFixture(async ({ deployments }) => {
+            await deployments.fixture();
             [deployer, owner, user1] = await hre.ethers.getSigners();
             const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
             const safeProtocolManager = await (
@@ -834,10 +854,10 @@ describe("SafeProtocolManager", async () => {
             await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
 
             return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
-        };
+        });
 
         it("Should not revert when no hooks registered on SafeProtocolManager", async () => {
-            const { safe, safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager } = await setupTests();
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
                 user2.address,
@@ -863,7 +883,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should not revert when no hooks registered on SafeProtocolManager for module transaction", async () => {
-            const { safe, safeProtocolManager } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager } = await setupTests();
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
                 user2.address,
@@ -883,7 +903,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should revert because hooks reverted in pre-check", async () => {
-            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPreChecks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -908,7 +928,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should revert because hooks reverted in post-check", async () => {
-            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -940,7 +960,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -969,7 +989,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks for module transaction with call operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -993,7 +1013,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should pass hooks checks for module transaction with delegateCall operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -1017,7 +1037,7 @@ describe("SafeProtocolManager", async () => {
         });
 
         it("Should execute pass hooks checks for delegateCall operation", async () => {
-            const { safe, safeProtocolManager, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
@@ -1045,10 +1065,10 @@ describe("SafeProtocolManager", async () => {
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
         });
 
-        it("Test if hooks get updated in between tx old hooks should be used for checkAfterExecution", async () => {
+        it("uses old hooks in checkAfterExecution if hooks get updated in between transactions", async () => {
             // In below flow: pre-check of hooksWithFailingPostCheck is executed, and post-check of
             // hooksWithFailingPostCheck hooks is executed even though hooks get updated in between tx.
-            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await loadFixture(deployContractsFixture);
+            const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
             await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
