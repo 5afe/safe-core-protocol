@@ -3,7 +3,7 @@ import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
 import { IntegrationType } from "./utils/constants";
 import { expect } from "chai";
-import { getMockTestExecutorInstance, getInstance } from "./utils/contracts";
+import { getInstance } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
 import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
 
@@ -27,8 +27,7 @@ describe("Test Function Handler", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         await safeProtocolRegistry.addIntegration(mockFunctionHandler.target, IntegrationType.FunctionHandler);
-
-        const safe = await getMockTestExecutorInstance();
+        const safe = await hre.ethers.deployContract("TestExecutor", [functionHandlerManager.target], { signer: deployer });
 
         return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };
     });
@@ -136,4 +135,56 @@ describe("Test Function Handler", async () => {
         expect(await mockContract.invocationCountForCalldata(expectedCallData)).to.equal(1n);
         expect(await mockContract.invocationCount()).to.equal(1n);
     });
+
+    it("Should revert if address does not implement expected interface Id", async () => {
+        const { safe, functionHandlerManager, mockFunctionHandler } = await setupTests();
+
+        const mock = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
+        await mock.givenMethodReturnBool("0x01ffc9a7", false);
+        // 0xf8a8fd6d -> function test() external {}
+        const functionId = "0xf8a8fd6d";
+        const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            functionId,
+            mockFunctionHandler.target,
+        ]);
+
+        await expect(safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256))
+            .to.be.revertedWithCustomError(functionHandlerManager, "AccountDoesNotImplementValidInterfaceId")
+            .withArgs(mockFunctionHandler.target);
+    });
+
+    // it("Should revert with InvalidSender when caller it not safe", async () => {
+    //     const { functionHandlerManager, mockFunctionHandler, safeProtocolRegistry } = await setupTests();
+    //     const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
+    //     const safe = await getSafeWithOwners([owner], 1, functionHandlerManager.target);
+
+    //     const encodedPluginAdd = functionHandlerManager.interface.encodeFunctionData("enablePlugin", [plugin.target, true]);
+
+    //     await safeProtocolRegistry.addIntegration(plugin.target, IntegrationType.Plugin);
+    //     const funcSIg = "0x250db3c0"; // enable plugin;
+    //     await functionHandlerManager.connect(user1).setFunctionHandler(funcSIg, mockFunctionHandler.target);
+
+    //     await (
+    //         await user1.sendTransaction({
+    //             to: safe.target,
+    //             value: 0,
+    //             data: encodedPluginAdd,
+    //         })
+    //     ).wait();
+
+    //     const encodedPluginDisable = functionHandlerManager.interface.encodeFunctionData("disablePlugin", [
+    //         SENTINEL_MODULES,
+    //         plugin.target,
+    //     ]);
+
+    //     await (
+    //         await user1.sendTransaction({
+    //             to: safe.target,
+    //             value: 0,
+    //             data: encodedPluginDisable,
+    //         })
+    //     ).wait();
+
+    //     console.log(await functionHandlerManager.isPluginEnabled.staticCall(plugin.target, safe.target));
+    // });
 });

@@ -7,7 +7,8 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
-import { getMockTestExecutorInstance } from "./utils/contracts";
+import { getInstance } from "./utils/contracts";
+import { SafeProtocolManager } from "../typechain-types";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
@@ -24,9 +25,6 @@ describe("SafeProtocolManager", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
-        // const otherSafe = await hre.ethers.deployContract("TestExecutor", [manager.target], {signer: deployer});
-        // const safeProtocolManager = await getInstance<SafeProtocolManager>("SafeProtocolManager", safe.target);
-        // const safeProtocolManager = (await hre.ethers.getContractFactory("SafeProtocolManager")).attach(otherSafe.target);
         return { safeProtocolManager, safeProtocolRegistry, safe };
     });
 
@@ -70,6 +68,19 @@ describe("SafeProtocolManager", async () => {
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
                     .withArgs(hre.ethers.ZeroAddress);
+            });
+
+            it("Blocks calls not initiated from Safe", async () => {
+                const { safeProtocolManager, plugin, safe } = await loadFixture(deployContractsWithPluginFixture);
+                const pluginAddress = await plugin.getAddress();
+                await expect(safeProtocolManager.enablePlugin(pluginAddress, false))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(ZeroAddress);
+
+                const contract = await getInstance<SafeProtocolManager>("SafeProtocolManager", safe);
+                await expect(contract.connect(user1).enablePlugin(pluginAddress, false))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(user1.address);
             });
 
             it("Should not allow a Safe to enable plugin if not added as a integration in registry", async () => {
@@ -137,6 +148,19 @@ describe("SafeProtocolManager", async () => {
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
                     .withArgs(hre.ethers.ZeroAddress);
+            });
+
+            it("Blocks calls not initiated from Safe", async () => {
+                const { safeProtocolManager, plugin, safe } = await loadFixture(deployContractsWithPluginFixture);
+                const pluginAddress = await plugin.getAddress();
+
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
+                await safe.exec(safe.target, 0, data);
+
+                const contract = await getInstance<SafeProtocolManager>("SafeProtocolManager", safe);
+                await expect(contract.connect(user1).disablePlugin(SENTINEL_MODULES, pluginAddress))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(user1.address);
             });
 
             it("Should not allow a Safe to disable SENTINEL_MODULES plugin", async () => {
@@ -503,7 +527,6 @@ describe("SafeProtocolManager", async () => {
 
             it("Should fail executing a transaction through plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
-                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
 
@@ -722,7 +745,6 @@ describe("SafeProtocolManager", async () => {
             it("Should fail to execute a transaction from root access enabled plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
-                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
 
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
@@ -898,7 +920,7 @@ describe("SafeProtocolManager", async () => {
                 await hre.ethers.getContractFactory("SafeProtocolManager")
             ).deploy(owner.address, safeProtocolRegistry.target);
 
-            const safe = await getMockTestExecutorInstance(safeProtocolManager.target);
+            const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
 
             const hooks = await getHooksWithPassingChecks();
             const hooksWithFailingPreChecks = await getHooksWithFailingPrechecks();

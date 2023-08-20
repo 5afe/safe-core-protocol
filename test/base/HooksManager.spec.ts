@@ -1,66 +1,77 @@
-import hre from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import hre, { deployments } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { getHooksWithPassingChecks } from "../utils/mockHooksBuilder";
+import { ZeroAddress } from "ethers";
 
 describe("HooksManager", async () => {
-    let deployer: SignerWithAddress, user1: SignerWithAddress;
+    let deployer: SignerWithAddress, user1: SignerWithAddress, owner: SignerWithAddress;
 
     before(async () => {
-        [deployer, user1] = await hre.ethers.getSigners();
+        [deployer, owner, user1] = await hre.ethers.getSigners();
     });
 
-    async function deployContractsFixture() {
+    const setupTests = deployments.createFixture(async ({ deployments }) => {
+        await deployments.fixture();
         [deployer, user1] = await hre.ethers.getSigners();
+        const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
+        const hooksManager = await (
+            await hre.ethers.getContractFactory("SafeProtocolManager")
+        ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
-        const hooksManager = await hre.ethers.deployContract("HooksManager", { signer: deployer });
+        const safe = await hre.ethers.deployContract("TestExecutor", [hooksManager.target], { signer: deployer });
         const hooks = await getHooksWithPassingChecks();
 
-        return { hooksManager, hooks };
-    }
+        return { hooksManager, hooks, safe };
+    });
 
     it("Should emit HooksChanged event when hooks are enabled", async () => {
-        const { hooksManager, hooks } = await loadFixture(deployContractsFixture);
-        const hooksAddress = await hooks.getAddress();
-        expect(await hooksManager.connect(user1).setHooks(hooksAddress))
+        const { hooksManager, hooks, safe } = await setupTests();
+
+        const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+
+        expect(await safe.exec(safe.target, 0n, calldata))
             .to.emit(hooksManager, "HooksChanged")
-            .withArgs(user1, hooksAddress);
+            .withArgs(safe.target, hooks.target);
     });
 
     it("Should return correct hooks address", async () => {
-        const { hooksManager, hooks } = await loadFixture(deployContractsFixture);
-        const hooksAddress = await hooks.getAddress();
-        await hooksManager.connect(user1).setHooks(hooksAddress);
-        expect(await hooksManager.getEnabledHooks(user1.address)).to.be.equal(hooksAddress);
+        const { hooksManager, hooks, safe } = await setupTests();
+        const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+        await safe.exec(safe.target, 0n, calldata);
+        expect(await hooksManager.getEnabledHooks(safe.target)).to.be.equal(hooks.target);
     });
 
     it("Should return zero address if hooks are not enabled", async () => {
-        const { hooksManager } = await loadFixture(deployContractsFixture);
+        const { hooksManager } = await setupTests();
         expect(await hooksManager.getEnabledHooks(user1.address)).to.be.equal(hre.ethers.ZeroAddress);
     });
 
     it("Should return zero address if hooks address is reset to zero address", async () => {
-        const { hooksManager, hooks } = await loadFixture(deployContractsFixture);
+        const { hooksManager, hooks, safe } = await setupTests();
 
-        const hooksAddress = await hooks.getAddress();
-        expect(await hooksManager.connect(user1).setHooks(hooksAddress));
-        expect(await hooksManager.connect(user1).setHooks(hre.ethers.ZeroAddress));
-        expect(await hooksManager.getEnabledHooks(user1.address)).to.be.equal(hre.ethers.ZeroAddress);
+        const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
+        await safe.exec(safe.target, 0n, calldata);
+
+        const calldata2 = hooksManager.interface.encodeFunctionData("setHooks", [ZeroAddress]);
+        await safe.exec(safe.target, 0n, calldata2);
+
+        expect(await hooksManager.getEnabledHooks(safe.target)).to.be.equal(hre.ethers.ZeroAddress);
     });
 
     it("Should revert if user attempts to set random address as hooks", async () => {
-        const { hooksManager } = await loadFixture(deployContractsFixture);
+        const { hooksManager } = await setupTests();
         const hooksAddress = hre.ethers.getAddress(hre.ethers.hexlify(hre.ethers.randomBytes(20)));
         await expect(hooksManager.setHooks(hooksAddress)).to.be.reverted;
     });
 
     it("Should revert AddressDoesNotImplementHooksInterface if user attempts address does not implement Hooks interface", async () => {
-        const { hooksManager } = await loadFixture(deployContractsFixture);
+        const { hooksManager, safe } = await setupTests();
         const contractNotImplementingHooksInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", false);
 
-        await expect(hooksManager.setHooks(await contractNotImplementingHooksInterface.getAddress())).to.be.revertedWithCustomError(
+        const calldata = hooksManager.interface.encodeFunctionData("setHooks", [contractNotImplementingHooksInterface.target]);
+        await expect(safe.exec(safe.target, 0n, calldata)).to.be.revertedWithCustomError(
             hooksManager,
             "AddressDoesNotImplementHooksInterface",
         );

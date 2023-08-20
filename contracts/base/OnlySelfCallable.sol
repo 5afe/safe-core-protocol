@@ -6,6 +6,11 @@ abstract contract OnlySelfCallable {
     error InvalidCalldataLength();
 
     modifier onlySelf() {
+        checkOnlySelf();
+        _;
+    }
+
+    function checkOnlySelf() private view {
         if (msg.data.length < 20) {
             revert InvalidCalldataLength();
         }
@@ -17,6 +22,5 @@ abstract contract OnlySelfCallable {
         if (sender != msg.sender) {
             revert InvalidSender(sender);
         }
-        _;
     }
 }

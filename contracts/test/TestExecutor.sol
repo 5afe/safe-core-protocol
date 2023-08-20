@@ -85,11 +85,11 @@ contract TestExecutor is ISafe {
     //      The handler can make us of `HandlerContext.sol` to extract the address.
     //      This is done because in the next call frame the `msg.sender` will be FallbackManager's address
     //      and having the original caller address may enable additional verification scenarios.
+    // Source: https://github.com/safe-global/safe-contracts/blob/main/contracts/base/FallbackManager.sol#L62
     // solhint-disable-next-line payable-fallback,no-complex-fallback
     fallback() external {
         address handler = fallbackHandler;
         // solhint-disable-next-line no-inline-assembly
-        /// @solidity memory-safe-assembly
         assembly {
             // When compiled with the optimizer, the compiler relies on a certain assumptions on how the
             // memory is used, therefore we need to guarantee memory safety (keeping the free memory point 0x40 slot intact,
@@ -123,6 +123,5 @@ contract TestExecutor is ISafe {
             return(returnDataPtr, returndatasize())
         }
     }
-
     receive() external payable {}
 }
