@@ -176,7 +176,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) {
+    function enablePlugin(
+        address plugin,
+        bool allowRootAccess
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlySelf {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 
@@ -205,7 +208,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice Disable a plugin. This function should be called by Safe.
      * @param plugin Plugin to be disabled
      */
-    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) {
+    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlySelf {
         PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
         PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
 

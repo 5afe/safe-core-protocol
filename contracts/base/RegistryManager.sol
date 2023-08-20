@@ -40,6 +40,7 @@ contract RegistryManager is Ownable2Step {
 
     /**
      * @notice Allows only owner to update the address of a registry. Emits event RegistryChanged(egistry, newRegistry)
+     * @dev Do not set owner as a Safe address with Manager enabled as fallback handler.
      * @param newRegistry Address of new registry
      */
     function setRegistry(address newRegistry) external onlyOwner {

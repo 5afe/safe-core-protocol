@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolHooks} from "../interfaces/Integrations.sol";
+import {OnlySelfCallable} from "./OnlySelfCallable.sol";
 
-contract HooksManager {
+contract HooksManager is OnlySelfCallable {
     mapping(address => address) public enabledHooks;
 
     /// @notice This variable should store the address of the hooks contract whenever
@@ -30,7 +31,7 @@ contract HooksManager {
      * @notice Sets hooks on an account. If Zero address is set, manager will not perform pre and post checks for on Safe transaction.
      * @param hooks Address of the hooks to be enabled for msg.sender.
      */
-    function setHooks(address hooks) external {
+    function setHooks(address hooks) external onlySelf {
         if (hooks != address(0) && !ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
             revert AddressDoesNotImplementHooksInterface(hooks);
         }
