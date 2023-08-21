@@ -94,6 +94,21 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(pluginAddress, 0, 0);
             });
 
+            it("Should not allow a Safe to enable plugin that does not support ERC165", async () => {
+                const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+                await safe.setModule(await safeProtocolManager.getAddress());
+
+                const mockPlugin = await hre.ethers.deployContract("MockContract");
+                await mockPlugin.givenMethodReturnBool("0x01ffc9a7", true);
+                await safeProtocolRegistry.connect(owner).addIntegration(mockPlugin.target, IntegrationType.Plugin);
+
+                await mockPlugin.givenMethodReturnBool("0x01ffc9a7", false);
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [mockPlugin.target, false]);
+                await expect(safe.exec(safe.target, 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "AccountDoesNotImplementValidInterfaceId")
+                    .withArgs(mockPlugin.target);
+            });
+
             it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
                 const { safeProtocolManager, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setModule(await safeProtocolManager.getAddress());
