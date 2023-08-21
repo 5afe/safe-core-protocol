@@ -6,7 +6,7 @@ import {MockContract} from "@safe-global/mock-contract/contracts/MockContract.so
 contract TestExecutor is ISafe {
     address public module;
     address[] public owners;
-    address fallbackHandler;
+    address public fallbackHandler;
 
     constructor(address _fallbackHandler) {
         fallbackHandler = _fallbackHandler;
@@ -123,5 +123,6 @@ contract TestExecutor is ISafe {
             return(returnDataPtr, returndatasize())
         }
     }
+
     receive() external payable {}
 }

@@ -8,10 +8,10 @@ import { MaxUint256, ZeroAddress } from "ethers";
 import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
 
 describe("Test Function Handler", async () => {
-    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
+    let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
 
     before(async () => {
-        [deployer, owner, user1, user2] = await hre.ethers.getSigners();
+        [deployer, owner, user1] = await hre.ethers.getSigners();
     });
 
     const setupTests = deployments.createFixture(async ({ deployments }) => {
@@ -42,7 +42,7 @@ describe("Test Function Handler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        const tx = await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
+        const tx = await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256);
         const receipt = await tx.wait();
         const events = (
             await functionHandlerManager.queryFilter(
@@ -66,13 +66,13 @@ describe("Test Function Handler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256);
+        await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256);
 
         const dataSetFunctionHandler2 = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
             functionId,
             ZeroAddress,
         ]);
-        const tx = await safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler2, MaxUint256);
+        const tx = await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler2, MaxUint256);
 
         const receipt = await tx.wait();
         const events = (
@@ -88,8 +88,14 @@ describe("Test Function Handler", async () => {
     });
 
     it("Should not allow non-permitted function handler", async () => {
-        const { functionHandlerManager } = await setupTests();
-        await expect(functionHandlerManager.setFunctionHandler("0x00000000", user1.address))
+        const { functionHandlerManager, safe } = await setupTests();
+
+        const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            "0x00000000",
+            user1.address,
+        ]);
+
+        await expect(safe.executeCallViaMock(safe.target, 0, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "IntegrationNotPermitted")
             .withArgs(user1.address, 0, 0);
     });
@@ -110,27 +116,40 @@ describe("Test Function Handler", async () => {
             .withArgs(user1.address, data);
     });
 
-    it("Should call handle function of function handler", async () => {
-        const { functionHandlerManager, mockFunctionHandler } = await setupTests();
+    it("Should block non-self calls", async () => {
+        const { functionHandlerManager, mockFunctionHandler, safe } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const data = "0xf8a8fd6d";
 
-        await functionHandlerManager.connect(user1).setFunctionHandler(data, mockFunctionHandler.target);
-        const sender = user2.address;
-        await (
-            await user1.sendTransaction({
-                to: functionHandlerManager.target,
-                value: 0,
-                data: data + sender.slice(2), // Handler expects additional 20 bytes data at the end that indicates original sender of transaction.
-            })
-        ).wait();
+        await expect(
+            functionHandlerManager.connect(user1).setFunctionHandler(data, mockFunctionHandler.target),
+        ).to.be.revertedWithCustomError(functionHandlerManager, "InvalidSender");
+
+        const calldata = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [data, mockFunctionHandler.target]);
+        await expect(safe.executeCallViaMock(functionHandlerManager, 0, calldata, MaxUint256)).to.be.revertedWithCustomError(
+            functionHandlerManager,
+            "InvalidSender",
+        );
+    });
+
+    it("Should call handle function of function handler", async () => {
+        const { functionHandlerManager, mockFunctionHandler, safe } = await setupTests();
+
+        // 0xf8a8fd6d -> function test() external {}
+        const data = "0xf8a8fd6d";
+
+        const calldata = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [data, mockFunctionHandler.target]);
+
+        await safe.executeCallViaMock(safe.target, 0, calldata, MaxUint256);
+
+        await safe.executeCallViaMock(safe.target, 0, data, MaxUint256);
 
         const mockContract = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
         expect(await mockContract.invocationCountForMethod("0x25d6803f")).to.equal(1n);
 
         const handlerInterface = ISafeProtocolFunctionHandler__factory.createInterface();
-        const expectedCallData = handlerInterface.encodeFunctionData("handle", [user1.address, user2.address, 0, "0xf8a8fd6d"]);
+        const expectedCallData = handlerInterface.encodeFunctionData("handle", [safe.target, safe.target, 0, "0xf8a8fd6d"]);
 
         expect(await mockContract.invocationCountForCalldata(expectedCallData)).to.equal(1n);
         expect(await mockContract.invocationCount()).to.equal(1n);
@@ -148,43 +167,27 @@ describe("Test Function Handler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        await expect(safe.executeCallViaMock(functionHandlerManager, 0n, dataSetFunctionHandler, MaxUint256))
+        await expect(safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "AccountDoesNotImplementValidInterfaceId")
             .withArgs(mockFunctionHandler.target);
     });
 
-    // it("Should revert with InvalidSender when caller it not safe", async () => {
-    //     const { functionHandlerManager, mockFunctionHandler, safeProtocolRegistry } = await setupTests();
-    //     const plugin = await (await hre.ethers.getContractFactory("TestPluginWithRootAccess")).deploy();
-    //     const safe = await getSafeWithOwners([owner], 1, functionHandlerManager.target);
+    it("Should revert with InvalidCalldataLength when calldata size is less than 20 bytes", async () => {
+        const { safeProtocolRegistry } = await setupTests();
 
-    //     const encodedPluginAdd = functionHandlerManager.interface.encodeFunctionData("enablePlugin", [plugin.target, true]);
+        // Can possibly use a test instance of FunctionHandlerManager instead of SafeProtocolManager.
+        // But, using SafeProtocolManager for testing with near production scenarios.
+        const manager = await (
+            await hre.ethers.getContractFactory("TestSafeProtocolManager")
+        ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
-    //     await safeProtocolRegistry.addIntegration(plugin.target, IntegrationType.Plugin);
-    //     const funcSIg = "0x250db3c0"; // enable plugin;
-    //     await functionHandlerManager.connect(user1).setFunctionHandler(funcSIg, mockFunctionHandler.target);
-
-    //     await (
-    //         await user1.sendTransaction({
-    //             to: safe.target,
-    //             value: 0,
-    //             data: encodedPluginAdd,
-    //         })
-    //     ).wait();
-
-    //     const encodedPluginDisable = functionHandlerManager.interface.encodeFunctionData("disablePlugin", [
-    //         SENTINEL_MODULES,
-    //         plugin.target,
-    //     ]);
-
-    //     await (
-    //         await user1.sendTransaction({
-    //             to: safe.target,
-    //             value: 0,
-    //             data: encodedPluginDisable,
-    //         })
-    //     ).wait();
-
-    //     console.log(await functionHandlerManager.isPluginEnabled.staticCall(plugin.target, safe.target));
-    // });
+        const calldata = manager.interface.encodeFunctionData("testFunction");
+        await expect(
+            user1.sendTransaction({
+                to: manager.target,
+                value: 0,
+                data: calldata,
+            }),
+        ).to.be.revertedWithCustomError(manager, "InvalidCalldataLength");
+    });
 });
