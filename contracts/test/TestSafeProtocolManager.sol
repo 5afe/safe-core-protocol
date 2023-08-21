@@ -8,5 +8,5 @@ import {SafeProtocolManager} from "../SafeProtocolManager.sol";
 contract TestSafeProtocolManager is SafeProtocolManager {
     constructor(address initialOwner, address registry) SafeProtocolManager(initialOwner, registry) {}
 
-    function testFunction() external onlySelf {}
+    function testFunction() external onlyAccount {}
 }

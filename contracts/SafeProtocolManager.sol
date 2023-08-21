@@ -179,7 +179,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function enablePlugin(
         address plugin,
         bool allowRootAccess
-    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlySelf {
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlyAccount {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 
@@ -208,7 +208,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice Disable a plugin. This function should be called by Safe.
      * @param plugin Plugin to be disabled
      */
-    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlySelf {
+    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {
         PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
         PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
 

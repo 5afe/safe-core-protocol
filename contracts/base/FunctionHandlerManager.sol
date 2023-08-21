@@ -4,7 +4,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
 import {RegistryManager} from "./RegistryManager.sol";
-import {OnlySelfCallable} from "./OnlySelfCallable.sol";
+import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
 
 /**
  * @title FunctionHandlerManager
@@ -12,7 +12,7 @@ import {OnlySelfCallable} from "./OnlySelfCallable.sol";
  *        information about Safe account, bytes4 function selector and the function handler contract address.
  * @dev This contract inherits BaseManager so that `onlyPermittedIntegration` modifier can be used.
  */
-abstract contract FunctionHandlerManager is RegistryManager, OnlySelfCallable {
+abstract contract FunctionHandlerManager is RegistryManager, OnlyAccountCallable {
     // Storage
     /** @dev Mapping that stores information about Safe account, function selector, and address of the account.
      */
@@ -40,7 +40,7 @@ abstract contract FunctionHandlerManager is RegistryManager, OnlySelfCallable {
      * @param selector bytes4 function selector
      * @param functionHandler Address of the contract to be set as a function handler
      */
-    function setFunctionHandler(bytes4 selector, address functionHandler) external onlySelf {
+    function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
         if (functionHandler != address(0)) {
             checkPermittedIntegration(functionHandler);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
