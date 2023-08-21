@@ -321,7 +321,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         address msgSender
     ) external {
         // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
-        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
         if (tempHooksAddressForSafe == address(0)) return;
         bytes memory executionMetadata = abi.encode(
