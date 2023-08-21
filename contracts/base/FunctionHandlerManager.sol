@@ -10,7 +10,6 @@ import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
  * @title FunctionHandlerManager
  * @notice This contract manages the function handlers for the Safe Account. The contract stores the
  *        information about Safe account, bytes4 function selector and the function handler contract address.
- * @dev This contract inherits BaseManager so that `onlyPermittedIntegration` modifier can be used.
  */
 abstract contract FunctionHandlerManager is RegistryManager, OnlyAccountCallable {
     // Storage
