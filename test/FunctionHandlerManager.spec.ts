@@ -7,7 +7,7 @@ import { getInstance } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
 import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
 
-describe("Test Function Handler", async () => {
+describe("FunctionHandler", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
 
     before(async () => {
