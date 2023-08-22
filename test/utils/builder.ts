@@ -5,7 +5,7 @@ export const buildSingleTx = (
     value: bigint,
     data: string,
     nonce: bigint,
-    metadataHash: Uint8Array,
+    metadataHash: Uint8Array | string,
 ): SafeTransaction => {
     return {
         actions: [
@@ -20,7 +20,13 @@ export const buildSingleTx = (
     };
 };
 
-export const buildRootTx = (address: AddressLike, value: bigint, data: string, nonce: bigint, metadataHash: Uint8Array): SafeRootAccess => {
+export const buildRootTx = (
+    address: AddressLike,
+    value: bigint,
+    data: string,
+    nonce: bigint,
+    metadataHash: Uint8Array | string,
+): SafeRootAccess => {
     return {
         action: {
             to: address,
