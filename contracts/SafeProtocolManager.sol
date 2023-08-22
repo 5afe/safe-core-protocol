@@ -180,10 +180,12 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         address plugin,
         bool allowRootAccess
     ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlyAccount {
+
         // address(0) check omitted because it is not expected to enable it as a plugin and
         // call to it would fail. Additionally, registry should not permit address(0) as an integration.
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
             revert AccountDoesNotImplementValidInterfaceId(plugin);
+
 
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
