@@ -326,7 +326,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bytes memory signatures,
         address msgSender
     ) external {
-        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
+        // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
         tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
         address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
@@ -380,7 +381,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         Enum.Operation operation,
         address module /* onlyPermittedPlugin(module) uncomment this? */ // Use term plugin?
     ) external returns (bytes32 moduleTxHash) {
-        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
+        // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
         tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
         address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
