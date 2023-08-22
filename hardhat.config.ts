@@ -73,7 +73,39 @@ const config: HardhatUserConfig = {
     gnosis: {
       ...sharedNetworkConfig,
       url: "https://rpc.gnosischain.com",
-    }
+    },
+    mainnet: {
+      ...sharedNetworkConfig,
+      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+    },
+    ewc: {
+        ...sharedNetworkConfig,
+        url: `https://rpc.energyweb.org`,
+    },
+    polygon: {
+        ...sharedNetworkConfig,
+        url: `https://polygon-mainnet.infura.io/v3/${INFURA_KEY}`,
+    },
+    volta: {
+        ...sharedNetworkConfig,
+        url: `https://volta-rpc.energyweb.org`,
+    },
+    bsc: {
+        ...sharedNetworkConfig,
+        url: `https://bsc-dataseed.binance.org/`,
+    },
+    arbitrum: {
+        ...sharedNetworkConfig,
+        url: `https://arb1.arbitrum.io/rpc`,
+    },
+    fantomTestnet: {
+        ...sharedNetworkConfig,
+        url: `https://rpc.testnet.fantom.network/`,
+    },
+    avalanche: {
+        ...sharedNetworkConfig,
+        url: `https://api.avax.network/ext/bc/C/rpc`,
+    },
   },
   deterministicDeployment,
   etherscan: {
