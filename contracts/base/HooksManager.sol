@@ -33,7 +33,7 @@ abstract contract HooksManager is RegistryManager, OnlyAccountCallable {
     function setHooks(address hooks) external onlyAccount {
         if (hooks != address(0)) {
             checkPermittedIntegration(hooks);
-            if(!ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId))
+            if (!ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId))
                 revert AccountDoesNotImplementValidInterfaceId(hooks);
         }
         enabledHooks[msg.sender] = hooks;

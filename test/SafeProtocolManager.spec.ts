@@ -937,6 +937,7 @@ describe("SafeProtocolManager", async () => {
 
             await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
             await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPreChecks.target, IntegrationType.Hooks);
+            await safeProtocolRegistry.connect(owner).addIntegration(hooksWithFailingPostCheck.target, IntegrationType.Hooks);
 
             return { safe, safeProtocolManager, hooks, hooksWithFailingPreChecks, hooksWithFailingPostCheck };
         });
