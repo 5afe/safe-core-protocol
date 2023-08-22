@@ -9,7 +9,6 @@ import {RegistryManager} from "./base/RegistryManager.sol";
 import {HooksManager} from "./base/HooksManager.sol";
 import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
 import {ISafeProtocolManager} from "./interfaces/Manager.sol";
-
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
 
@@ -97,7 +96,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
 
-            if (safeProtocolAction.to == address(this) || safeProtocolAction.to == safeAddress) {
+            if (
+                safeProtocolAction.to == address(this) ||
+                (safeProtocolAction.to == safeAddress && !enabledPlugins[safeAddress][msg.sender].rootAddressGranted)
+            ) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metadataHash, i);
             }
 
@@ -174,7 +176,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) {
+    function enablePlugin(
+        address plugin,
+        bool allowRootAccess
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlyAccount {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 
@@ -203,7 +208,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice Disable a plugin. This function should be called by Safe.
      * @param plugin Plugin to be disabled
      */
-    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) {
+    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {
         PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
         PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
 
@@ -211,7 +216,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             revert InvalidPrevPluginAddress(prevPlugin);
         }
 
-        prevPluginInfo = pluginInfo;
+        prevPluginInfo.nextPluginPointer = pluginInfo.nextPluginPointer;
+        prevPluginInfo.rootAddressGranted = pluginInfo.rootAddressGranted;
 
         pluginInfo.nextPluginPointer = address(0);
         pluginInfo.rootAddressGranted = false;

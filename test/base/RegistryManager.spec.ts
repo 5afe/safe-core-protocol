@@ -56,7 +56,7 @@ describe("RegistryManager", async () => {
     });
 
     it("Should not allow non-owner to update registry", async () => {
-        const safe = await hre.ethers.deployContract("TestExecutor");
+        const safe = await hre.ethers.deployContract("TestExecutor", [ZeroAddress]);
 
         const { registryManager } = await loadFixture(deployContractsFixture);
         await safe.setModule(await registryManager.getAddress());

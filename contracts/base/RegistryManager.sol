@@ -17,6 +17,14 @@ contract RegistryManager is Ownable2Step {
         _;
     }
 
+    /*
+     * @notice Constructor that sets registry address and owner address.
+     * @dev Do not set owner as a Safe address with Manager enabled as fallback handler.
+     *      If owner is a Safe with Manager enabled as fallback handler, then a malicious
+     *      address can call Safe with calldata that updates registry which gets forwarded to Manager.
+     * @param intitalOwner Address of the owner for this contract.
+     * @param _registry address of the account implementing ISafeProtocolRegistry interface.
+     */
     constructor(address _registry, address intitalOwner) {
         _transferOwnership(intitalOwner);
         if (!IERC165(_registry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {

@@ -4,14 +4,14 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
 import {RegistryManager} from "./RegistryManager.sol";
+import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
 
 /**
  * @title FunctionHandlerManager
  * @notice This contract manages the function handlers for the Safe Account. The contract stores the
  *        information about Safe account, bytes4 function selector and the function handler contract address.
- * @dev This contract inherits BaseManager so that `onlyPermittedIntegration` modifier can be used.
  */
-abstract contract FunctionHandlerManager is RegistryManager {
+abstract contract FunctionHandlerManager is RegistryManager, OnlyAccountCallable {
     // Storage
     /** @dev Mapping that stores information about Safe account, function selector, and address of the account.
      */
@@ -39,8 +39,12 @@ abstract contract FunctionHandlerManager is RegistryManager {
      * @param selector bytes4 function selector
      * @param functionHandler Address of the contract to be set as a function handler
      */
-    function setFunctionHandler(bytes4 selector, address functionHandler) external {
-        if (functionHandler != address(0)) checkPermittedIntegration(functionHandler);
+    function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
+        if (functionHandler != address(0)) {
+            checkPermittedIntegration(functionHandler);
+            if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
+                revert AccountDoesNotImplementValidInterfaceId(functionHandler);
+        }
 
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.
         functionHandlers[msg.sender][selector] = functionHandler;
