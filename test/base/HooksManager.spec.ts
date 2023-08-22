@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { getHooksWithPassingChecks } from "../utils/mockHooksBuilder";
 import { ZeroAddress } from "ethers";
+import { IntegrationType } from "../utils/constants";
 
 describe("HooksManager", async () => {
     let deployer: SignerWithAddress, user1: SignerWithAddress, owner: SignerWithAddress;
@@ -21,8 +22,9 @@ describe("HooksManager", async () => {
 
         const safe = await hre.ethers.deployContract("TestExecutor", [hooksManager.target], { signer: deployer });
         const hooks = await getHooksWithPassingChecks();
+        await safeProtocolRegistry.connect(owner).addIntegration(hooks.target, IntegrationType.Hooks);
 
-        return { hooksManager, hooks, safe };
+        return { hooksManager, hooks, safe, safeProtocolRegistry };
     });
 
     it("Should emit HooksChanged event when hooks are enabled", async () => {
@@ -65,15 +67,17 @@ describe("HooksManager", async () => {
         await expect(hooksManager.setHooks(hooksAddress)).to.be.reverted;
     });
 
-    it("Should revert AddressDoesNotImplementHooksInterface if user attempts address does not implement Hooks interface", async () => {
-        const { hooksManager, safe } = await setupTests();
+    it("Should revert AccountDoesNotImplementValidInterfaceId if user attempts address does not implement Hooks interface", async () => {
+        const { hooksManager, safe, safeProtocolRegistry } = await setupTests();
         const contractNotImplementingHooksInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
-        await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", false);
+        await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", true);
+        await safeProtocolRegistry.connect(owner).addIntegration(contractNotImplementingHooksInterface.target, IntegrationType.Hooks);
 
+        await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", false);
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [contractNotImplementingHooksInterface.target]);
         await expect(safe.exec(safe.target, 0n, calldata)).to.be.revertedWithCustomError(
             hooksManager,
-            "AddressDoesNotImplementHooksInterface",
+            "AccountDoesNotImplementValidInterfaceId",
         );
     });
 });

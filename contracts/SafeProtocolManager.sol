@@ -326,8 +326,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         bytes memory signatures,
         address msgSender
     ) external {
-        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
-        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
+        // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
+        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
         if (tempHooksAddressForSafe == address(0)) return;
         bytes memory executionMetadata = abi.encode(
@@ -372,6 +374,16 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         tempHooksAddress[msg.sender] = address(0);
     }
 
+    /**
+     * @notice This function is introduced in Safe contracts v1.5 and used for checking module transactions when a guard is enabled.
+     *         This function will be called when executing a transaction from a module with Safe v1.5 and Manager enabled as Guard on Safe.
+     * @param to The address to which the transaction is intended.
+     * @param value The value of the transaction in Wei.
+     * @param data The transaction data.
+     * @param operation The type of operation of the transaction.
+     * @param module The module involved in the transaction.
+     * @return moduleTxHash The hash of the module transaction.
+     */
     function checkModuleTransaction(
         address to,
         uint256 value,
@@ -379,27 +391,28 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         Enum.Operation operation,
         address module /* onlyPermittedPlugin(module) uncomment this? */ // Use term plugin?
     ) external returns (bytes32 moduleTxHash) {
-        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
-        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
+        // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
+        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
-        bytes memory executionMetadata = abi.encode(to, value, data, operation, module);
-
-        if (tempHooksAddressForSafe == address(0)) return keccak256(executionMetadata);
+        moduleTxHash = keccak256(abi.encode(to, value, data, operation, module));
+        if (tempHooksAddressForSafe == address(0)) return moduleTxHash;
 
         if (operation == Enum.Operation.Call) {
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
             SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
-            ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(ISafe(msg.sender), safeTx, 1, abi.encode(module));
         } else {
             // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
             // and Safe allows only Call and DelegateCall operations.
             SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
             SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
-            ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(ISafe(msg.sender), safeTx, 1, abi.encode(module));
         }
 
-        return keccak256(executionMetadata);
+        return moduleTxHash;
     }
 
     function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {

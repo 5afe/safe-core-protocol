@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafe} from "../interfaces/Accounts.sol";
-import {MockContract} from "@safe-global/mock-contract/contracts/MockContract.sol";
 
 contract TestExecutor is ISafe {
     address public module;
