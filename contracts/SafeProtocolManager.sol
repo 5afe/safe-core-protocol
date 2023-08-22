@@ -381,7 +381,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         address module /* onlyPermittedPlugin(module) uncomment this? */ // Use term plugin?
     ) external returns (bytes32 moduleTxHash) {
         // Store hooks address in tempHooksAddress so that checkAfterExecution(...) and checkModuleTransaction(...) can access it.
-        address tempHooksAddressForSafe = tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
         bytes memory executionMetadata = abi.encode(to, value, data, operation, module);
 
