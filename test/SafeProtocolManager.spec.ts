@@ -8,7 +8,7 @@ import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
 import { getInstance } from "./utils/contracts";
-import { SafeProtocolManager } from "../typechain-types";
+import { MockContract, SafeProtocolManager } from "../typechain-types";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
@@ -1072,6 +1072,15 @@ describe("SafeProtocolManager", async () => {
             ]);
 
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+
+            // Check if temporary hooks related storage is cleared after tx
+            expect(await safeProtocolManager.tempHooksAddress.staticCall(safe.target)).to.deep.equal(ZeroAddress);
+
+            const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+            // Pre-check hooks calls
+            expect(await mockHooks.invocationCountForMethod("0x176ae7b7")).to.equal(1);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+            expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 
         it("Should pass hooks checks for module transaction with call operation", async () => {
@@ -1094,8 +1103,25 @@ describe("SafeProtocolManager", async () => {
                 hre.ethers.randomBytes(32),
                 true,
             ]);
-
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+
+            // Check if temporary hooks related storage is cleared after tx
+            expect(await safeProtocolManager.tempHooksAddress.staticCall(safe.target)).to.deep.equal(ZeroAddress);
+
+            const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+            // preCheck hooks calls
+            const safeTx = buildSingleTx(user2.address, 0n, "0x", 0n, hre.ethers.ZeroHash);
+            const preCheckCalldata = hooks.interface.encodeFunctionData("preCheck", [
+                safe.target,
+                safeTx,
+                1,
+                hre.ethers.AbiCoder.defaultAbiCoder().encode(["address"], [ZeroAddress]),
+            ]);
+            expect(await mockHooks.invocationCountForMethod("0x176ae7b7")).to.equal(1);
+            expect(await mockHooks.invocationCountForCalldata(preCheckCalldata)).to.equal(1);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+
+            expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 
         it("Should pass hooks checks for module transaction with delegateCall operation", async () => {
@@ -1120,9 +1146,25 @@ describe("SafeProtocolManager", async () => {
             ]);
 
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+
+            const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+            // preCheck hooks calls
+            const safeTx = buildRootTx(user2.address, 0n, "0x", 0n, hre.ethers.ZeroHash);
+            const preCheckCalldata = hooks.interface.encodeFunctionData("preCheckRootAccess", [
+                safe.target,
+                safeTx,
+                1,
+                hre.ethers.AbiCoder.defaultAbiCoder().encode(["address"], [ZeroAddress]),
+            ]);
+            // 0x7359b742 -> preCheckRootAccess function signature
+            expect(await mockHooks.invocationCountForMethod("0x7359b742")).to.equal(1);
+            expect(await mockHooks.invocationCountForCalldata(preCheckCalldata)).to.equal(1);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+
+            expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 
-        it("Should execute pass hooks checks for delegateCall operation", async () => {
+        it("Should pass hooks checks for delegateCall operation", async () => {
             const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
@@ -1149,6 +1191,12 @@ describe("SafeProtocolManager", async () => {
             ]);
 
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
+
+            const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+            // preCheckRootAccess hooks calls
+            expect(await mockHooks.invocationCountForMethod("0x7359b742")).to.equal(1);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+            expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 
         it("uses old hooks in checkAfterExecution if hooks get updated in between transactions", async () => {
