@@ -21,6 +21,14 @@ interface ISafeProtocolFunctionHandler is IERC165 {
      * @return result Arbitrary length bytes containing result of the operation
      */
     function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external returns (bytes memory result);
+
+    /**
+     * @notice A function that returns information about the type of metadata provider and its location.
+     *         For more information on metadata provider, refer to https://github.com/safe-global/safe-core-protocol-specs/.
+     * @return providerType uint256 Type of metadata provider
+     * @return location bytes
+     */
+    function metadataProvider() external view returns (uint256 providerType, bytes memory location);
 }
 
 /**
@@ -30,7 +38,7 @@ interface ISafeProtocolFunctionHandler is IERC165 {
  *         and enable the contract implementing ISafeProtocolStaticFunctionHandler interface as a function handler in the
  *         SafeProtocolManager for the specific function identifier.
  */
-interface ISafeProtocolStaticFunctionHandler {
+interface ISafeProtocolStaticFunctionHandler is IERC165 {
     /**
      * @notice Handles static calls to the Safe contract forwarded by the fallback function.
      * @param safe A Safe instance
@@ -40,6 +48,14 @@ interface ISafeProtocolStaticFunctionHandler {
      * @return result Arbitrary length bytes containing result of the operation
      */
     function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external view returns (bytes memory result);
+
+    /**
+     * @notice A function that returns information about the type of metadata provider and its location.
+     *         For more information on metadata provider, refer to https://github.com/safe-global/safe-core-protocol-specs/.
+     * @return providerType uint256 Type of metadata provider
+     * @return location bytes
+     */
+    function metadataProvider() external view returns (uint256 providerType, bytes memory location);
 }
 
 /**

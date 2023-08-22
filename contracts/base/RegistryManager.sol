@@ -9,24 +9,41 @@ contract RegistryManager is Ownable2Step {
 
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
-    error PluginNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
+    error IntegrationNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
     error AccountDoesNotImplementValidInterfaceId(address account);
 
-    modifier onlyPermittedPlugin(address plugin) {
-        // Only allow registered and non-flagged plugins
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(plugin);
-        if (listedAt == 0 || flaggedAt != 0) {
-            revert PluginNotPermitted(plugin, listedAt, flaggedAt);
-        }
+    modifier onlyPermittedIntegration(address integration) {
+        checkPermittedIntegration(integration);
         _;
     }
 
+    /*
+     * @notice Constructor that sets registry address and owner address.
+     * @dev Do not set owner as a Safe address with Manager enabled as fallback handler.
+     *      If owner is a Safe with Manager enabled as fallback handler, then a malicious
+     *      address can call Safe with calldata that updates registry which gets forwarded to Manager.
+     * @param intitalOwner Address of the owner for this contract.
+     * @param _registry address of the account implementing ISafeProtocolRegistry interface.
+     */
     constructor(address _registry, address intitalOwner) {
         _transferOwnership(intitalOwner);
         if (!IERC165(_registry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {
             revert AccountDoesNotImplementValidInterfaceId(_registry);
         }
         registry = _registry;
+    }
+
+    /**
+     * @notice Checks if given integration address is listed and not flagged in the registry.
+     *         Reverts if given address is not-listed or flagged.
+     * @param integration Address of the integration
+     */
+    function checkPermittedIntegration(address integration) internal view {
+        // Only allow registered and non-flagged integrations
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(integration);
+        if (listedAt == 0 || flaggedAt != 0) {
+            revert IntegrationNotPermitted(integration, listedAt, flaggedAt);
+        }
     }
 
     /**

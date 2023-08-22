@@ -7,7 +7,8 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { buildRootTx, buildSingleTx } from "./utils/builder";
 import { getHooksWithFailingPrechecks, getHooksWithPassingChecks, getHooksWithFailingPostCheck } from "./utils/mockHooksBuilder";
 import { IntegrationType } from "./utils/constants";
-import { getMockTestExecutorInstance } from "./utils/contracts";
+import { getInstance } from "./utils/contracts";
+import { SafeProtocolManager } from "../typechain-types";
 
 describe("SafeProtocolManager", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress, user2: SignerWithAddress;
@@ -19,18 +20,18 @@ describe("SafeProtocolManager", async () => {
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
         const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address]);
-        const safe = await hre.ethers.deployContract("TestExecutor");
         const safeProtocolManager = await (
             await hre.ethers.getContractFactory("SafeProtocolManager")
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
+        const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
         return { safeProtocolManager, safeProtocolRegistry, safe };
     });
 
     describe("Setup manager", async () => {
         it("Should set manager as a plugin for a safe", async () => {
-            const safe = await hre.ethers.deployContract("TestExecutor");
             const { safeProtocolManager } = await setupTests();
+            const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target]);
             expect(await safe.setModule(await safeProtocolManager.getAddress()));
         });
     });
@@ -69,6 +70,19 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(hre.ethers.ZeroAddress);
             });
 
+            it("Blocks calls not initiated from Safe", async () => {
+                const { safeProtocolManager, plugin, safe } = await loadFixture(deployContractsWithPluginFixture);
+                const pluginAddress = await plugin.getAddress();
+                await expect(safeProtocolManager.enablePlugin(pluginAddress, false))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(ZeroAddress);
+
+                const contract = await getInstance<SafeProtocolManager>("SafeProtocolManager", safe);
+                await expect(contract.connect(user1).enablePlugin(pluginAddress, false))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(user1.address);
+            });
+
             it("Should not allow a Safe to enable plugin if not added as a integration in registry", async () => {
                 const { safeProtocolManager, safe } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setModule(await safeProtocolManager.getAddress());
@@ -76,7 +90,7 @@ describe("SafeProtocolManager", async () => {
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolManager, "PluginNotPermitted")
+                    .to.be.revertedWithCustomError(safeProtocolManager, "IntegrationNotPermitted")
                     .withArgs(pluginAddress, 0, 0);
             });
 
@@ -88,7 +102,7 @@ describe("SafeProtocolManager", async () => {
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
 
@@ -100,12 +114,15 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(SENTINEL_MODULES);
             });
 
-            it("Should allow a Safe to enable a plugin through a manager", async () => {
+            it("Should allow a Safe to enable a plugin", async () => {
                 const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
                 const pluginAddress = await plugin.getAddress();
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
-                expect(await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, SENTINEL_MODULES]);
+
+                // As SafeProtocolManager is a fallback handler on a contract, call to enablePlugin(...) function will be
+                // forwarded for SafeProtocolManager. Direct calls to SafeProtocolManager to enable plugin are intentionally blocked.
+                await safe.exec(safe.target, 0, data);
+                expect(await safeProtocolManager.getPluginInfo(safe.target, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
             });
 
             it("Should fail to enable a plugin (with non root access) with root access", async () => {
@@ -115,10 +132,7 @@ describe("SafeProtocolManager", async () => {
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
 
-                await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data)).to.be.revertedWithCustomError(
-                    safeProtocolManager,
-                    "PluginAccessMismatch",
-                );
+                await expect(safe.exec(safe.target, 0, data)).to.be.revertedWithCustomError(safeProtocolManager, "PluginAccessMismatch");
                 expect(await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, ZeroAddress]);
             });
         });
@@ -134,6 +148,19 @@ describe("SafeProtocolManager", async () => {
                 await expect(safe.exec(await safeProtocolManager.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPluginAddress")
                     .withArgs(hre.ethers.ZeroAddress);
+            });
+
+            it("Blocks calls not initiated from Safe", async () => {
+                const { safeProtocolManager, plugin, safe } = await loadFixture(deployContractsWithPluginFixture);
+                const pluginAddress = await plugin.getAddress();
+
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
+                await safe.exec(safe.target, 0, data);
+
+                const contract = await getInstance<SafeProtocolManager>("SafeProtocolManager", safe);
+                await expect(contract.connect(user1).disablePlugin(SENTINEL_MODULES, pluginAddress))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "InvalidSender")
+                    .withArgs(user1.address);
             });
 
             it("Should not allow a Safe to disable SENTINEL_MODULES plugin", async () => {
@@ -154,7 +181,7 @@ describe("SafeProtocolManager", async () => {
                     SENTINEL_MODULES,
                     await plugin.getAddress(),
                 ]);
-                await expect(safe.exec(safeProtocolManagerAddress, 0, data))
+                await expect(safe.exec(safe.target, 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "InvalidPrevPluginAddress")
                     .withArgs(SENTINEL_MODULES);
             });
@@ -167,11 +194,11 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safeAddress, 0, data);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
 
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
-                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                await safe.exec(safeAddress, 0, data2);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, ZeroAddress]);
             });
 
@@ -182,13 +209,10 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
                 expect(await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress)).to.eql([false, SENTINEL_MODULES]);
 
-                await expect(safe.exec(safeProtocolManagerAddress, 0, data)).to.be.revertedWithCustomError(
-                    safeProtocolManager,
-                    "PluginAlreadyEnabled",
-                );
+                await expect(safe.exec(safe.target, 0, data)).to.be.revertedWithCustomError(safeProtocolManager, "PluginAlreadyEnabled");
             });
         });
 
@@ -222,12 +246,11 @@ describe("SafeProtocolManager", async () => {
             it("Should return list with one plugin", async () => {
                 const { safeProtocolManager, safe, plugin } = await loadFixture(deployContractsWithPluginFixture);
 
-                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 const pluginAddress = await plugin.getAddress();
 
-                await safe.setModule(safeProtocolManagerAddress);
+                await safe.setModule(safeProtocolManager.target);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
                 await safeProtocolManager.getPluginInfo(await safe.getAddress(), pluginAddress);
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([
                     [pluginAddress],
@@ -243,14 +266,14 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
 
                 await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                await safe.exec(safe.target, 0, data2);
 
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(SENTINEL_MODULES, 10, safe)).to.eql([
                     [plugin2Address, pluginAddress],
@@ -266,13 +289,13 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 const plugin2Address = await plugin2.getAddress();
                 await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                await safe.exec(safe.target, 0, data2);
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(plugin2Address, 10, safe)).to.eql([
                     [pluginAddress],
                     SENTINEL_MODULES,
@@ -286,13 +309,13 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
                 const plugin2Address = await (await (await hre.ethers.getContractFactory("TestPlugin")).deploy()).getAddress();
 
                 await safeProtocolRegistry.connect(owner).addIntegration(plugin2Address, IntegrationType.Plugin);
                 const data2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2Address, false]);
 
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data2);
+                await safe.exec(safe.target, 0, data2);
                 expect(await safeProtocolManager.getPluginsPaginated.staticCall(SENTINEL_MODULES, 1, safe)).to.eql([
                     [plugin2Address],
                     plugin2Address,
@@ -312,11 +335,11 @@ describe("SafeProtocolManager", async () => {
 
                 await safe.setModule(safeProtocolManagerAddress);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, SENTINEL_MODULES]);
 
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
-                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                await safe.exec(safe.target, 0, data2);
                 expect(await safeProtocolManager.getPluginInfo(safeAddress, pluginAddress)).to.eql([false, ZeroAddress]);
                 expect(await safeProtocolManager.isPluginEnabled(safe.target, plugin.target)).to.be.false;
 
@@ -333,23 +356,23 @@ describe("SafeProtocolManager", async () => {
 
                 // enable plugin 1
                 const dataEnablePlugin1 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin.target, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin1);
+                await safe.exec(safe.target, 0, dataEnablePlugin1);
 
                 // enable plugin 2
                 const plugin2 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 await safeProtocolRegistry.connect(owner).addIntegration(plugin2.target, IntegrationType.Plugin);
                 const dataEnablePlugin2 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin2.target, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin2);
+                await safe.exec(safe.target, 0, dataEnablePlugin2);
 
                 // enable plugin 3
                 const plugin3 = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 await safeProtocolRegistry.connect(owner).addIntegration(plugin3.target, IntegrationType.Plugin);
                 const dataEnablePlugin3 = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [plugin3.target, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataEnablePlugin3);
+                await safe.exec(safe.target, 0, dataEnablePlugin3);
 
                 // Disable plugin 2
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [plugin3.target, plugin2.target]);
-                await safe.exec(safeProtocolManagerAddress, 0, data2);
+                await safe.exec(safe.target, 0, data2);
                 expect(await safeProtocolManager.getPluginInfo(safe.target, plugin2.target)).to.eql([false, ZeroAddress]);
                 expect(await safeProtocolManager.isPluginEnabled(safe.target, plugin2.target)).to.be.false;
 
@@ -387,7 +410,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
                 const safeAddress = await safe.getAddress();
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -417,7 +440,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
                 const safeAddress = await safe.getAddress();
                 const safeTx = buildSingleTx(safeAddress, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
@@ -434,7 +457,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
                 const safeTx = buildSingleTx(
                     safeProtocolManagerAddress,
                     hre.ethers.parseEther("1"),
@@ -453,14 +476,14 @@ describe("SafeProtocolManager", async () => {
                 // Enable hooks on a safe
                 const hooks = await getHooksWithPassingChecks();
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
                 const safeAddress = await safe.getAddress();
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -488,14 +511,14 @@ describe("SafeProtocolManager", async () => {
                 const hooks = await getHooksWithFailingPrechecks();
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
 
@@ -504,12 +527,11 @@ describe("SafeProtocolManager", async () => {
 
             it("Should fail executing a transaction through plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
-                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 // Enable plugin
                 const plugin = await (await hre.ethers.getContractFactory("TestPlugin")).deploy();
@@ -518,7 +540,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress, IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const safeTx = buildSingleTx(user1.address, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
                 const amount = hre.ethers.parseEther("1");
@@ -539,7 +561,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
                 const safeTx = {
                     actions: [
                         {
@@ -569,7 +591,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), false]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -583,7 +605,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
         });
@@ -600,7 +622,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -638,7 +660,7 @@ describe("SafeProtocolManager", async () => {
 
                 // Enable plugin
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const safeTx = buildSingleTx(safeAddress, 0n, "0x", BigInt(1), hre.ethers.randomBytes(32));
                 expect(await plugin.executeFromPlugin(safeProtocolManager.target, safeAddress, safeTx))
@@ -652,7 +674,7 @@ describe("SafeProtocolManager", async () => {
                 // Enable hooks on a safe
                 const hooks = await getHooksWithPassingChecks();
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
@@ -661,7 +683,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -696,7 +718,7 @@ describe("SafeProtocolManager", async () => {
                 const hooks = await getHooksWithFailingPrechecks();
 
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
@@ -705,7 +727,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const safeTx = buildRootTx(
                     await testFallbackReceiver.getAddress(),
@@ -723,12 +745,11 @@ describe("SafeProtocolManager", async () => {
             it("Should fail to execute a transaction from root access enabled plugin when hooks post-check fails", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
                 const safeAddress = await safe.getAddress();
-                const safeProtocolManagerAddress = await safeProtocolManager.getAddress();
 
                 // Enable hooks on a safe
                 const hooks = await getHooksWithFailingPostCheck();
                 const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [await hooks.getAddress()]);
-                await safe.exec(safeProtocolManagerAddress, 0, dataSetHooks);
+                await safe.exec(safe.target, 0, dataSetHooks);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
 
@@ -739,7 +760,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(pluginAddress, IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, true]);
-                await safe.exec(safeProtocolManagerAddress, 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -772,7 +793,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const amount = hre.ethers.parseEther("1");
                 await (
@@ -793,7 +814,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).flagIntegration(await plugin.getAddress());
                 await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
                     safeProtocolManager,
-                    "PluginNotPermitted",
+                    "IntegrationNotPermitted",
                 );
             });
 
@@ -817,7 +838,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 await plugin.setRequiresRootAccess(false);
                 const safeTx = buildRootTx(
@@ -844,7 +865,7 @@ describe("SafeProtocolManager", async () => {
                 await safeProtocolRegistry.connect(owner).addIntegration(await plugin.getAddress(), IntegrationType.Plugin);
 
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [await plugin.getAddress(), true]);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 const safeTx = buildRootTx(
                     await testFallbackReceiver.getAddress(),
@@ -871,7 +892,7 @@ describe("SafeProtocolManager", async () => {
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [pluginAddress, false]);
                 // Required to set plugin to indicate that it does not require root access
                 await plugin.setRequiresRootAccess(false);
-                await safe.exec(await safeProtocolManager.getAddress(), 0, data);
+                await safe.exec(safe.target, 0, data);
 
                 // Set root access flag back to true
                 await plugin.setRequiresRootAccess(true);
@@ -899,7 +920,7 @@ describe("SafeProtocolManager", async () => {
                 await hre.ethers.getContractFactory("SafeProtocolManager")
             ).deploy(owner.address, safeProtocolRegistry.target);
 
-            const safe = await getMockTestExecutorInstance();
+            const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
 
             const hooks = await getHooksWithPassingChecks();
             const hooksWithFailingPreChecks = await getHooksWithFailingPrechecks();
@@ -961,7 +982,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooksWithFailingPreChecks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPreChecks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             const execChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
                 user2.address,
@@ -986,7 +1007,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooksWithFailingPostCheck } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             // Required to execute pre-checks to set tempHooksAddress[msg.sender]
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
@@ -1018,7 +1039,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
                 user2.address,
@@ -1047,7 +1068,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
                 user2.address,
@@ -1071,7 +1092,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkModuleTransaction", [
                 user2.address,
@@ -1095,7 +1116,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
                 user2.address,
@@ -1126,7 +1147,7 @@ describe("SafeProtocolManager", async () => {
             const { safe, safeProtocolManager, hooksWithFailingPostCheck, hooks } = await setupTests();
             // Set Hooks contract for the Safe
             const dataSetHooks = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooksWithFailingPostCheck.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, dataSetHooks, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, dataSetHooks, MaxUint256);
 
             // Required to execute pre-checks to set tempHooksAddress[msg.sender]
             const execPreChecks = safeProtocolManager.interface.encodeFunctionData("checkTransaction", [
@@ -1145,7 +1166,7 @@ describe("SafeProtocolManager", async () => {
             await safe.executeCallViaMock(safeProtocolManager.target, 0, execPreChecks, MaxUint256);
 
             const txData = safeProtocolManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-            await safe.executeCallViaMock(safeProtocolManager.target, 0, txData, MaxUint256);
+            await safe.executeCallViaMock(safe.target, 0, txData, MaxUint256);
 
             const execPostChecks = safeProtocolManager.interface.encodeFunctionData("checkAfterExecution", [
                 hre.ethers.randomBytes(32),

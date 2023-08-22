@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {ISafeProtocolPlugin, ISafeProtocolHooks} from "./interfaces/Integrations.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
@@ -8,6 +7,8 @@ import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.s
 import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {HooksManager} from "./base/HooksManager.sol";
+import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
+import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
 
@@ -15,7 +16,7 @@ import {Enum} from "./common/Enum.sol";
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
  *        Users have to first enable SafeProtocolManager as a plugin on a Safe and then enable other plugins through the mediator.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, IERC165 {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, FunctionHandlerManager, IERC165 {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
@@ -78,7 +79,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedPlugin(msg.sender) returns (bytes[] memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
 
         address hooksAddress = enabledHooks[safeAddress];
@@ -134,7 +135,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedPlugin(msg.sender) returns (bytes memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes memory data) {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
@@ -175,7 +176,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
      * @param allowRootAccess Bool indicating whether root access to be allowed.
      */
-    function enablePlugin(address plugin, bool allowRootAccess) external noZeroOrSentinelPlugin(plugin) onlyPermittedPlugin(plugin) {
+    function enablePlugin(
+        address plugin,
+        bool allowRootAccess
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlyAccount {
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
 
@@ -204,7 +208,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice Disable a plugin. This function should be called by Safe.
      * @param plugin Plugin to be disabled
      */
-    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) {
+    function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {
         PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
         PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
 
@@ -400,8 +404,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
         return
-            interfaceId == 0x945b8148 || //type(Guard).interfaceId with Module Guard
-            interfaceId == 0xe6d7a83a || //type(Guard).interfaceId without Module Guard
+            interfaceId == 0x945b8148 || // type(Guard).interfaceId with Module Guard
+            interfaceId == 0xe6d7a83a || // type(Guard).interfaceId without Module Guard (required for backward compatibility for Safe v1.4 and below)
             interfaceId == type(ISafeProtocolManager).interfaceId ||
             interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
     }
