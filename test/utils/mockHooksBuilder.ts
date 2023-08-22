@@ -31,9 +31,9 @@ export const getHooksWithPassingChecks = async (): Promise<ISafeProtocolHooks> =
     const hooks = await (await hre.ethers.getContractFactory("MockContract")).deploy();
     await hooks.givenMethodReturnBool("0x01ffc9a7", true);
     // 0x7359b742 -> selector for preCheckRootAccess
-    await hooks.givenMethodReturn("0x7359b742", "0x");
+    await hooks.givenMethodReturn("0x7359b742", hre.ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], ["0xaabb"]));
     // 0x176ae7b7 -> selector for preCheck(ISafe,SafeTransaction,uint256,bytes)
-    await hooks.givenMethodReturn("0x176ae7b7", "0x");
+    await hooks.givenMethodReturn("0x176ae7b7", hre.ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], ["0xaa"]));
     return hre.ethers.getContractAt("ISafeProtocolHooks", hooks.target);
 };
 
