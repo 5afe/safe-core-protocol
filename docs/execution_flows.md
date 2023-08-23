@@ -70,6 +70,27 @@ subgraph SafeAccount [Safe with SafeProtocolManager enabled as Hook]
    PostCheckHook -->|On passing post checks| End
 end
 ```
+## Function Handler
+
+```mermaid
+---
+title: Safe{Core} Protocol Function Handler execution
+---
+flowchart TD;
+subgraph Users
+   User(User)
+end
+
+subgraph SafeAccounts [Account]
+   User(User) --> |Call a function that is not natively defined in the account|SafeAccount
+end
+
+subgraph SafeAccount [Account with Manager enabled as Fallback handler]
+   IsFunctionHandlerAdded
+   IsFunctionHandlerAdded{"`Is Function Handler added by account for the function selector?`"} -->|Yes| CallFunctionHandler("Call handle() function of the Function Handler")
+   IsFunctionHandlerAdded --> |No| Revert
+end
+```
 
 ## Signature Verifier
 

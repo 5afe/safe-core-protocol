@@ -55,7 +55,8 @@ Currently implemented components of the Safe{Core} Protocol are:
 - **SafeProtocolManager**
 - **SafeProtocolRegistry**
 - **Plugins**
-- **Hooks** for transaction execution through Plugin(s)
+- **Hooks**
+- **Function Handler**
 - Additionally a test version of registry **TestSafeProtocolRegistryUnrestricted** is also available.
 
 [Execution flows](./docs/execution_flows.md) give a high-level overview of the different flows for the Safe{Core} Protocol.
