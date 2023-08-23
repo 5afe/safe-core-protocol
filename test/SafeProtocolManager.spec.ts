@@ -533,10 +533,23 @@ describe("SafeProtocolManager", async () => {
                 await tx.wait();
                 const balanceAfter = await hre.ethers.provider.getBalance(user1.address);
 
-                expect(balanceAfter).to.eql(balanceBefore + amount);
+                expect(balanceAfter).to.equal(balanceBefore + amount);
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metadataHash, 1);
+
+                // Check whether hooks are called with right parameters
+                const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+                expect(await mockHooks.invocationCount()).to.equal(2);
+
+                // preCheck hooks calls
+                expect(await mockHooks.invocationCountForMethod("0x176ae7b7")).to.equal(1);
+
+                const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0xdeadbeef"]);
+                expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
+
+                // Check if temporary hooks related storage is cleared after tx
+                expect(await safeProtocolManager.tempHooksData.staticCall(safeAddress)).to.deep.equal([ZeroAddress, "0x"]);
             });
 
             it("Should fail executing a transaction through plugin when hooks pre-check fails", async () => {
@@ -749,6 +762,19 @@ describe("SafeProtocolManager", async () => {
                 expect(await hre.ethers.provider.getBalance(safeAddress)).to.eql(0n);
 
                 await expect(tx).to.emit(safeProtocolManager, "RootAccessActionExecuted").withArgs(safeAddress, safeTx.metadataHash);
+
+                // Check whether hooks are called with right parameters
+                const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
+                expect(await mockHooks.invocationCount()).to.equal(2);
+
+                // preCheckRootAccess hooks calls
+                expect(await mockHooks.invocationCountForMethod("0x7359b742")).to.equal(1);
+
+                const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0xbaddad"]);
+                expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
+
+                // Check if temporary hooks related storage is cleared after tx
+                expect(await safeProtocolManager.tempHooksData.staticCall(safeAddress)).to.deep.equal([ZeroAddress, "0x"]);
             });
 
             it("Should fail to execute a transaction from root access enabled plugin when hooks pre-check fails", async () => {
@@ -1107,12 +1133,12 @@ describe("SafeProtocolManager", async () => {
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
 
             // Check if temporary hooks related storage is cleared after tx
-            expect(await safeProtocolManager.tempHooksAddress.staticCall(safe.target)).to.deep.equal(ZeroAddress);
+            expect(await safeProtocolManager.tempHooksData.staticCall(safe.target)).to.deep.equal([ZeroAddress, "0x"]);
 
             const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
             // Pre-check hooks calls
             expect(await mockHooks.invocationCountForMethod("0x176ae7b7")).to.equal(1);
-            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0xdeadbeef"]);
             expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 
@@ -1139,7 +1165,7 @@ describe("SafeProtocolManager", async () => {
             expect(await safe.executeCallViaMock(safeProtocolManager.target, 0, execPostChecks, MaxUint256));
 
             // Check if temporary hooks related storage is cleared after tx
-            expect(await safeProtocolManager.tempHooksAddress.staticCall(safe.target)).to.deep.equal(ZeroAddress);
+            expect(await safeProtocolManager.tempHooksData.staticCall(safe.target)).to.deep.equal([ZeroAddress, "0x"]);
 
             const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
             // preCheck hooks calls
@@ -1228,7 +1254,7 @@ describe("SafeProtocolManager", async () => {
             const mockHooks = await getInstance<MockContract>("MockContract", hooks.target);
             // preCheckRootAccess hooks calls
             expect(await mockHooks.invocationCountForMethod("0x7359b742")).to.equal(1);
-            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0x"]);
+            const postCheckCallData = hooks.interface.encodeFunctionData("postCheck", [safe.target, true, "0xbaddad"]);
             expect(await mockHooks.invocationCountForCalldata(postCheckCallData)).to.equal(1);
         });
 

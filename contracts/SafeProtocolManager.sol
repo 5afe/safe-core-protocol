@@ -333,7 +333,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     ) external {
         // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
         // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
-        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        tempHooksData[msg.sender].hooksAddress = enabledHooks[msg.sender];
         address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
         if (tempHooksAddressForSafe == address(0)) return;
@@ -354,13 +354,23 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             SafeProtocolAction[] memory actions = new SafeProtocolAction[](1);
             actions[0] = SafeProtocolAction(payable(to), value, data);
             SafeTransaction memory safeTx = SafeTransaction(actions, 0, "");
-            ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            tempHooksData[msg.sender].preCheckData = ISafeProtocolHooks(tempHooksAddressForSafe).preCheck(
+                ISafe(msg.sender),
+                safeTx,
+                0,
+                executionMetadata
+            );
         } else {
             // Using else instead of "else if(operation == Enum.Operation.DelegateCall)" to reduce gas usage
             // and Safe allows only Call and DelegateCall operations.
             SafeProtocolAction memory action = SafeProtocolAction(payable(to), value, data);
             SafeRootAccess memory safeTx = SafeRootAccess(action, 0, "");
-            ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(ISafe(msg.sender), safeTx, 0, executionMetadata);
+            tempHooksData[msg.sender].preCheckData = ISafeProtocolHooks(tempHooksAddressForSafe).preCheckRootAccess(
+                ISafe(msg.sender),
+                safeTx,
+                0,
+                executionMetadata
+            );
         }
     }
 
@@ -369,14 +379,15 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param success bool
      */
     function checkAfterExecution(bytes32, bool success) external {
-        address tempHooksAddressForSafe = tempHooksAddress[msg.sender];
+        address tempHooksAddressForSafe = tempHooksData[msg.sender].hooksAddress;
         if (tempHooksAddressForSafe == address(0)) return;
 
         // Use tempHooksAddress to avoid a case where hooks get updated in the middle of a transaction.
-        ISafeProtocolHooks(tempHooksAddressForSafe).postCheck(ISafe(msg.sender), success, "");
+        ISafeProtocolHooks(tempHooksAddressForSafe).postCheck(ISafe(msg.sender), success, tempHooksData[msg.sender].preCheckData);
 
         // Reset to address(0) so that there is no unattended storage
-        tempHooksAddress[msg.sender] = address(0);
+        tempHooksData[msg.sender].hooksAddress = address(0);
+        tempHooksData[msg.sender].preCheckData = bytes("");
     }
 
     /**
@@ -398,7 +409,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     ) external returns (bytes32 moduleTxHash) {
         // Store hooks address in tempHooksAddress so that checkAfterExecution(...) can access it.
         // A temprary storage is required to use old hooks in checkAfterExecution if hooks get updated in between transaction
-        tempHooksAddress[msg.sender] = enabledHooks[msg.sender];
+        tempHooksData[msg.sender].hooksAddress = enabledHooks[msg.sender];
         address tempHooksAddressForSafe = enabledHooks[msg.sender];
 
         moduleTxHash = keccak256(abi.encode(to, value, data, operation, module));
