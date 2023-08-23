@@ -49,16 +49,12 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     error InvalidToFieldInSafeProtocolAction(address safe, bytes32 metadataHash, uint256 index);
 
     modifier onlyEnabledPlugin(address safe) {
-        if (enabledPlugins[safe][msg.sender].nextPluginPointer == address(0)) {
-            revert PluginNotEnabled(msg.sender);
-        }
+        checkOnlyEnabledPlugin(safe);
         _;
     }
 
     modifier noZeroOrSentinelPlugin(address plugin) {
-        if (plugin == address(0) || plugin == SENTINEL_MODULES) {
-            revert InvalidPluginAddress(plugin);
-        }
+        checkNoZeroOrSentinelPlugin(plugin);
         _;
     }
 
@@ -426,5 +422,17 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             interfaceId == 0xe6d7a83a || // type(Guard).interfaceId without Module Guard (required for backward compatibility for Safe v1.4 and below)
             interfaceId == type(ISafeProtocolManager).interfaceId ||
             interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
+    }
+
+    function checkOnlyEnabledPlugin(address safe) private view {
+        if (enabledPlugins[safe][msg.sender].nextPluginPointer == address(0)) {
+            revert PluginNotEnabled(msg.sender);
+        }
+    }
+
+    function checkNoZeroOrSentinelPlugin(address plugin) private pure {
+        if (plugin == address(0) || plugin == SENTINEL_MODULES) {
+            revert InvalidPluginAddress(plugin);
+        }
     }
 }
