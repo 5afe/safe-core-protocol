@@ -109,6 +109,24 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(mockPlugin.target);
             });
 
+            it("Should not allow a Safe to enable plugin having no code", async () => {
+                // This test simulates case when a Plugin is added in registry but later has no code
+                // because it calls selfdestruct.
+
+                // Setup mock registry. Required to bypass ERC165 checks for user2.address as it is an EOA.
+                const safeProtocolRegistry = await hre.ethers.deployContract("MockContract");
+                await safeProtocolRegistry.givenMethodReturnBool("0x01ffc9a7", true);
+
+                const safeProtocolManager = await (
+                    await hre.ethers.getContractFactory("SafeProtocolManager")
+                ).deploy(owner.address, await safeProtocolRegistry.getAddress());
+
+                const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [user2.address, false]);
+
+                await expect(safe.exec(safe.target, 0, data)).to.be.reverted;
+            });
+
             it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
                 const { safeProtocolManager, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setModule(await safeProtocolManager.getAddress());
