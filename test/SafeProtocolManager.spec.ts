@@ -94,6 +94,39 @@ describe("SafeProtocolManager", async () => {
                     .withArgs(pluginAddress, 0, 0);
             });
 
+            it("Should not allow a Safe to enable plugin that does not support ERC165", async () => {
+                const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
+                await safe.setModule(await safeProtocolManager.getAddress());
+
+                const mockPlugin = await hre.ethers.deployContract("MockContract");
+                await mockPlugin.givenMethodReturnBool("0x01ffc9a7", true);
+                await safeProtocolRegistry.connect(owner).addIntegration(mockPlugin.target, IntegrationType.Plugin);
+
+                await mockPlugin.givenMethodReturnBool("0x01ffc9a7", false);
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [mockPlugin.target, false]);
+                await expect(safe.exec(safe.target, 0, data))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "AccountDoesNotImplementValidInterfaceId")
+                    .withArgs(mockPlugin.target);
+            });
+
+            it("Should not allow a Safe to enable plugin having no code", async () => {
+                // This test simulates case when a Plugin is added in registry but later has no code
+                // because it calls selfdestruct.
+
+                // Setup mock registry. Required to bypass ERC165 checks for user2.address as it is an EOA.
+                const safeProtocolRegistry = await hre.ethers.deployContract("MockContract");
+                await safeProtocolRegistry.givenMethodReturnBool("0x01ffc9a7", true);
+
+                const safeProtocolManager = await (
+                    await hre.ethers.getContractFactory("SafeProtocolManager")
+                ).deploy(owner.address, await safeProtocolRegistry.getAddress());
+
+                const safe = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+                const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [user2.address, false]);
+
+                await expect(safe.exec(safe.target, 0, data)).to.be.reverted;
+            });
+
             it("Should not allow a Safe to enable plugin if flagged in registry", async () => {
                 const { safeProtocolManager, safe, plugin, safeProtocolRegistry } = await loadFixture(deployContractsWithPluginFixture);
                 await safe.setModule(await safeProtocolManager.getAddress());
