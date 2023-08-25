@@ -1,6 +1,6 @@
 export const SENTINEL_MODULES = "0x0000000000000000000000000000000000000001";
 
-export enum IntegrationType {
+export enum ModuleType {
     Plugin,
     Hooks,
     FunctionHandler,
