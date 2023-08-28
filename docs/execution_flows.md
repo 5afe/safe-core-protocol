@@ -2,11 +2,11 @@
 
 The below sections provide a high-level overview of the execution different flows for the Safe{Core} Protocol.
 
-## Enable Integration flow
+## Enable Module flow
 
 ```mermaid
 ---
-title: Safe{Core} Protocol High-level execution flow for enabling Integration
+title: Safe{Core} Protocol High-level execution flow for enabling Module
 ---
 flowchart TD;
 subgraph Users
@@ -18,9 +18,9 @@ subgraph SafeAccounts
 end
 
 subgraph SafeProtocolManager
-    SafeAccount -->|Enable Sample Plugin Tx| Enable_Integration(Enable Integration on a Safe)
-    Enable_Plugin --> Validator{Is Sample Integration trusted?<br>Call SafeProtocolRegistry}
-    Validator -- Yes --> C(Sample Integration enabled on Safe)
+    SafeAccount -->|Enable Sample Plugin Tx| Enable_Module(Enable Module on a Safe)
+    Enable_Plugin --> Validator{Is Sample Module trusted?<br>Call SafeProtocolRegistry}
+    Validator -- Yes --> C(Sample Module enabled on Safe)
     Validator -- No ----> E(Revert transaction)
 end
 ```
@@ -92,7 +92,7 @@ subgraph SafeAccount [Account with Manager enabled as Fallback handler]
 end
 ```
 
-## Signature Verifier
+## Signature Validator
 
 ```mermaid
 ---
@@ -105,7 +105,7 @@ subgraph Users
    User(User)
 end
 
-subgraph SignatureVerifier [Signature verifier enabled for the given Safe]
+subgraph SignatureValidator [Signature validator enabled for the given Safe]
    isValidSignature(isValidSignature)
    isValidSignature --> |No| E(Revert transaction)
 end

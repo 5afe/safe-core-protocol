@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 abstract contract Enum {
-    enum IntegrationType {
+    enum ModuleType {
         Plugin,
         Hooks,
         FunctionHandler

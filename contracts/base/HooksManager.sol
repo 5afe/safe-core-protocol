@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolHooks} from "../interfaces/Integrations.sol";
+import {ISafeProtocolHooks} from "../interfaces/Modules.sol";
 
 import {RegistryManager} from "./RegistryManager.sol";
 import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
@@ -36,7 +36,7 @@ abstract contract HooksManager is RegistryManager, OnlyAccountCallable {
      */
     function setHooks(address hooks) external onlyAccount {
         if (hooks != address(0)) {
-            checkPermittedIntegration(hooks);
+            checkPermittedModule(hooks);
             if (!ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId))
                 revert AccountDoesNotImplementValidInterfaceId(hooks);
         }

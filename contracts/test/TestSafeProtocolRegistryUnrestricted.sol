@@ -4,47 +4,43 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "../common/Enum.sol";
 
 import {SafeProtocolRegistry} from "../SafeProtocolRegistry.sol";
-import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "../interfaces/Integrations.sol";
+import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "../interfaces/Modules.sol";
 
 /**
- * @title This is a test version of SafeProtocolRegistry that does not restrict any account from adding Integrations.
+ * @title This is a test version of SafeProtocolRegistry that does not restrict any account from adding Modules.
  *        This contract is only for testing purposes and not meant for production use.
- *        The onlyOwner function modifier of `addIntegration(address,Enum.IntegrationType)` has been removed to allow
- *        developers to add any Integration to the resgistry.
+ *        The onlyOwner function modifier of `addModule(address,Enum.ModuleType)` has been removed to allow
+ *        developers to add any Module to the resgistry.
  */
 contract TestSafeProtocolRegistryUnrestricted is SafeProtocolRegistry {
     constructor(address initialOwner) SafeProtocolRegistry(initialOwner) {}
 
     /**
-     * @notice Allows any account to add a integration. A integration can be any address including zero address for now.
-     *         This function does not permit adding a integration twice. This function validates if integration supports expected interfaceId.
-     * @param integration Address of the integration
-     * @param integrationType Enum.IntegrationType indicating the type of integration
+     * @notice Allows any account to add a module. A module can be any address including zero address for now.
+     *         This function does not permit adding a module twice. This function validates if module supports expected interfaceId.
+     * @param module Address of the module
+     * @param moduleType Enum.ModuleType indicating the type of module
      */
-    function addIntegration(address integration, Enum.IntegrationType integrationType) external override {
-        IntegrationInfo memory integrationInfo = listedIntegrations[integration];
+    function addModule(address module, Enum.ModuleType moduleType) external override {
+        ModuleInfo memory moduleInfo = listedModules[module];
 
-        if (integrationInfo.listedAt != 0) {
-            revert CannotAddIntegration(integration);
+        if (moduleInfo.listedAt != 0) {
+            revert CannotAddModule(module);
         }
 
-        // Check if integration supports expected interface
-        if (
-            integrationType == Enum.IntegrationType.Hooks && !IERC165(integration).supportsInterface(type(ISafeProtocolHooks).interfaceId)
-        ) {
-            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolHooks).interfaceId);
+        // Check if module supports expected interface
+        if (moduleType == Enum.ModuleType.Hooks && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
+        } else if (moduleType == Enum.ModuleType.Plugin && !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
         } else if (
-            integrationType == Enum.IntegrationType.Plugin && !IERC165(integration).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
+            moduleType == Enum.ModuleType.FunctionHandler &&
+            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
         ) {
-            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolPlugin).interfaceId);
-        } else if (
-            integrationType == Enum.IntegrationType.FunctionHandler &&
-            !IERC165(integration).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
-        ) {
-            revert IntegrationDoesNotSupportExpectedInterfaceId(integration, type(ISafeProtocolFunctionHandler).interfaceId);
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
         }
 
-        listedIntegrations[integration] = IntegrationInfo(uint64(block.timestamp), 0, integrationType);
-        emit IntegrationAdded(integration);
+        listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleType);
+        emit ModuleAdded(module);
     }
 }
