@@ -105,7 +105,7 @@ describe("SafeProtocolManager", async () => {
                 await mockPlugin.givenMethodReturnBool("0x01ffc9a7", false);
                 const data = safeProtocolManager.interface.encodeFunctionData("enablePlugin", [mockPlugin.target, false]);
                 await expect(safe.exec(safe.target, 0, data))
-                    .to.be.revertedWithCustomError(safeProtocolManager, "AccountDoesNotImplementValidInterfaceId")
+                    .to.be.revertedWithCustomError(safeProtocolManager, "ContractDoesNotImplementValidInterfaceId")
                     .withArgs(mockPlugin.target);
             });
 
