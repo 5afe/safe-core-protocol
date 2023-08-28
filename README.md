@@ -1,8 +1,8 @@
-[![Coverage Status](https://coveralls.io/repos/github/5afe/safe-core-protocol/badge.svg)](https://coveralls.io/github/5afe/safe-core-protocol)
+[![Coverage Status](https://coveralls.io/repos/github/safe-global/safe-core-protocol/badge.svg)](https://coveralls.io/github/safe-global/safe-core-protocol)
 
 # Safe{Core} Protocol
 
-This project is an implementation of [Safe{Core} Protocol specification](https://github.com/5afe/safe-protocol-specs)
+This project is an implementation of [Safe{Core} Protocol specification](https://github.com/safe-global/safe-protocol-specs)
 ## Architecture
 
 Safe{Core} Protocol implementation consists of following main components:
@@ -101,7 +101,7 @@ contract SamplePlugin is ISafeProtocolPlugin {
 }
 ```
 
-For more examples and information on adding Integration(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/5afe/safe-core-protocol-demo/tree/main/contracts)
+For more examples and information on adding Integration(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/safe-global/safe-core-protocol-demo/tree/main/contracts)
 
 ## Useful commands
 
