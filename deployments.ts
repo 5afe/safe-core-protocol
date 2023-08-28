@@ -5,7 +5,7 @@ export default {
       "chainId": "5",
       "contracts": {
         "SafeProtocolManager": {
-          "address": "0xAD7F6221609ff23Db8a1692A9A9534d48856D791",
+          "address": "0x21c857DdbAfD4D55b75bb53E897083a8Ad023043",
           "abi": [
             {
               "inputs": [
@@ -22,17 +22,6 @@ export default {
               ],
               "stateMutability": "nonpayable",
               "type": "constructor"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "account",
-                  "type": "address"
-                }
-              ],
-              "name": "AccountDoesNotImplementValidInterfaceId",
-              "type": "error"
             },
             {
               "inputs": [
@@ -59,6 +48,17 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
+                  "name": "account",
+                  "type": "address"
+                }
+              ],
+              "name": "ContractDoesNotImplementValidInterfaceId",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
                   "name": "safe",
                   "type": "address"
                 },
@@ -69,27 +69,6 @@ export default {
                 }
               ],
               "name": "FunctionHandlerNotSet",
-              "type": "error"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "plugin",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "listedAt",
-                  "type": "uint64"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "flaggedAt",
-                  "type": "uint64"
-                }
-              ],
-              "name": "IntegrationNotPermitted",
               "type": "error"
             },
             {
@@ -149,6 +128,27 @@ export default {
                 }
               ],
               "name": "InvalidToFieldInSafeProtocolAction",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "plugin",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "listedAt",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "flaggedAt",
+                  "type": "uint64"
+                }
+              ],
+              "name": "ModuleNotPermitted",
               "type": "error"
             },
             {
@@ -1072,7 +1072,7 @@ export default {
           ]
         },
         "SafeProtocolRegistry": {
-          "address": "0x1C3b21235Dfc2bbEe730aD8F63742aee54EE42f5",
+          "address": "0xa86d16b615B6Eb5F55dD3ab458f491ff76d783aD",
           "abi": [
             {
               "inputs": [
@@ -1089,29 +1089,29 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "CannotAddIntegration",
+              "name": "CannotAddModule",
               "type": "error"
             },
             {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "CannotFlagIntegration",
+              "name": "CannotFlagModule",
               "type": "error"
             },
             {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 },
                 {
@@ -1120,7 +1120,7 @@ export default {
                   "type": "bytes4"
                 }
               ],
-              "name": "IntegrationDoesNotSupportExpectedInterfaceId",
+              "name": "ModuleDoesNotSupportExpectedInterfaceId",
               "type": "error"
             },
             {
@@ -1129,11 +1129,11 @@ export default {
                 {
                   "indexed": true,
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "IntegrationAdded",
+              "name": "ModuleAdded",
               "type": "event"
             },
             {
@@ -1142,11 +1142,11 @@ export default {
                 {
                   "indexed": true,
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "IntegrationFlagged",
+              "name": "ModuleFlagged",
               "type": "event"
             },
             {
@@ -1198,16 +1198,16 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 },
                 {
-                  "internalType": "enum Enum.IntegrationType",
-                  "name": "integrationType",
+                  "internalType": "enum Enum.ModuleType",
+                  "name": "moduleType",
                   "type": "uint8"
                 }
               ],
-              "name": "addIntegration",
+              "name": "addModule",
               "outputs": [],
               "stateMutability": "nonpayable",
               "type": "function"
@@ -1216,7 +1216,7 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
@@ -1240,11 +1240,11 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "flagIntegration",
+              "name": "flagModule",
               "outputs": [],
               "stateMutability": "nonpayable",
               "type": "function"
@@ -1257,7 +1257,7 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "listedIntegrations",
+              "name": "listedModules",
               "outputs": [
                 {
                   "internalType": "uint64",
@@ -1270,8 +1270,8 @@ export default {
                   "type": "uint64"
                 },
                 {
-                  "internalType": "enum Enum.IntegrationType",
-                  "name": "integrationType",
+                  "internalType": "enum Enum.ModuleType",
+                  "name": "moduleType",
                   "type": "uint8"
                 }
               ],
@@ -1346,7 +1346,7 @@ export default {
           ]
         },
         "TestSafeProtocolManager": {
-          "address": "0x87c9199890202EF0ABf219A83F9BF9a00cB5feCb",
+          "address": "0xf7d2AEC4bd5bAF8c032a2c9ee9D3a71c79Fe92E0",
           "abi": [
             {
               "inputs": [
@@ -1363,17 +1363,6 @@ export default {
               ],
               "stateMutability": "nonpayable",
               "type": "constructor"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "account",
-                  "type": "address"
-                }
-              ],
-              "name": "AccountDoesNotImplementValidInterfaceId",
-              "type": "error"
             },
             {
               "inputs": [
@@ -1400,6 +1389,17 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
+                  "name": "account",
+                  "type": "address"
+                }
+              ],
+              "name": "ContractDoesNotImplementValidInterfaceId",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
                   "name": "safe",
                   "type": "address"
                 },
@@ -1410,27 +1410,6 @@ export default {
                 }
               ],
               "name": "FunctionHandlerNotSet",
-              "type": "error"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "plugin",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "listedAt",
-                  "type": "uint64"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "flaggedAt",
-                  "type": "uint64"
-                }
-              ],
-              "name": "IntegrationNotPermitted",
               "type": "error"
             },
             {
@@ -1490,6 +1469,27 @@ export default {
                 }
               ],
               "name": "InvalidToFieldInSafeProtocolAction",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "plugin",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "listedAt",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "flaggedAt",
+                  "type": "uint64"
+                }
+              ],
+              "name": "ModuleNotPermitted",
               "type": "error"
             },
             {
@@ -2420,7 +2420,7 @@ export default {
           ]
         },
         "TestSafeProtocolRegistryUnrestricted": {
-          "address": "0xe8f280Cb2ddFaE13a9ECF50DEdB8A0BF77534430",
+          "address": "0x770e690c7B1063AdF4E29a610Bba207999c41708",
           "abi": [
             {
               "inputs": [
@@ -2437,29 +2437,29 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "CannotAddIntegration",
+              "name": "CannotAddModule",
               "type": "error"
             },
             {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "CannotFlagIntegration",
+              "name": "CannotFlagModule",
               "type": "error"
             },
             {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 },
                 {
@@ -2468,7 +2468,7 @@ export default {
                   "type": "bytes4"
                 }
               ],
-              "name": "IntegrationDoesNotSupportExpectedInterfaceId",
+              "name": "ModuleDoesNotSupportExpectedInterfaceId",
               "type": "error"
             },
             {
@@ -2477,11 +2477,11 @@ export default {
                 {
                   "indexed": true,
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "IntegrationAdded",
+              "name": "ModuleAdded",
               "type": "event"
             },
             {
@@ -2490,11 +2490,11 @@ export default {
                 {
                   "indexed": true,
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "IntegrationFlagged",
+              "name": "ModuleFlagged",
               "type": "event"
             },
             {
@@ -2546,16 +2546,16 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 },
                 {
-                  "internalType": "enum Enum.IntegrationType",
-                  "name": "integrationType",
+                  "internalType": "enum Enum.ModuleType",
+                  "name": "moduleType",
                   "type": "uint8"
                 }
               ],
-              "name": "addIntegration",
+              "name": "addModule",
               "outputs": [],
               "stateMutability": "nonpayable",
               "type": "function"
@@ -2564,7 +2564,7 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
@@ -2588,11 +2588,11 @@ export default {
               "inputs": [
                 {
                   "internalType": "address",
-                  "name": "integration",
+                  "name": "module",
                   "type": "address"
                 }
               ],
-              "name": "flagIntegration",
+              "name": "flagModule",
               "outputs": [],
               "stateMutability": "nonpayable",
               "type": "function"
@@ -2605,7 +2605,7 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "listedIntegrations",
+              "name": "listedModules",
               "outputs": [
                 {
                   "internalType": "uint64",
@@ -2618,8 +2618,8 @@ export default {
                   "type": "uint64"
                 },
                 {
-                  "internalType": "enum Enum.IntegrationType",
-                  "name": "integrationType",
+                  "internalType": "enum Enum.ModuleType",
+                  "name": "moduleType",
                   "type": "uint8"
                 }
               ],
