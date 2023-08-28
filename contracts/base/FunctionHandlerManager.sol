@@ -43,7 +43,7 @@ abstract contract FunctionHandlerManager is RegistryManager, OnlyAccountCallable
         if (functionHandler != address(0)) {
             checkPermittedModule(functionHandler);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
-                revert AccountDoesNotImplementValidInterfaceId(functionHandler);
+                revert ContractDoesNotImplementValidInterfaceId(functionHandler);
         }
 
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.

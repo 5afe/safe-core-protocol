@@ -67,7 +67,7 @@ describe("HooksManager", async () => {
         await expect(hooksManager.setHooks(hooksAddress)).to.be.reverted;
     });
 
-    it("Should revert AccountDoesNotImplementValidInterfaceId if user attempts address does not implement Hooks interface", async () => {
+    it("Should revert ContractDoesNotImplementValidInterfaceId if user attempts address does not implement Hooks interface", async () => {
         const { hooksManager, safe, safeProtocolRegistry } = await setupTests();
         const contractNotImplementingHooksInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", true);
@@ -77,7 +77,7 @@ describe("HooksManager", async () => {
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [contractNotImplementingHooksInterface.target]);
         await expect(safe.exec(safe.target, 0n, calldata)).to.be.revertedWithCustomError(
             hooksManager,
-            "AccountDoesNotImplementValidInterfaceId",
+            "ContractDoesNotImplementValidInterfaceId",
         );
     });
 });

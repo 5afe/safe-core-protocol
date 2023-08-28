@@ -10,7 +10,7 @@ contract RegistryManager is Ownable2Step {
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
     error ModuleNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
-    error AccountDoesNotImplementValidInterfaceId(address account);
+    error ContractDoesNotImplementValidInterfaceId(address account);
 
     modifier onlyPermittedModule(address module) {
         checkPermittedModule(module);
@@ -28,7 +28,7 @@ contract RegistryManager is Ownable2Step {
     constructor(address _registry, address intitalOwner) {
         _transferOwnership(intitalOwner);
         if (!IERC165(_registry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {
-            revert AccountDoesNotImplementValidInterfaceId(_registry);
+            revert ContractDoesNotImplementValidInterfaceId(_registry);
         }
         registry = _registry;
     }
@@ -52,7 +52,7 @@ contract RegistryManager is Ownable2Step {
      */
     function setRegistry(address newRegistry) external onlyOwner {
         if (!IERC165(newRegistry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {
-            revert AccountDoesNotImplementValidInterfaceId(newRegistry);
+            revert ContractDoesNotImplementValidInterfaceId(newRegistry);
         }
         emit RegistryChanged(registry, newRegistry);
         registry = newRegistry;

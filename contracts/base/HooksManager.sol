@@ -38,7 +38,7 @@ abstract contract HooksManager is RegistryManager, OnlyAccountCallable {
         if (hooks != address(0)) {
             checkPermittedModule(hooks);
             if (!ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId))
-                revert AccountDoesNotImplementValidInterfaceId(hooks);
+                revert ContractDoesNotImplementValidInterfaceId(hooks);
         }
         enabledHooks[msg.sender] = hooks;
         emit HooksChanged(msg.sender, hooks);

@@ -168,7 +168,7 @@ describe("FunctionHandler", async () => {
         ]);
 
         await expect(safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256))
-            .to.be.revertedWithCustomError(functionHandlerManager, "AccountDoesNotImplementValidInterfaceId")
+            .to.be.revertedWithCustomError(functionHandlerManager, "ContractDoesNotImplementValidInterfaceId")
             .withArgs(mockFunctionHandler.target);
     });
 
