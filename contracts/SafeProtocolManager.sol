@@ -66,7 +66,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @dev Restrict the `to` field in the actions so that a module cannot execute an action that changes the config such as
      *      enabling/disabling other modules or make changes to its own access level for a Safe.
      *      In future, evaluate use of fine granined permissions model executing actions.
-     *      For more information, follow the disuccsion here: https://github.com/5afe/safe-protocol-specs/discussions/7.
+     *      For more information, follow the disuccsion here: https://github.com/safe-global/safe-protocol-specs/discussions/7.
      * @param safe A Safe instance
      * @param transaction A struct of type SafeTransaction containing information of about the action(s) to be executed.
      *                    Users can add logic to validate metadataHash through hooks.
