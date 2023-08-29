@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ISafeProtocolFunctionHandler} from "../interfaces/Integrations.sol";
+import {ISafeProtocolFunctionHandler} from "../interfaces/Modules.sol";
 import {ISafe} from "../interfaces/Accounts.sol";
 import {RegistryManager} from "./RegistryManager.sol";
 import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
@@ -41,9 +41,9 @@ abstract contract FunctionHandlerManager is RegistryManager, OnlyAccountCallable
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
         if (functionHandler != address(0)) {
-            checkPermittedIntegration(functionHandler);
+            checkPermittedModule(functionHandler);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
-                revert AccountDoesNotImplementValidInterfaceId(functionHandler);
+                revert ContractDoesNotImplementValidInterfaceId(functionHandler);
         }
 
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.

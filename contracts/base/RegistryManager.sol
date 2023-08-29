@@ -9,11 +9,11 @@ contract RegistryManager is Ownable2Step {
 
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
-    error IntegrationNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
-    error AccountDoesNotImplementValidInterfaceId(address account);
+    error ModuleNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
+    error ContractDoesNotImplementValidInterfaceId(address account);
 
-    modifier onlyPermittedIntegration(address integration) {
-        checkPermittedIntegration(integration);
+    modifier onlyPermittedModule(address module) {
+        checkPermittedModule(module);
         _;
     }
 
@@ -28,21 +28,21 @@ contract RegistryManager is Ownable2Step {
     constructor(address _registry, address intitalOwner) {
         _transferOwnership(intitalOwner);
         if (!IERC165(_registry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {
-            revert AccountDoesNotImplementValidInterfaceId(_registry);
+            revert ContractDoesNotImplementValidInterfaceId(_registry);
         }
         registry = _registry;
     }
 
     /**
-     * @notice Checks if given integration address is listed and not flagged in the registry.
+     * @notice Checks if given module address is listed and not flagged in the registry.
      *         Reverts if given address is not-listed or flagged.
-     * @param integration Address of the integration
+     * @param module Address of the module
      */
-    function checkPermittedIntegration(address integration) internal view {
-        // Only allow registered and non-flagged integrations
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(integration);
+    function checkPermittedModule(address module) internal view {
+        // Only allow registered and non-flagged modules
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
         if (listedAt == 0 || flaggedAt != 0) {
-            revert IntegrationNotPermitted(integration, listedAt, flaggedAt);
+            revert ModuleNotPermitted(module, listedAt, flaggedAt);
         }
     }
 
@@ -52,7 +52,7 @@ contract RegistryManager is Ownable2Step {
      */
     function setRegistry(address newRegistry) external onlyOwner {
         if (!IERC165(newRegistry).supportsInterface(type(ISafeProtocolRegistry).interfaceId)) {
-            revert AccountDoesNotImplementValidInterfaceId(newRegistry);
+            revert ContractDoesNotImplementValidInterfaceId(newRegistry);
         }
         emit RegistryChanged(registry, newRegistry);
         registry = newRegistry;

@@ -2,7 +2,7 @@ import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { IntegrationType } from "./utils/constants";
+import { ModuleType } from "./utils/constants";
 import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
 import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
 import { getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
@@ -17,63 +17,64 @@ describe("SafeProtocolRegistry", async () => {
         return { safeProtocolRegistry, mockFunctionHandlerAddress };
     });
 
-    it("Should allow add a integration only once", async () => {
+    it("Should allow add a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
-        await expect(
-            safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks),
-        ).to.be.revertedWithCustomError(safeProtocolRegistry, "CannotAddIntegration");
-    });
-
-    it("Should not allow non-owner to add a integration", async () => {
-        const { safeProtocolRegistry } = await setupTests();
-        await expect(safeProtocolRegistry.connect(user1).addIntegration(AddressZero, IntegrationType.Hooks)).to.be.revertedWith(
-            "Ownable: caller is not the owner",
-        );
-    });
-
-    it("Should not allow to flag non-listed integration", async () => {
-        const { safeProtocolRegistry } = await setupTests();
-        await expect(safeProtocolRegistry.connect(owner).flagIntegration(AddressZero)).to.be.revertedWithCustomError(
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
-            "CannotFlagIntegration",
+            "CannotAddModule",
         );
     });
 
-    it("Should allow only owner to flag a integration", async () => {
+    it("Should not allow non-owner to add a module", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+        await expect(safeProtocolRegistry.connect(user1).addModule(AddressZero, ModuleType.Hooks)).to.be.revertedWith(
+            "Ownable: caller is not the owner",
+        );
+    });
+
+    it("Should not allow to flag non-listed module", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+        await expect(safeProtocolRegistry.connect(owner).flagModule(AddressZero)).to.be.revertedWithCustomError(
+            safeProtocolRegistry,
+            "CannotFlagModule",
+        );
+    });
+
+    it("Should allow only owner to flag a module", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
 
-        await expect(safeProtocolRegistry.connect(user1).flagIntegration(mockHookAddress)).to.be.revertedWith(
+        await expect(safeProtocolRegistry.connect(user1).flagModule(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
 
-        expect(await safeProtocolRegistry.connect(owner).flagIntegration(mockHookAddress));
+        expect(await safeProtocolRegistry.connect(owner).flagModule(mockHookAddress));
 
         const [flaggedAt] = await safeProtocolRegistry.check.staticCall(mockHookAddress);
         expect(flaggedAt).to.be.gt(0);
     });
 
-    it("Should allow only owner to flag a integration only once", async () => {
+    it("Should allow only owner to flag a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
-        await safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
 
-        await expect(safeProtocolRegistry.connect(user1).flagIntegration(mockHookAddress)).to.be.revertedWith(
+        await expect(safeProtocolRegistry.connect(user1).flagModule(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
 
-        await safeProtocolRegistry.connect(owner).flagIntegration(mockHookAddress);
-        await expect(safeProtocolRegistry.connect(owner).flagIntegration(mockHookAddress))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagIntegration")
+        await safeProtocolRegistry.connect(owner).flagModule(mockHookAddress);
+        await expect(safeProtocolRegistry.connect(owner).flagModule(mockHookAddress))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotFlagModule")
             .withArgs(mockHookAddress);
     });
 
-    it("Should return (0,0) for non-listed integration", async () => {
+    it("Should return (0,0) for non-listed module", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(AddressZero);
         expect(listedAt).to.be.equal(0);
@@ -96,23 +97,23 @@ describe("SafeProtocolRegistry", async () => {
     it("Should revert when adding hooks not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithFailingCallToSupportsInterfaceMethod()).target;
-        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockHookAddress, IntegrationType.Hooks))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockHookAddress, "0x907e1c56");
     });
 
     it("Should revert when adding plugin not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockPluginAddress = (await getPluginWithFailingCallToSupportsInterfaceMethod()).target;
-        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockPluginAddress, IntegrationType.Plugin))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockPluginAddress, ModuleType.Plugin))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockPluginAddress, "0x3fce835e");
     });
 
     it("Should revert when adding function handler not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry, mockFunctionHandlerAddress } = await setupTests();
-        await expect(safeProtocolRegistry.connect(owner).addIntegration(mockFunctionHandlerAddress, IntegrationType.FunctionHandler))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "IntegrationDoesNotSupportExpectedInterfaceId")
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockFunctionHandlerAddress, ModuleType.FunctionHandler))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockFunctionHandlerAddress, "0xf601ad15");
     });
 });

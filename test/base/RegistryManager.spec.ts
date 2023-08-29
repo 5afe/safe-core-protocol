@@ -32,11 +32,11 @@ describe("RegistryManager", async () => {
         const registry = await getMockRegistryWithInvalidInterfaceSupport();
         await expect(registryManager.connect(owner).setRegistry(await registry.getAddress())).to.be.revertedWithCustomError(
             registryManager,
-            "AccountDoesNotImplementValidInterfaceId",
+            "ContractDoesNotImplementValidInterfaceId",
         );
     });
 
-    it("Should revert with AccountDoesNotImplementValidInterfaceId when creating registry manager with registry not supporting valid interfaceId", async () => {
+    it("Should revert with ContractDoesNotImplementValidInterfaceId when creating registry manager with registry not supporting valid interfaceId", async () => {
         const registry = await getMockRegistryWithInvalidInterfaceSupport();
         await expect(hre.ethers.deployContract("RegistryManager", [await registry.getAddress(), owner.address], { signer: deployer })).to.be
             .reverted;

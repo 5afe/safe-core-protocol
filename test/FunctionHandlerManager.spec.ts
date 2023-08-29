@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
-import { IntegrationType } from "./utils/constants";
+import { ModuleType } from "./utils/constants";
 import { expect } from "chai";
 import { getInstance } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
@@ -26,7 +26,7 @@ describe("FunctionHandler", async () => {
             await hre.ethers.getContractFactory("SafeProtocolManager")
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
-        await safeProtocolRegistry.addIntegration(mockFunctionHandler.target, IntegrationType.FunctionHandler);
+        await safeProtocolRegistry.addModule(mockFunctionHandler.target, ModuleType.FunctionHandler);
         const safe = await hre.ethers.deployContract("TestExecutor", [functionHandlerManager.target], { signer: deployer });
 
         return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };
@@ -96,7 +96,7 @@ describe("FunctionHandler", async () => {
         ]);
 
         await expect(safe.executeCallViaMock(safe.target, 0, dataSetFunctionHandler, MaxUint256))
-            .to.be.revertedWithCustomError(functionHandlerManager, "IntegrationNotPermitted")
+            .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
             .withArgs(user1.address, 0, 0);
     });
 
@@ -168,7 +168,7 @@ describe("FunctionHandler", async () => {
         ]);
 
         await expect(safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256))
-            .to.be.revertedWithCustomError(functionHandlerManager, "AccountDoesNotImplementValidInterfaceId")
+            .to.be.revertedWithCustomError(functionHandlerManager, "ContractDoesNotImplementValidInterfaceId")
             .withArgs(mockFunctionHandler.target);
     });
 

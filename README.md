@@ -8,21 +8,21 @@ This project is an implementation of [Safe{Core} Protocol specification](https:/
 Safe{Core} Protocol implementation consists of following main components:
 - [SafeProtocolManager](./contracts/SafeProtocolManager.sol)
 - [SafeProtocolRegistry](./contracts/SafeProtocolRegistry.sol)
-- [Interfaces for Integrations](./contracts/interfaces/Integrations.sol)
+- [Interfaces for Modules](./contracts/interfaces/Modules.sol)
 
 A high level overview of the architecture is as follows:
 
 ```mermaid
 graph TD
     Safe -->|Execute transaction| Monitor
-    Safe -->|Manage Integrations| Store
+    Safe -->|Manage Modules| Store
     Safe -->|SafeProtocolManager handling fallback functionality| FunctionHandlerSupport
     PluginInstance(Plugin Instance) -->|Execute transaction from Plugin| Monitor
     RegistryOwner("Registry Owner") --> Maintain
     RegistryOwner("Registry Owner") --> Flag
 
 subgraph SafeProtocolManager
-	Store(Maintain Enabled Integrations per Safe)
+	Store(Maintain Enabled Modules per Safe)
     Monitor(Mediate Safe transaction execution)
     FunctionHandlerSupport("Provide additional functionality using Function Handler(s)")
     HooksSupport("Hooks for validating transaction execution")
@@ -30,24 +30,24 @@ subgraph SafeProtocolManager
 end
 
 subgraph SafeProtocolRegistry
-	AllowQuery(Provide information about Integrations)
-    Maintain("Maintain list of permitted Integrations")
-    Flag("Mark Integration as Malicious")
+	AllowQuery(Provide information about Modules)
+    Maintain("Maintain list of permitted Modules")
+    Flag("Mark Module as Malicious")
     Monitor -...- AllowQuery
     Store -...- AllowQuery
 end
 ```
 
-### Integrations
+### Modules
 
 ```mermaid
 graph TD
-style Integrations font-size:20px;
-subgraph Integrations
+style Modules font-size:20px;
+subgraph Modules
 	Plugin(Plugin)
 	Hooks(Hooks)
 	FunctionHandler(Function Handler)
-	SignatureVerifier(Signature verifier)
+	SignatureValidator(Signature validator)
 end
 ```
 
@@ -78,7 +78,7 @@ npm i @safe-global/safe-core-protocol
 E.g. Create a plugin
 
 ```solidity
-import {ISafeProtocolPlugin} from "@safe-global/safe-core-protocol/contracts/interfaces/Integrations.sol";
+import {ISafeProtocolPlugin} from "@safe-global/safe-core-protocol/contracts/interfaces/Modules.sol";
 
 contract SamplePlugin is ISafeProtocolPlugin {
 
@@ -101,7 +101,7 @@ contract SamplePlugin is ISafeProtocolPlugin {
 }
 ```
 
-For more examples and information on adding Integration(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/safe-global/safe-core-protocol-demo/tree/main/contracts)
+For more examples and information on adding Module(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/safe-global/safe-core-protocol-demo/tree/main/contracts)
 
 ## Useful commands
 

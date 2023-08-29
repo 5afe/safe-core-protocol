@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocolPlugin, ISafeProtocolHooks} from "./interfaces/Integrations.sol";
+import {ISafeProtocolPlugin, ISafeProtocolHooks} from "./interfaces/Modules.sol";
 
 import {ISafe} from "./interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "./DataTypes.sol";
@@ -21,7 +21,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     /**
      * @notice Mapping of a mapping what stores information about plugins that are enabled per Safe.
-     *         address (Safe address) => address (integration address) => EnabledPluginInfo
+     *         address (Safe address) => address (module address) => EnabledPluginInfo
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
     struct PluginAccessInfo {
@@ -75,7 +75,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeTransaction(
         ISafe safe,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes[] memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
         address safeAddress = address(safe);
 
         address hooksAddress = enabledHooks[safeAddress];
@@ -131,7 +131,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeRootAccess(
         ISafe safe,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedIntegration(msg.sender) returns (bytes memory data) {
+    ) external override onlyEnabledPlugin(address(safe)) onlyPermittedModule(msg.sender) returns (bytes memory data) {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
         address safeAddress = address(safe);
 
@@ -175,11 +175,11 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function enablePlugin(
         address plugin,
         bool allowRootAccess
-    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedIntegration(plugin) onlyAccount {
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedModule(plugin) onlyAccount {
         // address(0) check omitted because it is not expected to enable it as a plugin and
-        // call to it would fail. Additionally, registry should not permit address(0) as an integration.
+        // call to it would fail. Additionally, registry should not permit address(0) as an module.
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
-            revert AccountDoesNotImplementValidInterfaceId(plugin);
+            revert ContractDoesNotImplementValidInterfaceId(plugin);
 
         PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
         PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
