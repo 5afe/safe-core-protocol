@@ -2,7 +2,7 @@
 
 # Safe{Core} Protocol
 
-This project is an implementation of [Safe{Core} Protocol specification](https://github.com/safe-global/safe-protocol-specs)
+This project is an implementation of [Safe{Core} Protocol specification](https://github.com/safe-global/safe-core-protocol-specs)
 ## Architecture
 
 Safe{Core} Protocol implementation consists of following main components:
