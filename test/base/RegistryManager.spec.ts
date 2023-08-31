@@ -71,4 +71,14 @@ describe("RegistryManager", async () => {
 
         await expect(registryManager.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith("Ownable: caller is not the owner");
     });
+
+    it("Should block calls to setRegistry(address) when caller address is not appended to calldata", async () => {
+        const { registryManager, safe } = await setupTests();
+        const data = registryManager.interface.encodeFunctionData("setRegistry", [ZeroAddress]);
+
+        await expect(safe.executeCallViaMock(registryManager.target, 0n, data, MaxUint256)).to.be.revertedWithCustomError(
+            registryManager,
+            "InvalidSender",
+        );
+    });
 });
