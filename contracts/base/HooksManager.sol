@@ -5,7 +5,7 @@ import {ISafeProtocolHooks} from "../interfaces/Modules.sol";
 import {RegistryManager} from "./RegistryManager.sol";
 import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
 
-abstract contract HooksManager is RegistryManager, OnlyAccountCallable {
+abstract contract HooksManager is RegistryManager {
     mapping(address => address) public enabledHooks;
 
     struct TempHooksInfo {

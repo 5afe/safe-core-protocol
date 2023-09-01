@@ -15,6 +15,10 @@ contract TestExecutor is ISafe {
         module = _module;
     }
 
+    function setFallbackHandler(address _fallbackHandler) external {
+        fallbackHandler = _fallbackHandler;
+    }
+
     function exec(address payable to, uint256 value, bytes calldata data) external {
         bool success;
         bytes memory response;
