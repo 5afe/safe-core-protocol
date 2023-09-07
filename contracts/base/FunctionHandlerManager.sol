@@ -78,6 +78,6 @@ abstract contract FunctionHandlerManager is RegistryManager {
         // With safe v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
         // remove last 20 bytes from calldata and store it in `data`.
         // Keep first 4 bytes (i.e function signature) so that handler contract can infer function identifier.
-        return ISafeProtocolFunctionHandler(functionHandler).handle(ISafe(safe), sender, 0, msg.data[0:(msg.data.length - 20)]);
+        return ISafeProtocolFunctionHandler(functionHandler).handle(safe, sender, 0, msg.data[0:(msg.data.length - 20)]);
     }
 }

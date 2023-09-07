@@ -20,7 +20,7 @@ interface ISafeProtocolFunctionHandler is IERC165 {
      * @param data Arbitrary length bytes
      * @return result Arbitrary length bytes containing result of the operation
      */
-    function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external returns (bytes memory result);
+    function handle(address safe, address sender, uint256 value, bytes calldata data) external returns (bytes memory result);
 
     /**
      * @notice A function that returns information about the type of metadata provider and its location.
