@@ -9,20 +9,28 @@ import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
 abstract contract BaseTestPlugin is ISafeProtocolPlugin {
     string public name = "";
     string public version = "";
-    bool public requiresRootAccess = false;
+    uint8 public permissions = 0;
 
     function metadataProvider() external view override returns (uint256 providerType, bytes memory location) {}
 
-    function setRequiresRootAccess(bool _requiresRootAccess) external {
-        requiresRootAccess = _requiresRootAccess;
+    function setRequiresPermissions(uint8 _requiresPermission) external {
+        permissions = _requiresPermission;
     }
 
     function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
         return interfaceId == type(ISafeProtocolPlugin).interfaceId || interfaceId == 0x01ffc9a7;
     }
+
+    function requiresPermissions() external view override returns (uint8) {
+        return permissions;
+    }
 }
 
 contract TestPlugin is BaseTestPlugin {
+    constructor() {
+        permissions = 1;
+    }
+
     function executeFromPlugin(
         ISafeProtocolManager manager,
         ISafe safe,
@@ -34,7 +42,7 @@ contract TestPlugin is BaseTestPlugin {
 
 contract TestPluginWithRootAccess is TestPlugin {
     constructor() {
-        requiresRootAccess = true;
+        permissions = 4;
     }
 
     function executeRootAccessTxFromPlugin(

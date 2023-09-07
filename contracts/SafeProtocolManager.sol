@@ -11,6 +11,7 @@ import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
 import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
+import {PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_CALL_TO_SELF, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "./common/Constants.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
@@ -25,21 +26,21 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
     struct PluginAccessInfo {
-        bool rootAddressGranted;
+        uint8 permissions;
         address nextPluginPointer;
     }
 
     // Events
     event ActionsExecuted(address indexed safe, bytes32 metadataHash, uint256 nonce);
     event RootAccessActionExecuted(address indexed safe, bytes32 metadataHash);
-    event PluginEnabled(address indexed safe, address indexed plugin, bool allowRootAccess);
+    event PluginEnabled(address indexed safe, address indexed plugin, uint8 permissions);
     event PluginDisabled(address indexed safe, address indexed plugin);
 
     // Errors
     error PluginRequiresRootAccess(address sender);
     error PluginNotEnabled(address plugin);
     error PluginEnabledOnlyForRootAccess(address plugin);
-    error PluginAccessMismatch(address plugin, bool requiresRootAccess, bool providedValue);
+    error PluginPermissionsMismatch(address plugin, uint8 requiredPermissions, uint8 givenPermissions);
     error ActionExecutionFailed(address safe, bytes32 metadataHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metadataHash);
     error PluginAlreadyEnabled(address safe, address plugin);
@@ -94,7 +95,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
             if (
                 safeProtocolAction.to == address(this) ||
-                (safeProtocolAction.to == safeAddress && !enabledPlugins[safeAddress][msg.sender].rootAddressGranted)
+                (safeProtocolAction.to == safeAddress &&
+                    (enabledPlugins[safeAddress][msg.sender].permissions & PLUGIN_PERMISSION_CALL_TO_SELF !=
+                        PLUGIN_PERMISSION_CALL_TO_SELF))
             ) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metadataHash, i);
             }
@@ -143,7 +146,11 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, abi.encode(msg.sender));
         }
-        if (!ISafeProtocolPlugin(msg.sender).requiresRootAccess() || !enabledPlugins[safeAddress][msg.sender].rootAddressGranted) {
+        if (
+            ((ISafeProtocolPlugin(msg.sender).requiresPermissions() &
+                (enabledPlugins[safeAddress][msg.sender].permissions & PLUGIN_PERMISSION_EXECUTE_DELEGATECALL)) !=
+                PLUGIN_PERMISSION_EXECUTE_DELEGATECALL)
+        ) {
             revert PluginRequiresRootAccess(msg.sender);
         }
 
@@ -170,11 +177,11 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     /**
      * @notice Called by a Safe to enable a plugin on a Safe. To be called by a safe.
      * @param plugin ISafeProtocolPlugin A plugin that has to be enabled
-     * @param allowRootAccess Bool indicating whether root access to be allowed.
+     * @param permissions uint8 indicating permissions granted to the plugin.
      */
     function enablePlugin(
         address plugin,
-        bool allowRootAccess
+        uint8 permissions
     ) external noZeroOrSentinelPlugin(plugin) onlyPermittedModule(plugin) onlyAccount {
         // address(0) check omitted because it is not expected to enable it as a plugin and
         // call to it would fail. Additionally, registry should not permit address(0) as an module.
@@ -188,21 +195,21 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             revert PluginAlreadyEnabled(msg.sender, plugin);
         }
 
-        bool requiresRootAccess = ISafeProtocolPlugin(plugin).requiresRootAccess();
-        if (allowRootAccess != requiresRootAccess) {
-            revert PluginAccessMismatch(plugin, requiresRootAccess, allowRootAccess);
+        uint8 requiresPermissions = ISafeProtocolPlugin(plugin).requiresPermissions();
+        if (permissions != requiresPermissions) {
+            revert PluginPermissionsMismatch(plugin, requiresPermissions, permissions);
         }
 
         if (senderSentinelPlugin.nextPluginPointer == address(0)) {
-            senderSentinelPlugin.rootAddressGranted = false;
+            senderSentinelPlugin.permissions = 0;
             senderSentinelPlugin.nextPluginPointer = SENTINEL_MODULES;
         }
 
         senderPlugin.nextPluginPointer = senderSentinelPlugin.nextPluginPointer;
-        senderPlugin.rootAddressGranted = allowRootAccess;
+        senderPlugin.permissions = permissions;
         senderSentinelPlugin.nextPluginPointer = plugin;
 
-        emit PluginEnabled(msg.sender, plugin, allowRootAccess);
+        emit PluginEnabled(msg.sender, plugin, permissions);
     }
 
     /**
@@ -218,10 +225,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         }
 
         prevPluginInfo.nextPluginPointer = pluginInfo.nextPluginPointer;
-        prevPluginInfo.rootAddressGranted = pluginInfo.rootAddressGranted;
+        prevPluginInfo.permissions = pluginInfo.permissions;
 
         pluginInfo.nextPluginPointer = address(0);
-        pluginInfo.rootAddressGranted = false;
+        pluginInfo.permissions = 0;
         emit PluginDisabled(msg.sender, plugin);
     }
 

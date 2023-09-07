@@ -3,7 +3,6 @@ import { ISafeProtocolPlugin } from "../../typechain-types";
 
 export const getPluginWithFailingCallToSupportsInterfaceMethod = async (): Promise<ISafeProtocolPlugin> => {
     const plugin = await (await hre.ethers.getContractFactory("MockContract")).deploy();
-    // 0x3fce835e -> type(ISafeProtocolPlugin).interfaceId
-    await plugin.givenMethodReturnBool("0x3fce835e", false);
+    await plugin.givenMethodReturnBool("0x01ffc9a7", false);
     return hre.ethers.getContractAt("ISafeProtocolPlugin", plugin.target);
 };
