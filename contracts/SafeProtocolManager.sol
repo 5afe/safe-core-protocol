@@ -456,6 +456,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      *        PLUGIN_PERMISSION_CALL_TO_SELF, or PLUGIN_PERMISSION_EXECUTE_DELEGATECALL.
      */
     function checkPermission(address account, uint8 permission) private view {
+        // For each action, Manager will read storage and call plugin's requiresPermissions().
         uint8 givenPermissions = enabledPlugins[account][msg.sender].permissions;
         uint8 requiresPermissions = ISafeProtocolPlugin(msg.sender).requiresPermissions();
 
