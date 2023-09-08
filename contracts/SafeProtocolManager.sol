@@ -11,7 +11,7 @@ import {FunctionHandlerManager} from "./base/FunctionHandlerManager.sol";
 import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
-import {PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_CALL_TO_SELF, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "./common/Constants.sol";
+import {PLUGIN_PERMISSION_NONE, PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_CALL_TO_SELF, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "./common/Constants.sol";
 
 /**
  * @title SafeProtocolManager contract allows Safe users to set plugin through a Manager rather than directly enabling a plugin on Safe.
@@ -228,7 +228,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         prevPluginInfo.permissions = pluginInfo.permissions;
 
         pluginInfo.nextPluginPointer = address(0);
-        pluginInfo.permissions = 0;
+        pluginInfo.permissions = PLUGIN_PERMISSION_NONE;
         emit PluginDisabled(msg.sender, plugin);
     }
 
