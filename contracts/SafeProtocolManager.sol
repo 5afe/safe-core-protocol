@@ -37,9 +37,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     event PluginDisabled(address indexed safe, address indexed plugin);
 
     // Errors
-    error PluginRequiresRootAccess(address sender);
     error PluginNotEnabled(address plugin);
-    error PluginEnabledOnlyForRootAccess(address plugin);
+    error MissingPluginPermission(address plugin, uint8 pluginRequires, uint8 requiredPermission, uint8 givenPermission);
     error PluginPermissionsMismatch(address plugin, uint8 requiredPermissions, uint8 givenPermissions);
     error ActionExecutionFailed(address safe, bytes32 metadataHash, uint256 index);
     error RootAccessActionExecutionFailed(address safe, bytes32 metadataHash);
@@ -93,13 +92,12 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         for (uint256 i = 0; i < length; ++i) {
             SafeProtocolAction calldata safeProtocolAction = transaction.actions[i];
 
-            if (
-                safeProtocolAction.to == address(this) ||
-                (safeProtocolAction.to == safeAddress &&
-                    (enabledPlugins[safeAddress][msg.sender].permissions & PLUGIN_PERMISSION_CALL_TO_SELF !=
-                        PLUGIN_PERMISSION_CALL_TO_SELF))
-            ) {
+            if (safeProtocolAction.to == address(this)) {
                 revert InvalidToFieldInSafeProtocolAction(safeAddress, transaction.metadataHash, i);
+            } else if (safeProtocolAction.to == safeAddress) {
+                checkPermission(safeAddress, PLUGIN_PERMISSION_CALL_TO_SELF);
+            } else {
+                checkPermission(safeAddress, PLUGIN_PERMISSION_EXECUTE_CALL);
             }
 
             (bool isActionSuccessful, bytes memory resultData) = safe.execTransactionFromModuleReturnData(
@@ -146,13 +144,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             // executionType = 1 for plugin flow
             preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(safe, rootAccess, 1, abi.encode(msg.sender));
         }
-        if (
-            ((ISafeProtocolPlugin(msg.sender).requiresPermissions() &
-                (enabledPlugins[safeAddress][msg.sender].permissions & PLUGIN_PERMISSION_EXECUTE_DELEGATECALL)) !=
-                PLUGIN_PERMISSION_EXECUTE_DELEGATECALL)
-        ) {
-            revert PluginRequiresRootAccess(msg.sender);
-        }
+
+        checkPermission(safeAddress, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL);
 
         bool success;
         (success, data) = safe.execTransactionFromModuleReturnData(
@@ -451,6 +444,15 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function checkNoZeroOrSentinelPlugin(address plugin) private pure {
         if (plugin == address(0) || plugin == SENTINEL_MODULES) {
             revert InvalidPluginAddress(plugin);
+        }
+    }
+
+    function checkPermission(address account, uint8 permission) private view {
+        uint8 givenPermissions = enabledPlugins[account][msg.sender].permissions;
+        uint8 requiresPermissions = ISafeProtocolPlugin(msg.sender).requiresPermissions();
+
+        if ((requiresPermissions & givenPermissions & permission) != permission) {
+            revert MissingPluginPermission(msg.sender, requiresPermissions, permission, givenPermissions);
         }
     }
 }

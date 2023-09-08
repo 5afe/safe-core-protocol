@@ -558,7 +558,7 @@ describe("SafeProtocolManager", async () => {
                 await expect(tx).to.emit(safeProtocolManager, "ActionsExecuted").withArgs(safeAddress, safeTx.metadataHash, 1);
             });
 
-            it("Should revert with a InvalidToFieldInSafeProtocolAction when `to` address is safe address through which tx is executed", async function () {
+            it("Should revert with MissingPluginPermission when `to` address is account and plugin does not have CALL_TO_SELF permission", async function () {
                 const { safeProtocolManager, safeProtocolRegistry, safe } = await loadFixture(deployContractsWithEnabledManagerFixture);
 
                 // Enable plugin
@@ -570,12 +570,18 @@ describe("SafeProtocolManager", async () => {
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                 ]);
                 await safe.exec(safe.target, 0, data);
-                const safeAddress = await safe.getAddress();
-                const safeTx = buildSingleTx(safeAddress, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
-                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
-                    safeProtocolManager,
-                    "InvalidToFieldInSafeProtocolAction",
-                );
+
+                await plugin.setRequiresPermissions(PLUGIN_PERMISSION_CALL_TO_SELF);
+
+                const safeTx = buildSingleTx(safe.target, hre.ethers.parseEther("1"), "0x", BigInt(1), hre.ethers.randomBytes(32));
+                await expect(plugin.executeFromPlugin(safeProtocolManager, safe, safeTx))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "MissingPluginPermission")
+                    .withArgs(
+                        plugin.target,
+                        PLUGIN_PERMISSION_CALL_TO_SELF,
+                        PLUGIN_PERMISSION_CALL_TO_SELF,
+                        PLUGIN_PERMISSION_EXECUTE_CALL,
+                    );
             });
 
             it("Should revert with a InvalidToFieldInSafeProtocolAction when `to` address is Manager address", async function () {
@@ -1029,7 +1035,7 @@ describe("SafeProtocolManager", async () => {
                 );
             });
 
-            it("Should revert with PluginRequiresRootAccess if plugin indicates it doesn't need root access anymore", async () => {
+            it("Should revert with PluginPermissionsMismatch if plugin indicates it doesn't need root access anymore", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiver")).deploy(user1.address);
@@ -1053,10 +1059,14 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
 
-                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx)).to.be.revertedWithCustomError(
-                    safeProtocolManager,
-                    "PluginRequiresRootAccess",
-                );
+                await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx))
+                    .to.be.revertedWithCustomError(safeProtocolManager, "MissingPluginPermission")
+                    .withArgs(
+                        plugin.target,
+                        PLUGIN_PERMISSION_EXECUTE_CALL,
+                        PLUGIN_PERMISSION_DELEGATE_CALL,
+                        PLUGIN_PERMISSION_DELEGATE_CALL,
+                    );
             });
 
             it("Should emit RootAccessActionExecutionFailed when root access action execution fails", async () => {
@@ -1087,7 +1097,7 @@ describe("SafeProtocolManager", async () => {
                 );
             });
 
-            it("Should emit PluginRequiresRootAccess for root access plugin", async () => {
+            it("Should emit MissingPluginPermission when plugin is not granted root access", async () => {
                 const { safeProtocolManager, safe, safeProtocolRegistry } = await loadFixture(deployContractsWithEnabledManagerFixture);
 
                 const testFallbackReceiver = await (await hre.ethers.getContractFactory("TestFallbackReceiverReverter")).deploy();
@@ -1115,8 +1125,13 @@ describe("SafeProtocolManager", async () => {
                     hre.ethers.randomBytes(32),
                 );
                 await expect(plugin.executeRootAccessTxFromPlugin(safeProtocolManager, safe, safeTx))
-                    .to.be.revertedWithCustomError(safeProtocolManager, "PluginRequiresRootAccess")
-                    .withArgs(pluginAddress);
+                    .to.be.revertedWithCustomError(safeProtocolManager, "MissingPluginPermission")
+                    .withArgs(
+                        pluginAddress,
+                        PLUGIN_PERMISSION_DELEGATE_CALL,
+                        PLUGIN_PERMISSION_DELEGATE_CALL,
+                        PLUGIN_PERMISSION_EXECUTE_CALL,
+                    );
             });
         });
     });
