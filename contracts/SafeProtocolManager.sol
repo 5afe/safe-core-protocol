@@ -447,6 +447,14 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         }
     }
 
+    /**
+     * @notice Checks if the caller i.e. plugin has the required permission for the given account.
+     *         The function reverts if the plugin does not have the required permission or required by the plugin
+     *         permissions do not match expected permission.
+     * @param account Address of the account for which the permission is checked for
+     * @param permission Permission that is required. Value can be one of the following: PLUGIN_PERMISSION_EXECUTE_CALL,
+     *        PLUGIN_PERMISSION_CALL_TO_SELF, or PLUGIN_PERMISSION_EXECUTE_DELEGATECALL.
+     */
     function checkPermission(address account, uint8 permission) private view {
         uint8 givenPermissions = enabledPlugins[account][msg.sender].permissions;
         uint8 requiresPermissions = ISafeProtocolPlugin(msg.sender).requiresPermissions();
