@@ -18,20 +18,20 @@ abstract contract HooksManager is RegistryManager {
     mapping(address => TempHooksInfo) public tempHooksData;
 
     // Events
-    event HooksChanged(address indexed safe, address indexed hooksAddress);
+    event HooksChanged(address indexed account, address indexed hooksAddress);
 
     /**
-     * @notice Returns the address of hooks for a Safe account provided as a fucntion parameter.
+     * @notice Returns the address of hooks for an account provided as a function parameter.
      *         Returns address(0) is no hooks are enabled.
-     * @param safe Address of a Safe account
-     * @return hooksAddress Address of hooks enabled for on Safe account
+     * @param account Address of an account
+     * @return hooksAddress Address of hooks enabled for the account
      */
-    function getEnabledHooks(address safe) external view returns (address hooksAddress) {
-        hooksAddress = enabledHooks[safe];
+    function getEnabledHooks(address account) external view returns (address hooksAddress) {
+        hooksAddress = enabledHooks[account];
     }
 
     /**
-     * @notice Sets hooks on an account. If Zero address is set, manager will not perform pre and post checks for on Safe transaction.
+     * @notice Sets hooks on an account. If Zero address is set, manager will not perform pre and post checks for account transactions.
      * @param hooks Address of the hooks to be enabled for msg.sender.
      */
     function setHooks(address hooks) external onlyAccount {

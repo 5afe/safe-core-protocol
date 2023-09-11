@@ -27,13 +27,13 @@ describe("FunctionHandler", async () => {
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
         await safeProtocolRegistry.addModule(mockFunctionHandler.target, ModuleType.FunctionHandler);
-        const safe = await hre.ethers.deployContract("TestExecutor", [functionHandlerManager.target], { signer: deployer });
+        const account = await hre.ethers.deployContract("TestExecutor", [functionHandlerManager.target], { signer: deployer });
 
-        return { safe, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };
+        return { account, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };
     });
 
     it("Should emit FunctionHandlerChanged event when Function Handler is set", async () => {
-        const { safe, functionHandlerManager, mockFunctionHandler } = await setupTests();
+        const { account, functionHandlerManager, mockFunctionHandler } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const functionId = "0xf8a8fd6d";
@@ -42,7 +42,7 @@ describe("FunctionHandler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        const tx = await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256);
+        const tx = await account.executeCallViaMock(account.target, 0n, dataSetFunctionHandler, MaxUint256);
         const receipt = await tx.wait();
         const events = (
             await functionHandlerManager.queryFilter(
@@ -51,13 +51,15 @@ describe("FunctionHandler", async () => {
                 receipt?.blockNumber,
             )
         )[0];
-        expect(events.args).to.deep.equal([safe.target, functionId, mockFunctionHandler.target]);
+        expect(events.args).to.deep.equal([account.target, functionId, mockFunctionHandler.target]);
 
-        expect(await functionHandlerManager.getFunctionHandler.staticCall(safe.target, functionId)).to.be.equal(mockFunctionHandler.target);
+        expect(await functionHandlerManager.getFunctionHandler.staticCall(account.target, functionId)).to.be.equal(
+            mockFunctionHandler.target,
+        );
     });
 
     it("Should allow removing function handler", async () => {
-        const { safe, functionHandlerManager, mockFunctionHandler } = await setupTests();
+        const { account, functionHandlerManager, mockFunctionHandler } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const functionId = "0xf8a8fd6d";
@@ -66,13 +68,13 @@ describe("FunctionHandler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256);
+        await account.executeCallViaMock(account.target, 0n, dataSetFunctionHandler, MaxUint256);
 
         const dataSetFunctionHandler2 = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
             functionId,
             ZeroAddress,
         ]);
-        const tx = await safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler2, MaxUint256);
+        const tx = await account.executeCallViaMock(account.target, 0n, dataSetFunctionHandler2, MaxUint256);
 
         const receipt = await tx.wait();
         const events = (
@@ -82,20 +84,20 @@ describe("FunctionHandler", async () => {
                 receipt?.blockNumber,
             )
         )[0];
-        expect(events.args).to.deep.equal([safe.target, functionId, ZeroAddress]);
+        expect(events.args).to.deep.equal([account.target, functionId, ZeroAddress]);
 
-        expect(await functionHandlerManager.getFunctionHandler.staticCall(safe.target, functionId)).to.be.equal(ZeroAddress);
+        expect(await functionHandlerManager.getFunctionHandler.staticCall(account.target, functionId)).to.be.equal(ZeroAddress);
     });
 
     it("Should not allow non-permitted function handler", async () => {
-        const { functionHandlerManager, safe } = await setupTests();
+        const { functionHandlerManager, account } = await setupTests();
 
         const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
             "0x00000000",
             user1.address,
         ]);
 
-        await expect(safe.executeCallViaMock(safe.target, 0, dataSetFunctionHandler, MaxUint256))
+        await expect(account.executeCallViaMock(account.target, 0, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
             .withArgs(user1.address, 0, 0);
     });
@@ -117,7 +119,7 @@ describe("FunctionHandler", async () => {
     });
 
     it("Should block non-self calls", async () => {
-        const { functionHandlerManager, mockFunctionHandler, safe } = await setupTests();
+        const { functionHandlerManager, mockFunctionHandler, account } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const data = "0xf8a8fd6d";
@@ -127,36 +129,36 @@ describe("FunctionHandler", async () => {
         ).to.be.revertedWithCustomError(functionHandlerManager, "InvalidSender");
 
         const calldata = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [data, mockFunctionHandler.target]);
-        await expect(safe.executeCallViaMock(functionHandlerManager, 0, calldata, MaxUint256)).to.be.revertedWithCustomError(
+        await expect(account.executeCallViaMock(functionHandlerManager, 0, calldata, MaxUint256)).to.be.revertedWithCustomError(
             functionHandlerManager,
             "InvalidSender",
         );
     });
 
     it("Should call handle function of function handler", async () => {
-        const { functionHandlerManager, mockFunctionHandler, safe } = await setupTests();
+        const { functionHandlerManager, mockFunctionHandler, account } = await setupTests();
 
         // 0xf8a8fd6d -> function test() external {}
         const data = "0xf8a8fd6d";
 
         const calldata = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [data, mockFunctionHandler.target]);
 
-        await safe.executeCallViaMock(safe.target, 0, calldata, MaxUint256);
+        await account.executeCallViaMock(account.target, 0, calldata, MaxUint256);
 
-        await safe.executeCallViaMock(safe.target, 0, data, MaxUint256);
+        await account.executeCallViaMock(account.target, 0, data, MaxUint256);
 
         const mockContract = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
         expect(await mockContract.invocationCountForMethod("0x25d6803f")).to.equal(1n);
 
         const handlerInterface = ISafeProtocolFunctionHandler__factory.createInterface();
-        const expectedCallData = handlerInterface.encodeFunctionData("handle", [safe.target, safe.target, 0, "0xf8a8fd6d"]);
+        const expectedCallData = handlerInterface.encodeFunctionData("handle", [account.target, account.target, 0, "0xf8a8fd6d"]);
 
         expect(await mockContract.invocationCountForCalldata(expectedCallData)).to.equal(1n);
         expect(await mockContract.invocationCount()).to.equal(1n);
     });
 
     it("Should revert if address does not implement expected interface Id", async () => {
-        const { safe, functionHandlerManager, mockFunctionHandler } = await setupTests();
+        const { account, functionHandlerManager, mockFunctionHandler } = await setupTests();
 
         const mock = await getInstance<MockContract>("MockContract", mockFunctionHandler.target);
         await mock.givenMethodReturnBool("0x01ffc9a7", false);
@@ -167,7 +169,7 @@ describe("FunctionHandler", async () => {
             mockFunctionHandler.target,
         ]);
 
-        await expect(safe.executeCallViaMock(safe.target, 0n, dataSetFunctionHandler, MaxUint256))
+        await expect(account.executeCallViaMock(account.target, 0n, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "ContractDoesNotImplementValidInterfaceId")
             .withArgs(mockFunctionHandler.target);
     });

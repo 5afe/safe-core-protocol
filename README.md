@@ -3,27 +3,29 @@
 # Safe{Core} Protocol
 
 This project is an implementation of [Safe{Core} Protocol specification](https://github.com/safe-global/safe-core-protocol-specs)
+
 ## Architecture
 
 Safe{Core} Protocol implementation consists of following main components:
-- [SafeProtocolManager](./contracts/SafeProtocolManager.sol)
-- [SafeProtocolRegistry](./contracts/SafeProtocolRegistry.sol)
-- [Interfaces for Modules](./contracts/interfaces/Modules.sol)
+
+-   [SafeProtocolManager](./contracts/SafeProtocolManager.sol)
+-   [SafeProtocolRegistry](./contracts/SafeProtocolRegistry.sol)
+-   [Interfaces for Modules](./contracts/interfaces/Modules.sol)
 
 A high level overview of the architecture is as follows:
 
 ```mermaid
 graph TD
-    Safe -->|Execute transaction| Monitor
-    Safe -->|Manage Modules| Store
-    Safe -->|SafeProtocolManager handling fallback functionality| FunctionHandlerSupport
+    Account -->|Execute transaction| Monitor
+    Account -->|Manage Modules| Store
+    Account -->|SafeProtocolManager handling fallback functionality| FunctionHandlerSupport
     PluginInstance(Plugin Instance) -->|Execute transaction from Plugin| Monitor
     RegistryOwner("Registry Owner") --> Maintain
     RegistryOwner("Registry Owner") --> Flag
 
 subgraph SafeProtocolManager
 	Store(Maintain Enabled Modules per Safe)
-    Monitor(Mediate Safe transaction execution)
+    Monitor(Mediate Account transaction execution)
     FunctionHandlerSupport("Provide additional functionality using Function Handler(s)")
     HooksSupport("Hooks for validating transaction execution")
     Monitor -.- HooksSupport
@@ -52,12 +54,13 @@ end
 ```
 
 Currently implemented components of the Safe{Core} Protocol are:
-- **SafeProtocolManager**
-- **SafeProtocolRegistry**
-- **Plugins**
-- **Hooks**
-- **Function Handler**
-- Additionally a test version of registry **TestSafeProtocolRegistryUnrestricted** is also available.
+
+-   **SafeProtocolManager**
+-   **SafeProtocolRegistry**
+-   **Plugins**
+-   **Hooks**
+-   **Function Handler**
+-   Additionally a test version of registry **TestSafeProtocolRegistryUnrestricted** is also available.
 
 [Execution flows](./docs/execution_flows.md) give a high-level overview of the different flows for the Safe{Core} Protocol.
 
@@ -89,7 +92,7 @@ contract SamplePlugin is ISafeProtocolPlugin {
     function version() external view returns (string memory version){
         ...
     }
-  
+
     function metadataProvider() external view returns (uint256 providerType, bytes memory location){
         ...
     }
@@ -135,10 +138,11 @@ npx hardhat test
     ```bash
     yarn hardhat deploy --network goerli --tags protocol --export-all deployments.ts
     ```
+
 ### Other commands
 
-| Command                                                                                            | Description                                                                                                                           |
-|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| ``` yarn hardhat generate:deployments ```                                                          | Generate deployments markdown in [./docs/deployments.md](./docs/deployments.md) from [./deployments.ts](./deployments.ts)             |
-| ``` yarn hardhat verify --network goerli <contract_address> <initial_owner> ```                    | Verify Registry contract(s)<br/>  Applicable for<br/> - SafeProtocolRegistry.sol<br/> - TestSafeProtocolRegistryUnrestricted.sol<br/> |
-| ``` yarn hardhat verify --network goerli <contract_address> <initial_owner> <registry_address> ``` | Verify SafeProtocolManager.sol                                                                                                        |
+| Command                                                                                      | Description                                                                                                                          |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `yarn hardhat generate:deployments`                                                          | Generate deployments markdown in [./docs/deployments.md](./docs/deployments.md) from [./deployments.ts](./deployments.ts)            |
+| `yarn hardhat verify --network goerli <contract_address> <initial_owner>`                    | Verify Registry contract(s)<br/> Applicable for<br/> - SafeProtocolRegistry.sol<br/> - TestSafeProtocolRegistryUnrestricted.sol<br/> |
+| `yarn hardhat verify --network goerli <contract_address> <initial_owner> <registry_address>` | Verify SafeProtocolManager.sol                                                                                                       |

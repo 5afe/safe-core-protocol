@@ -14,27 +14,31 @@ describe("RegistryManager", async () => {
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
         [deployer, owner, user1] = await hre.ethers.getSigners();
-        const safe = await hre.ethers.deployContract("TestExecutor", [ZeroAddress], { signer: deployer });
-        const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [safe.target], { signer: deployer });
+        const account = await hre.ethers.deployContract("TestExecutor", [ZeroAddress], { signer: deployer });
+        const safeProtocolRegistry = await hre.ethers.deployContract("SafeProtocolRegistry", [account.target], { signer: deployer });
 
-        const registryManager = await hre.ethers.deployContract("RegistryManager", [await safeProtocolRegistry.getAddress(), safe.target], {
-            signer: deployer,
-        });
+        const registryManager = await hre.ethers.deployContract(
+            "RegistryManager",
+            [await safeProtocolRegistry.getAddress(), account.target],
+            {
+                signer: deployer,
+            },
+        );
 
-        await safe.setFallbackHandler(registryManager.target);
+        await account.setFallbackHandler(registryManager.target);
 
-        return { registryManager, safeProtocolRegistry, safe };
+        return { registryManager, safeProtocolRegistry, account };
     });
 
     it("Should revert when registry address does not implement valid interfaceId", async () => {
-        const { registryManager, safe } = await setupTests();
+        const { registryManager, account } = await setupTests();
 
         const dataSetZeroAddressAsRegistry = registryManager.interface.encodeFunctionData("setRegistry", [ZeroAddress]);
-        expect(safe.executeCallViaMock(safe.target, 0n, dataSetZeroAddressAsRegistry, MaxUint256)).to.be.revertedWithoutReason;
+        expect(account.executeCallViaMock(account.target, 0n, dataSetZeroAddressAsRegistry, MaxUint256)).to.be.revertedWithoutReason;
 
         const registry = await getMockRegistryWithInvalidInterfaceSupport();
         const data = registryManager.interface.encodeFunctionData("setRegistry", [registry.target]);
-        await expect(safe.executeCallViaMock(safe.target, 0n, data, MaxUint256)).to.be.revertedWithCustomError(
+        await expect(account.executeCallViaMock(account.target, 0n, data, MaxUint256)).to.be.revertedWithCustomError(
             registryManager,
             "ContractDoesNotImplementValidInterfaceId",
         );
@@ -47,7 +51,7 @@ describe("RegistryManager", async () => {
     });
 
     it("Should emit RegistryChanged change event when registry is updated", async () => {
-        const { registryManager, safe } = await setupTests();
+        const { registryManager, account } = await setupTests();
 
         const safeProtocolRegistryAddress = await (
             await hre.ethers.deployContract("SafeProtocolRegistry", [owner.address], { signer: deployer })
@@ -56,7 +60,7 @@ describe("RegistryManager", async () => {
         const data = registryManager.interface.encodeFunctionData("setRegistry", [safeProtocolRegistryAddress]);
         const oldRegistryAddress = await registryManager.registry.staticCall();
 
-        await expect(safe.executeCallViaMock(safe.target, 0n, data, MaxUint256))
+        await expect(account.executeCallViaMock(account.target, 0n, data, MaxUint256))
             .to.emit(registryManager, "RegistryChanged")
             .withArgs(oldRegistryAddress, safeProtocolRegistryAddress);
 
@@ -64,19 +68,19 @@ describe("RegistryManager", async () => {
     });
 
     it("Should not allow non-owner to update registry", async () => {
-        const safe = await hre.ethers.deployContract("TestExecutor", [ZeroAddress]);
+        const account = await hre.ethers.deployContract("TestExecutor", [ZeroAddress]);
 
         const { registryManager } = await setupTests();
-        await safe.setModule(await registryManager.getAddress());
+        await account.setModule(await registryManager.getAddress());
 
         await expect(registryManager.connect(user1).setRegistry(ZeroAddress)).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should block calls to setRegistry(address) when caller address is not appended to calldata", async () => {
-        const { registryManager, safe } = await setupTests();
+        const { registryManager, account } = await setupTests();
         const data = registryManager.interface.encodeFunctionData("setRegistry", [ZeroAddress]);
 
-        await expect(safe.executeCallViaMock(registryManager.target, 0n, data, MaxUint256)).to.be.revertedWithCustomError(
+        await expect(account.executeCallViaMock(registryManager.target, 0n, data, MaxUint256)).to.be.revertedWithCustomError(
             registryManager,
             "InvalidSender",
         );

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafe} from "../interfaces/Accounts.sol";
+import {IAccount} from "../interfaces/Accounts.sol";
 
-contract TestExecutor is ISafe {
+contract TestExecutor is IAccount {
     address public module;
     address[] public owners;
     address public fallbackHandler;
