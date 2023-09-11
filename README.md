@@ -94,7 +94,7 @@ contract SamplePlugin is ISafeProtocolPlugin {
         ...
     }
 
-    function requiresRootAccess() external view returns (bool requiresRootAccess){
+    function requiresPermissions() external view returns (uint8 permissions){
         ...
     }
 

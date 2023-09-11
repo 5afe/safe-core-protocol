@@ -107,7 +107,7 @@ describe("SafeProtocolRegistry", async () => {
         const mockPluginAddress = (await getPluginWithFailingCallToSupportsInterfaceMethod()).target;
         await expect(safeProtocolRegistry.connect(owner).addModule(mockPluginAddress, ModuleType.Plugin))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
-            .withArgs(mockPluginAddress, "0x3fce835e");
+            .withArgs(mockPluginAddress, "0x6930ebcc");
     });
 
     it("Should revert when adding function handler not supporting expected interfaceId", async () => {
