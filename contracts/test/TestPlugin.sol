@@ -5,7 +5,7 @@ import {ISafe} from "../interfaces/Accounts.sol";
 import {ISafeProtocolPlugin} from "../interfaces/Modules.sol";
 import {ISafeProtocolManager} from "../interfaces/Manager.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
-import {PLUGIN_PERMISSION_NONE, PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_CALL_TO_SELF, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "../common/Constants.sol";
+import {PLUGIN_PERMISSION_NONE, PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "../common/Constants.sol";
 
 abstract contract BaseTestPlugin is ISafeProtocolPlugin {
     string public name = "";

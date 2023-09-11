@@ -194,7 +194,6 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         }
 
         if (senderSentinelPlugin.nextPluginPointer == address(0)) {
-            senderSentinelPlugin.permissions = 0;
             senderSentinelPlugin.nextPluginPointer = SENTINEL_MODULES;
         }
 
