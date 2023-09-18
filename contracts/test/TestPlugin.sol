@@ -5,24 +5,33 @@ import {ISafe} from "../interfaces/Accounts.sol";
 import {ISafeProtocolPlugin} from "../interfaces/Modules.sol";
 import {ISafeProtocolManager} from "../interfaces/Manager.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
+import {PLUGIN_PERMISSION_NONE, PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "../common/Constants.sol";
 
 abstract contract BaseTestPlugin is ISafeProtocolPlugin {
     string public name = "";
     string public version = "";
-    bool public requiresRootAccess = false;
+    uint8 public permissions = PLUGIN_PERMISSION_NONE;
 
     function metadataProvider() external view override returns (uint256 providerType, bytes memory location) {}
 
-    function setRequiresRootAccess(bool _requiresRootAccess) external {
-        requiresRootAccess = _requiresRootAccess;
+    function setRequiresPermissions(uint8 _requiresPermission) external {
+        permissions = _requiresPermission;
     }
 
     function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
         return interfaceId == type(ISafeProtocolPlugin).interfaceId || interfaceId == 0x01ffc9a7;
     }
+
+    function requiresPermissions() external view override returns (uint8) {
+        return permissions;
+    }
 }
 
 contract TestPlugin is BaseTestPlugin {
+    constructor() {
+        permissions = PLUGIN_PERMISSION_EXECUTE_CALL;
+    }
+
     function executeFromPlugin(
         ISafeProtocolManager manager,
         ISafe safe,
@@ -34,7 +43,7 @@ contract TestPlugin is BaseTestPlugin {
 
 contract TestPluginWithRootAccess is TestPlugin {
     constructor() {
-        requiresRootAccess = true;
+        permissions = PLUGIN_PERMISSION_EXECUTE_DELEGATECALL;
     }
 
     function executeRootAccessTxFromPlugin(

@@ -5,7 +5,7 @@ export default {
       "chainId": "5",
       "contracts": {
         "SafeProtocolManager": {
-          "address": "0x21c857DdbAfD4D55b75bb53E897083a8Ad023043",
+          "address": "0x58C7e65f08FB26220BA3A124C021db04F1Fa987B",
           "abi": [
             {
               "inputs": [
@@ -138,6 +138,32 @@ export default {
                   "type": "address"
                 },
                 {
+                  "internalType": "uint8",
+                  "name": "pluginRequires",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "requiredPermission",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "givenPermission",
+                  "type": "uint8"
+                }
+              ],
+              "name": "MissingPluginPermission",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "plugin",
+                  "type": "address"
+                },
+                {
                   "internalType": "uint64",
                   "name": "listedAt",
                   "type": "uint64"
@@ -149,27 +175,6 @@ export default {
                 }
               ],
               "name": "ModuleNotPermitted",
-              "type": "error"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "plugin",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "requiresRootAccess",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "providedValue",
-                  "type": "bool"
-                }
-              ],
-              "name": "PluginAccessMismatch",
               "type": "error"
             },
             {
@@ -196,7 +201,7 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "PluginEnabledOnlyForRootAccess",
+              "name": "PluginNotEnabled",
               "type": "error"
             },
             {
@@ -205,20 +210,19 @@ export default {
                   "internalType": "address",
                   "name": "plugin",
                   "type": "address"
-                }
-              ],
-              "name": "PluginNotEnabled",
-              "type": "error"
-            },
-            {
-              "inputs": [
+                },
                 {
-                  "internalType": "address",
-                  "name": "sender",
-                  "type": "address"
+                  "internalType": "uint8",
+                  "name": "requiredPermissions",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "givenPermissions",
+                  "type": "uint8"
                 }
               ],
-              "name": "PluginRequiresRootAccess",
+              "name": "PluginPermissionsMismatch",
               "type": "error"
             },
             {
@@ -385,9 +389,9 @@ export default {
                 },
                 {
                   "indexed": false,
-                  "internalType": "bool",
-                  "name": "allowRootAccess",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 }
               ],
               "name": "PluginEnabled",
@@ -588,9 +592,9 @@ export default {
                   "type": "address"
                 },
                 {
-                  "internalType": "bool",
-                  "name": "allowRootAccess",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 }
               ],
               "name": "enablePlugin",
@@ -633,9 +637,9 @@ export default {
               "name": "enabledPlugins",
               "outputs": [
                 {
-                  "internalType": "bool",
-                  "name": "rootAddressGranted",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 },
                 {
                   "internalType": "address",
@@ -847,9 +851,9 @@ export default {
                 {
                   "components": [
                     {
-                      "internalType": "bool",
-                      "name": "rootAddressGranted",
-                      "type": "bool"
+                      "internalType": "uint8",
+                      "name": "permissions",
+                      "type": "uint8"
                     },
                     {
                       "internalType": "address",
@@ -1072,7 +1076,7 @@ export default {
           ]
         },
         "SafeProtocolRegistry": {
-          "address": "0xa86d16b615B6Eb5F55dD3ab458f491ff76d783aD",
+          "address": "0x8a0867Ea064634D5DDACe9c0b771c94BBbbA45E5",
           "abi": [
             {
               "inputs": [
@@ -1346,7 +1350,7 @@ export default {
           ]
         },
         "TestSafeProtocolManager": {
-          "address": "0xf7d2AEC4bd5bAF8c032a2c9ee9D3a71c79Fe92E0",
+          "address": "0xe66Df174ba0C3b8D876c0b4e7224e3Ec951590A2",
           "abi": [
             {
               "inputs": [
@@ -1479,6 +1483,32 @@ export default {
                   "type": "address"
                 },
                 {
+                  "internalType": "uint8",
+                  "name": "pluginRequires",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "requiredPermission",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "givenPermission",
+                  "type": "uint8"
+                }
+              ],
+              "name": "MissingPluginPermission",
+              "type": "error"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "plugin",
+                  "type": "address"
+                },
+                {
                   "internalType": "uint64",
                   "name": "listedAt",
                   "type": "uint64"
@@ -1490,27 +1520,6 @@ export default {
                 }
               ],
               "name": "ModuleNotPermitted",
-              "type": "error"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "plugin",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "requiresRootAccess",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "providedValue",
-                  "type": "bool"
-                }
-              ],
-              "name": "PluginAccessMismatch",
               "type": "error"
             },
             {
@@ -1537,7 +1546,7 @@ export default {
                   "type": "address"
                 }
               ],
-              "name": "PluginEnabledOnlyForRootAccess",
+              "name": "PluginNotEnabled",
               "type": "error"
             },
             {
@@ -1546,20 +1555,19 @@ export default {
                   "internalType": "address",
                   "name": "plugin",
                   "type": "address"
-                }
-              ],
-              "name": "PluginNotEnabled",
-              "type": "error"
-            },
-            {
-              "inputs": [
+                },
                 {
-                  "internalType": "address",
-                  "name": "sender",
-                  "type": "address"
+                  "internalType": "uint8",
+                  "name": "requiredPermissions",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "givenPermissions",
+                  "type": "uint8"
                 }
               ],
-              "name": "PluginRequiresRootAccess",
+              "name": "PluginPermissionsMismatch",
               "type": "error"
             },
             {
@@ -1726,9 +1734,9 @@ export default {
                 },
                 {
                   "indexed": false,
-                  "internalType": "bool",
-                  "name": "allowRootAccess",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 }
               ],
               "name": "PluginEnabled",
@@ -1929,9 +1937,9 @@ export default {
                   "type": "address"
                 },
                 {
-                  "internalType": "bool",
-                  "name": "allowRootAccess",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 }
               ],
               "name": "enablePlugin",
@@ -1974,9 +1982,9 @@ export default {
               "name": "enabledPlugins",
               "outputs": [
                 {
-                  "internalType": "bool",
-                  "name": "rootAddressGranted",
-                  "type": "bool"
+                  "internalType": "uint8",
+                  "name": "permissions",
+                  "type": "uint8"
                 },
                 {
                   "internalType": "address",
@@ -2188,9 +2196,9 @@ export default {
                 {
                   "components": [
                     {
-                      "internalType": "bool",
-                      "name": "rootAddressGranted",
-                      "type": "bool"
+                      "internalType": "uint8",
+                      "name": "permissions",
+                      "type": "uint8"
                     },
                     {
                       "internalType": "address",
@@ -2420,7 +2428,7 @@ export default {
           ]
         },
         "TestSafeProtocolRegistryUnrestricted": {
-          "address": "0x770e690c7B1063AdF4E29a610Bba207999c41708",
+          "address": "0xd6623271F1ecC70c37CADc78AB0ECcF972Ab6A01",
           "abi": [
             {
               "inputs": [

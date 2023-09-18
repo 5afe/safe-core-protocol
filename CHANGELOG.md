@@ -2,6 +2,20 @@
 
 This changelog contains changes starting from version v0.1.0
 
+# Version 0.2.1 Alpha
+
+## Safe{Core} Protocol contracts
+
+### Changes
+
+- Implement fine grained permissions [#98](https://github.com/safe-global/safe-core-protocol/pull/98)
+
+  Implement more granular permissions for plugins
+
+- Remove ISafe interface in the function handler [#99](https://github.com/safe-global/safe-core-protocol/pull/99)
+
+  Replace ISafe interface in the function handler parameters with an account address
+
 # Version 0.2.0
 
 ## Safe{Core} Protocol contracts
