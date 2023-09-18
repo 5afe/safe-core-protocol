@@ -14,7 +14,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 interface ISafeProtocolFunctionHandler is IERC165 {
     /**
      * @notice Handles calls to the Safe contract forwarded by the fallback function.
-     * @param safe A Safe instance
+     * @param safe A Safe address
      * @param sender Address of the sender
      * @param value Amount of ETH
      * @param data Arbitrary length bytes
@@ -41,13 +41,13 @@ interface ISafeProtocolFunctionHandler is IERC165 {
 interface ISafeProtocolStaticFunctionHandler is IERC165 {
     /**
      * @notice Handles static calls to the Safe contract forwarded by the fallback function.
-     * @param safe A Safe instance
+     * @param safe A Safe address
      * @param sender Address of the sender
      * @param value Amount of ETH
      * @param data Arbitrary length bytes
      * @return result Arbitrary length bytes containing result of the operation
      */
-    function handle(ISafe safe, address sender, uint256 value, bytes calldata data) external view returns (bytes memory result);
+    function handle(address safe, address sender, uint256 value, bytes calldata data) external view returns (bytes memory result);
 
     /**
      * @notice A function that returns information about the type of metadata provider and its location.
