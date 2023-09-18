@@ -40,6 +40,7 @@ jobs:
             - name: Verify rule ${{ matrix.rule }}
               run: |
                   echo "key length" ${#CERTORAKEY}
+                  chmod +x ./certora/scripts/${{ matrix.rule }}
                   ./certora/scripts/${{ matrix.rule }}
               env:
                   CERTORAKEY: ${{ secrets.CERTORA_KEY }}
