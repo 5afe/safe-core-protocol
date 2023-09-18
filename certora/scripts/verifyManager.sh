@@ -6,9 +6,9 @@ if [[ -n "$CI" ]]; then
     params=()
 fi
 
-certoraRun contracts/SafeProtocolManager.sol \
+certoraRun contracts/SafeProtocolManager.sol contracts/SafeProtocolRegistry.sol contracts/test/TestExecutorCertora.sol \
     --verify SafeProtocolManager:certora/specs/Manager.spec \
-    --solc solc8.18 \
+    --link "SafeProtocolManager:registry=SafeProtocolRegistry" \
     --optimistic_loop \
     --loop_iter 3 \
     --optimistic_hashing \
