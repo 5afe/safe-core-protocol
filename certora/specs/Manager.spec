@@ -1,13 +1,14 @@
 using SafeProtocolRegistry as contractRegistry;
 using TestExecutorCertora as testExecutorCertora;
+using TestFunctionHandlerCertora as testFunctionHandlerCertora;
 
 methods {
     function setRegistry(address) external;
     function registry() external returns (address) envfree;
 
     function _.supportsInterface(bytes4) external => DISPATCHER(true);
-
     function testExecutorCertora.called() external returns (bool) envfree;
+
     function contractRegistry.check(address module) external returns (uint64, uint64) envfree;
     function _.execTransactionFromModule(
         address,
@@ -28,10 +29,20 @@ methods {
         SafeProtocolManager.SafeTransaction,
         uint256,
         bytes 
-    ) external => NONDET;
+    ) external => CONSTANT;
 
-    function _.postCheck(address, bool, bytes) external => NONDET;
+    function _.preCheckRootAccess(
+        address,
+        SafeProtocolManager.SafeTransaction,
+        uint256,
+        bytes 
+    ) external => CONSTANT;
 
+    function _.postCheck(address, bool, bytes) external => CONSTANT;
+
+    function _.handle(address, address, uint256, bytes) external => DISPATCHER(true);
+
+    function testFunctionHandlerCertora.called() external returns (bool) envfree;
 }
 
 rule onlyOwnerCanSetRegistry (method f) filtered {
@@ -62,11 +73,14 @@ rule onlyEnabledAndListedPluginCanExecuteCall(){
     listedAt, flagged = contractRegistry.check(e.msg.sender);
 
     assert testExecutorCertora.called() => (listedAt > 0 && flagged == 0);
+    assert testFunctionHandlerCertora.called() => (listedAt > 0 && flagged == 0);
+
 }
 
 rule hooksUpdates(address safe, SafeProtocolManager.SafeTransaction transactionData){
 
-    method f; env e; calldataarg args;
+    // method f;
+    env e; calldataarg args;
     storage initialStorage = lastStorage;
     executeTransaction(e, safe, transactionData);
 
@@ -76,4 +90,5 @@ rule hooksUpdates(address safe, SafeProtocolManager.SafeTransaction transactionD
     executeTransaction@withrevert(e, safe, transactionData);
 
     assert !lastReverted;
+
 }
