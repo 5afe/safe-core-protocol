@@ -1,10 +1,14 @@
 using SafeProtocolRegistry as contractRegistry;
 using TestExecutorCertora as testExecutorCertora;
 using TestFunctionHandlerCertora as testFunctionHandlerCertora;
+using TestHooksCertora as testHooksCertora;
+using TestExecutorCertoraOther as testExecutorCertoraOther;
+using TestPlugin as testPlugin;
 
 methods {
     function setRegistry(address) external;
     function registry() external returns (address) envfree;
+    function tempHooksData(address) external returns (address, bytes) envfree;
 
     function _.supportsInterface(bytes4) external => DISPATCHER(true);
     function testExecutorCertora.called() external returns (bool) envfree;
@@ -29,20 +33,24 @@ methods {
         SafeProtocolManager.SafeTransaction,
         uint256,
         bytes 
-    ) external => CONSTANT;
+    ) external => DISPATCHER(true);
 
     function _.preCheckRootAccess(
         address,
-        SafeProtocolManager.SafeTransaction,
+        SafeProtocolManager.SafeRootAccess,
         uint256,
-        bytes 
-    ) external => CONSTANT;
+        bytes
+    ) external => DISPATCHER(true);
 
-    function _.postCheck(address, bool, bytes) external => CONSTANT;
+    function _.postCheck(address, bool, bytes) external => DISPATCHER(true);
 
     function _.handle(address, address, uint256, bytes) external => DISPATCHER(true);
 
     function testFunctionHandlerCertora.called() external returns (bool) envfree;
+
+    function testHooksCertora.called() external returns (bool) envfree;
+
+    function _.requiresPermissions() external => DISPATCHER(true);
 }
 
 rule onlyOwnerCanSetRegistry (method f) filtered {
@@ -60,10 +68,16 @@ rule onlyOwnerCanSetRegistry (method f) filtered {
 
 }
 
-rule onlyEnabledAndListedPluginCanExecuteCall(){
+rule onlyEnabledAndListedPluginCanExecuteCall() {
+
+
     method f; env e; calldataarg args;
 
+    requireInvariant tempHooksStorage(e.msg.sender);
+
     require(testExecutorCertora.called() == false);
+    require(testFunctionHandlerCertora.called() == false);
+    require(testHooksCertora.called() == false);
 
     f(e, args);
 
@@ -73,7 +87,21 @@ rule onlyEnabledAndListedPluginCanExecuteCall(){
     listedAt, flagged = contractRegistry.check(e.msg.sender);
 
     assert testExecutorCertora.called() => (listedAt > 0 && flagged == 0);
-    assert testFunctionHandlerCertora.called() => (listedAt > 0 && flagged == 0);
+
+    uint64 listedAtHandler;
+    uint64 flaggedHandler;
+
+    listedAtHandler, flaggedHandler = contractRegistry.check(testFunctionHandlerCertora);
+
+    assert testFunctionHandlerCertora.called() => (listedAtHandler > 0 && flaggedHandler == 0);
+
+
+    uint64 listedAtHooks;
+    uint64 flaggedHooks;
+
+    listedAtHooks, flaggedHooks = contractRegistry.check(testHooksCertora);
+
+    assert testHooksCertora.called() => (listedAtHooks > 0 && flaggedHooks == 0);
 
 }
 
@@ -91,4 +119,30 @@ rule hooksUpdates(address safe, SafeProtocolManager.SafeTransaction transactionD
 
     assert !lastReverted;
 
+}
+
+function checkListedAndNotFlagged(address module) returns bool {
+    uint64 listedAtHooks;
+    uint64 flaggedHooks;
+    listedAtHooks, flaggedHooks = contractRegistry.check(module);
+    return (listedAtHooks > 0 && flaggedHooks == 0);
+}
+
+function getTempHooksData(address account) returns address {
+    address hooksAddress;
+    bytes hooksData;
+    hooksAddress, hooksData = tempHooksData(account);
+    return hooksAddress;
+}
+
+invariant tempHooksStorage(address plugin) 
+    getTempHooksData(plugin) != 0 => checkListedAndNotFlagged(getTempHooksData(plugin));
+
+rule onlyOneStorageUpdates{
+    storage before = lastStorage;
+    method f; env e; calldataarg args;
+    f(e, args);
+    storage after = lastStorage;
+    // Either storage of testExecutorCertora is updated or storage of testExecutorCertoraOther is updated
+    assert (before[testExecutorCertora] == after[testExecutorCertora]) || (before[testExecutorCertoraOther] == after[testExecutorCertoraOther]);
 }

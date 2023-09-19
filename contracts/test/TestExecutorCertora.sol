@@ -7,6 +7,7 @@ contract TestExecutorCertora is ISafe {
     address public module;
     address[] public owners;
     address public fallbackHandler;
+    bytes public data;
 
     constructor(address _fallbackHandler) {
         fallbackHandler = _fallbackHandler;
@@ -39,6 +40,7 @@ contract TestExecutorCertora is ISafe {
         uint8 operation
     ) external returns (bool success) {
         called = true;
+        success = true;
     }
 
     function execTransactionFromModuleReturnData(
@@ -48,6 +50,8 @@ contract TestExecutorCertora is ISafe {
         uint8 operation
     ) public returns (bool success, bytes memory returnData) {
         called = true;
+        success = true;
+        returnData = data;
     }
 
     function executeCallViaMock(
