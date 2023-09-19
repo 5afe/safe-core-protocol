@@ -4,6 +4,9 @@ using TestExecutorCertora as testExecutorCertora;
 methods {
     function setRegistry(address) external;
     function registry() external returns (address) envfree;
+
+    function _.supportsInterface(bytes4) external => DISPATCHER(true);
+
     function testExecutorCertora.called() external returns (bool) envfree;
     function contractRegistry.check(address module) external returns (uint64, uint64) envfree;
     function _.execTransactionFromModule(
@@ -61,14 +64,16 @@ rule onlyEnabledAndListedPluginCanExecuteCall(){
     assert testExecutorCertora.called() => (listedAt > 0 && flagged == 0);
 }
 
-rule hookUpdates(){
+rule hooksUpdates(address safe, SafeProtocolManager.SafeTransaction transactionData){
+
     method f; env e; calldataarg args;
     storage initialStorage = lastStorage;
-    f(e, args);
+    executeTransaction(e, safe, transactionData);
 
     env e2;
     setHooks(e2, 0) at initialStorage;
-    f@withrevert(e, args);
+
+    executeTransaction@withrevert(e, safe, transactionData);
 
     assert !lastReverted;
 }
