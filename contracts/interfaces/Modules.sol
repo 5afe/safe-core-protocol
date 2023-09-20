@@ -6,8 +6,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ISafeProtocolFunctionHandler - An interface that an Account function handler should implement to handle static calls.
- * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
- *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the Safe
+ * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to an account.
+ *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the account
  *         and enable the contract implementing ISafeProtocolFunctionHandler interface as a function handler in the
  *         SafeProtocolManager for the specific function identifier.
  */
@@ -33,8 +33,8 @@ interface ISafeProtocolFunctionHandler is IERC165 {
 
 /**
  * @title ISafeProtocolStaticFunctionHandler - An interface that a Safe{Core} Protocol Function handler should implement in case when handling static calls
- * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to a Safe.
- *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the Safe
+ * @notice In Safe{Core} Protocol, a function handler can be used to add additional functionality to an account.
+ *         User(s) should add SafeProtocolManager as a function handler (aka fallback handler in Safe v1.x) to the account
  *         and enable the contract implementing ISafeProtocolStaticFunctionHandler interface as a function handler in the
  *         SafeProtocolManager for the specific function identifier.
  */

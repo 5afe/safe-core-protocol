@@ -22,7 +22,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**
-     * @notice Mapping of a mapping what stores information about plugins that are enabled per Safe.
+     * @notice Mapping of a mapping what stores information about plugins that are enabled per account.
      *         address (Account address) => address (module address) => EnabledPluginInfo
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
@@ -65,7 +65,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice This function executes non-delegate call(s) on an account if the plugin is enabled for the Account.
      *         If any one of the actions fail, the transaction reverts.
      * @dev Restrict the `to` field in the actions so that a module cannot execute an action that changes the config such as
-     *      enabling/disabling other modules or make changes to its own access level for a Safe.
+     *      enabling/disabling other modules or make changes to its own access level for an account.
      *      In future, evaluate use of fine granined permissions model executing actions.
      *      For more information, follow the disuccsion here: https://github.com/safe-global/safe-protocol-specs/discussions/7.
      * @param account Target account address
@@ -203,7 +203,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     }
 
     /**
-     * @notice Disable a plugin. This function should be called by Safe.
+     * @notice Disable a plugin. This function should be called by account.
      * @param plugin Plugin to be disabled
      */
     function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {

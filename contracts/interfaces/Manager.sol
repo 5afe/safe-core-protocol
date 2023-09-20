@@ -11,7 +11,7 @@ import {SafeRootAccess, SafeTransaction} from "../DataTypes.sol";
  */
 interface ISafeProtocolManager {
     /**
-     * @notice This function allows enabled plugins to execute non-delegate call transactions thorugh a Safe.
+     * @notice This function allows enabled plugins to execute non-delegate call transactions through a account.
      *         It should validate the status of the plugin through the registry and allows only listed and non-flagged modules to execute transactions.
      * @param account Address of an account
      * @param transaction SafeTransaction instance containing payload information about the transaction
@@ -21,7 +21,7 @@ interface ISafeProtocolManager {
     function executeTransaction(address account, SafeTransaction calldata transaction) external returns (bytes[] memory data);
 
     /**
-     * @notice This function allows enabled plugins to execute delegate call transactions thorugh a Safe.
+     * @notice This function allows enabled plugins to execute delegate call transactions through a account.
      *         It should validate the status of the plugin through the registry and allows only listed and non-flagged modules to execute transactions.
      * @param account Address of an account
      * @param rootAccess SafeTransaction instance containing payload information about the transaction
