@@ -103,7 +103,7 @@ describe("SafeProtocolManager", async () => {
                 ]);
                 await expect(account.exec(await safeProtocolManager.getAddress(), 0, data))
                     .to.be.revertedWithCustomError(safeProtocolManager, "ModuleNotPermitted")
-                    .withArgs(pluginAddress, 0, 0);
+                    .withArgs(pluginAddress, 0, 0, 0);
             });
 
             it("Should not allow an Account to enable plugin that does not support ERC165", async () => {

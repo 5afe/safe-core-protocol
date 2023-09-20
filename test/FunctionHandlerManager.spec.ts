@@ -1,11 +1,12 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
-import { MODULE_TYPE_FUNCTION_HANDLER } from "../src/utils/constants";
+import { MODULE_TYPE_FUNCTION_HANDLER, MODULE_TYPE_HOOKS } from "../src/utils/constants";
 import { expect } from "chai";
 import { getInstance } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
 import { ISafeProtocolFunctionHandler__factory, MockContract } from "../typechain-types";
+import { getHooksWithPassingChecks } from "./utils/mockHooksBuilder";
 
 describe("FunctionHandler", async () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress, user1: SignerWithAddress;
@@ -99,7 +100,24 @@ describe("FunctionHandler", async () => {
 
         await expect(account.executeCallViaMock(account.target, 0, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
-            .withArgs(user1.address, 0, 0);
+            .withArgs(user1.address, 0, 0, 0);
+    });
+
+    it("Should not allow invalid module type as function handler", async () => {
+        const { functionHandlerManager, safeProtocolRegistry, account } = await setupTests();
+        const module = await getHooksWithPassingChecks();
+        await safeProtocolRegistry.connect(owner).addModule(module.target, MODULE_TYPE_HOOKS);
+
+        const dataSetFunctionHandler = functionHandlerManager.interface.encodeFunctionData("setFunctionHandler", [
+            "0x00000000",
+            module.target,
+        ]);
+
+        const moduleInfo = await safeProtocolRegistry.check(module.target);
+
+        await expect(account.executeCallViaMock(account.target, 0, dataSetFunctionHandler, MaxUint256))
+            .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
+            .withArgs(module.target, moduleInfo.listedAt, 0, MODULE_TYPE_HOOKS);
     });
 
     it("Should revert with FunctionHandlerNotSet when function handler is not enabled", async () => {
