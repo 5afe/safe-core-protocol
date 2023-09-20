@@ -54,6 +54,15 @@ describe("SafeProtocolRegistry", async () => {
         expect(moduleTypes2).to.be.equal(MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
     });
 
+    it("Should not allow adding a module with invalid moduleTypes", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+        const mockHookAddress = (await getHooksWithPassingChecks()).target;
+
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, 8))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotAddModule")
+            .withArgs(mockHookAddress, 8);
+    });
+
     it("Should not allow non-owner to add a module", async () => {
         const { safeProtocolRegistry } = await setupTests();
         await expect(safeProtocolRegistry.connect(user1).addModule(AddressZero, MODULE_TYPE_HOOKS)).to.be.revertedWith(

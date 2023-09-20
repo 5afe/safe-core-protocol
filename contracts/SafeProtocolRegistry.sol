@@ -17,7 +17,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     }
 
     error CannotFlagModule(address module);
-    error CannotAddModule(address module);
+    error CannotAddModule(address module, uint8 moduleTypes);
     error ModuleDoesNotSupportExpectedInterfaceId(address module, bytes4 expectedInterfaceId);
 
     event ModuleAdded(address indexed module);
@@ -53,8 +53,10 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     function _addModule(address module, uint8 moduleTypes) internal {
         ModuleInfo memory moduleInfo = listedModules[module];
 
-        if (moduleInfo.listedAt != 0) {
-            revert CannotAddModule(module);
+        // Check if module is already listed or if moduleTypes is greater than 8.
+        // Maximum allowed value of moduleTypes is 7. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks)
+        if (moduleInfo.listedAt != 0 || moduleTypes > 7) {
+            revert CannotAddModule(module, moduleTypes);
         }
 
         // Check if module supports expected interface
