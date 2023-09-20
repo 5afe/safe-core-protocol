@@ -44,31 +44,37 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
      * @notice Allows only owner to add a module. A module can be any address including zero address for now.
      *         This function does not permit adding a module twice. This function validates if module supports expected interfaceId.
      * @param module Address of the module
-     * @param moduleType Enum.ModuleType indicating the type of module
+     * @param moduleTypes uint8 indicating the types of module
      */
-    function addModule(address module, uint8 moduleType) external virtual onlyOwner {
-        _addModule(module, moduleType);
+    function addModule(address module, uint8 moduleTypes) external virtual onlyOwner {
+        _addModule(module, moduleTypes);
     }
 
-    function _addModule(address module, uint8 moduleType) internal {
+    function _addModule(address module, uint8 moduleTypes) internal {
         ModuleInfo memory moduleInfo = listedModules[module];
 
-        if (moduleInfo.listedAt != 0 && moduleInfo.moduleTypes & moduleType == moduleType) {
+        if (moduleInfo.listedAt != 0) {
             revert CannotAddModule(module);
         }
 
         // Check if module supports expected interface
-        if (moduleType == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
+        if (
+            moduleTypes & MODULE_TYPE_HOOKS == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)
+        ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
-        } else if (moduleType == MODULE_TYPE_PLUGIN && !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)) {
+        } else if (
+            moduleTypes & MODULE_TYPE_PLUGIN == MODULE_TYPE_PLUGIN &&
+            !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
+        ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
         } else if (
-            moduleType == MODULE_TYPE_FUNCTION_HANDLER && !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
+            moduleTypes & MODULE_TYPE_FUNCTION_HANDLER == MODULE_TYPE_FUNCTION_HANDLER &&
+            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
         ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
         }
 
-        listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleType);
+        listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleTypes);
         emit ModuleAdded(module);
     }
 

@@ -1,4 +1,4 @@
-import { ethers, deployments } from "hardhat";
+import hre, { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
@@ -17,7 +17,7 @@ describe("SafeProtocolRegistry", async () => {
         return { safeProtocolRegistry, mockFunctionHandlerAddress };
     });
 
-    it("Should allow add a module only once", async () => {
+    it("Should allow adding a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
@@ -26,6 +26,32 @@ describe("SafeProtocolRegistry", async () => {
             safeProtocolRegistry,
             "CannotAddModule",
         );
+    });
+
+    it("Should allow adding a module with multiple types", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+
+        const mockModule = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+        await mockModule.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry.connect(owner).addModule(mockModule, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER);
+
+        const [listedAt, flaggedAt, moduleTypes] = await safeProtocolRegistry.check.staticCall(mockModule.target);
+        expect(listedAt).to.be.greaterThan(0);
+        expect(flaggedAt).to.be.equal(0);
+        expect(moduleTypes).to.be.equal(MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER);
+
+        const mockModule2 = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+        await mockModule2.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry
+            .connect(owner)
+            .addModule(mockModule2, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
+
+        const [listedAt2, flaggedAt2, moduleTypes2] = await safeProtocolRegistry.check.staticCall(mockModule2.target);
+        expect(listedAt2).to.be.greaterThan(0);
+        expect(flaggedAt2).to.be.equal(0);
+        expect(moduleTypes2).to.be.equal(MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
     });
 
     it("Should not allow non-owner to add a module", async () => {
@@ -74,11 +100,12 @@ describe("SafeProtocolRegistry", async () => {
             .withArgs(mockHookAddress);
     });
 
-    it("Should return (0,0) for non-listed module", async () => {
+    it("Should return (0,0,0) for non-listed module", async () => {
         const { safeProtocolRegistry } = await setupTests();
-        const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(AddressZero);
+        const [listedAt, flaggedAt, moduleTypes] = await safeProtocolRegistry.check.staticCall(AddressZero);
         expect(listedAt).to.be.equal(0);
         expect(flaggedAt).to.be.equal(0);
+        expect(moduleTypes).to.be.equal(0);
     });
 
     it("Should return true when valid interfaceId is passed", async () => {
