@@ -36,7 +36,7 @@ title: Safe{Core} Protocol High-level Plugin execution flow
 flowchart TD;
    TxExecuteFromPlugin(Call to Plugin to execute tx ) --> ExamplePlugin1
    Account --> Execute_Transaction_From_Plugin(Execute transaction)
-   Validate_ExecuteFromPluginFlow -- Yes --> Account(Safe{Core} Protocol Account)
+   Validate_ExecuteFromPluginFlow -- Yes --> Account("Safe{Core} Protocol Account")
 subgraph Plugins
    ExamplePlugin1(Sample Plugin)
 end
