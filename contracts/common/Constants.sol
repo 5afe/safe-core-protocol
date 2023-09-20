@@ -9,5 +9,5 @@ uint8 constant PLUGIN_PERMISSION_EXECUTE_DELEGATECALL = 4;
 
 // Module types
 uint8 constant MODULE_TYPE_PLUGIN = 1;
-uint8 constant MODULE_TYPE_HOOKS = 2;
-uint8 constant MODULE_TYPE_FUNCTION_HANDLER = 4;
+uint8 constant MODULE_TYPE_FUNCTION_HANDLER = 2;
+uint8 constant MODULE_TYPE_HOOKS = 4;

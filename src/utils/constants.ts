@@ -5,5 +5,5 @@ export const PLUGIN_PERMISSION_DELEGATE_CALL = 4n;
 
 // Module types
 export const MODULE_TYPE_PLUGIN = 1n;
-export const MODULE_TYPE_HOOKS = 2n;
-export const MODULE_TYPE_FUNCTION_HANDLER = 4n;
+export const MODULE_TYPE_FUNCTION_HANDLER = 2n;
+export const MODULE_TYPE_HOOKS = 4n;
