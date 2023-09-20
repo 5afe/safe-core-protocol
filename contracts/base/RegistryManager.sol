@@ -13,8 +13,8 @@ contract RegistryManager is Ownable2Step, OnlyAccountCallable {
     error ModuleNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt);
     error ContractDoesNotImplementValidInterfaceId(address account);
 
-    modifier onlyPermittedModule(address module) {
-        checkPermittedModule(module);
+    modifier onlyPermittedModule(address module, uint8 moduleType) {
+        checkPermittedModule(module, moduleType);
         _;
     }
 
@@ -37,10 +37,10 @@ contract RegistryManager is Ownable2Step, OnlyAccountCallable {
      *         Reverts if given address is not-listed or flagged.
      * @param module Address of the module
      */
-    function checkPermittedModule(address module) internal view {
+    function checkPermittedModule(address module, uint8 moduleType) internal view {
         // Only allow registered and non-flagged modules
-        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module);
-        if (listedAt == 0 || flaggedAt != 0) {
+        (uint64 listedAt, uint64 flaggedAt, uint8 allowedModuleType) = ISafeProtocolRegistry(registry).check(module);
+        if (listedAt == 0 || flaggedAt != 0 || allowedModuleType & moduleType != moduleType) {
             revert ModuleNotPermitted(module, listedAt, flaggedAt);
         }
     }

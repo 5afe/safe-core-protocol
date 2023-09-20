@@ -33,10 +33,11 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
      * @return listedAt Timestamp of listing the module. This value will be 0 if not listed.
      * @return flaggedAt Timestamp of falgging the module. This value will be 0 if not flagged.
      */
-    function check(address module) external view returns (uint64 listedAt, uint64 flaggedAt) {
+    function check(address module) external view returns (uint64 listedAt, uint64 flaggedAt, uint8 moduleTypes) {
         ModuleInfo memory moduleInfo = listedModules[module];
         listedAt = moduleInfo.listedAt;
         flaggedAt = moduleInfo.flaggedAt;
+        moduleTypes = moduleInfo.moduleTypes;
     }
 
     /**

@@ -12,6 +12,7 @@ import {ISafeProtocolManager} from "./interfaces/Manager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
 import {PLUGIN_PERMISSION_NONE, PLUGIN_PERMISSION_EXECUTE_CALL, PLUGIN_PERMISSION_CALL_TO_SELF, PLUGIN_PERMISSION_EXECUTE_DELEGATECALL} from "./common/Constants.sol";
+import {MODULE_TYPE_PLUGIN} from "./common/Constants.sol";
 
 /**
  * @title SafeProtocolManager contract allows users of Accounts compatible with the Safe{Core} Protocol to enable
@@ -76,7 +77,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeTransaction(
         address account,
         SafeTransaction calldata transaction
-    ) external override onlyEnabledPlugin(account) onlyPermittedModule(msg.sender) returns (bytes[] memory data) {
+    ) external override onlyEnabledPlugin(account) onlyPermittedModule(msg.sender, MODULE_TYPE_PLUGIN) returns (bytes[] memory data) {
         address hooksAddress = enabledHooks[account];
         bool areHooksEnabled = hooksAddress != address(0);
         bytes memory preCheckData;
@@ -131,7 +132,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function executeRootAccess(
         address account,
         SafeRootAccess calldata rootAccess
-    ) external override onlyEnabledPlugin(account) onlyPermittedModule(msg.sender) returns (bytes memory data) {
+    ) external override onlyEnabledPlugin(account) onlyPermittedModule(msg.sender, MODULE_TYPE_PLUGIN) returns (bytes memory data) {
         SafeProtocolAction calldata safeProtocolAction = rootAccess.action;
 
         address hooksAddress = enabledHooks[account];
@@ -173,7 +174,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function enablePlugin(
         address plugin,
         uint8 permissions
-    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedModule(plugin) onlyAccount {
+    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedModule(plugin, MODULE_TYPE_PLUGIN) onlyAccount {
         // address(0) check omitted because it is not expected to enable it as a plugin and
         // call to it would fail. Additionally, registry should not permit address(0) as an module.
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
