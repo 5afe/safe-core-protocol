@@ -62,12 +62,16 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             moduleTypes & MODULE_TYPE_HOOKS == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)
         ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
-        } else if (
+        }
+
+        if (
             moduleTypes & MODULE_TYPE_PLUGIN == MODULE_TYPE_PLUGIN &&
             !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
         ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
-        } else if (
+        }
+
+        if (
             moduleTypes & MODULE_TYPE_FUNCTION_HANDLER == MODULE_TYPE_FUNCTION_HANDLER &&
             !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
         ) {
