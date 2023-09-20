@@ -2,7 +2,7 @@ import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { ModuleType } from "./utils/constants";
+import { MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER } from "../src/utils/constants";
 import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
 import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
 import { getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
@@ -21,8 +21,8 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
-        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
-        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks)).to.be.revertedWithCustomError(
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS);
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
             "CannotAddModule",
         );
@@ -30,7 +30,7 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should not allow non-owner to add a module", async () => {
         const { safeProtocolRegistry } = await setupTests();
-        await expect(safeProtocolRegistry.connect(user1).addModule(AddressZero, ModuleType.Hooks)).to.be.revertedWith(
+        await expect(safeProtocolRegistry.connect(user1).addModule(AddressZero, MODULE_TYPE_HOOKS)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
     });
@@ -46,7 +46,7 @@ describe("SafeProtocolRegistry", async () => {
     it("Should allow only owner to flag a module", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
-        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS);
 
         await expect(safeProtocolRegistry.connect(user1).flagModule(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
@@ -62,7 +62,7 @@ describe("SafeProtocolRegistry", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
-        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS);
 
         await expect(safeProtocolRegistry.connect(user1).flagModule(mockHookAddress)).to.be.revertedWith(
             "Ownable: caller is not the owner",
@@ -97,7 +97,7 @@ describe("SafeProtocolRegistry", async () => {
     it("Should revert when adding hooks not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithFailingCallToSupportsInterfaceMethod()).target;
-        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, ModuleType.Hooks))
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockHookAddress, "0x907e1c56");
     });
@@ -105,14 +105,14 @@ describe("SafeProtocolRegistry", async () => {
     it("Should revert when adding plugin not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockPluginAddress = (await getPluginWithFailingCallToSupportsInterfaceMethod()).target;
-        await expect(safeProtocolRegistry.connect(owner).addModule(mockPluginAddress, ModuleType.Plugin))
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockPluginAddress, MODULE_TYPE_PLUGIN))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockPluginAddress, "0x6930ebcc");
     });
 
     it("Should revert when adding function handler not supporting expected interfaceId", async () => {
         const { safeProtocolRegistry, mockFunctionHandlerAddress } = await setupTests();
-        await expect(safeProtocolRegistry.connect(owner).addModule(mockFunctionHandlerAddress, ModuleType.FunctionHandler))
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockFunctionHandlerAddress, MODULE_TYPE_FUNCTION_HANDLER))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockFunctionHandlerAddress, "0xf601ad15");
     });

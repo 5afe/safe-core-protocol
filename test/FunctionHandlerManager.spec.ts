@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments, ethers } from "hardhat";
 import { getMockFunctionHandler } from "./utils/mockFunctionHandlerBuilder";
-import { ModuleType } from "./utils/constants";
+import { MODULE_TYPE_FUNCTION_HANDLER } from "../src/utils/constants";
 import { expect } from "chai";
 import { getInstance } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
@@ -26,7 +26,7 @@ describe("FunctionHandler", async () => {
             await hre.ethers.getContractFactory("SafeProtocolManager")
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
-        await safeProtocolRegistry.addModule(mockFunctionHandler.target, ModuleType.FunctionHandler);
+        await safeProtocolRegistry.addModule(mockFunctionHandler.target, MODULE_TYPE_FUNCTION_HANDLER);
         const account = await hre.ethers.deployContract("TestExecutor", [functionHandlerManager.target], { signer: deployer });
 
         return { account, functionHandlerManager, mockFunctionHandler, safeProtocolRegistry };

@@ -21,26 +21,7 @@ contract TestSafeProtocolRegistryUnrestricted is SafeProtocolRegistry {
      * @param module Address of the module
      * @param moduleType Enum.ModuleType indicating the type of module
      */
-    function addModule(address module, Enum.ModuleType moduleType) external override {
-        ModuleInfo memory moduleInfo = listedModules[module];
-
-        if (moduleInfo.listedAt != 0) {
-            revert CannotAddModule(module);
-        }
-
-        // Check if module supports expected interface
-        if (moduleType == Enum.ModuleType.Hooks && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
-        } else if (moduleType == Enum.ModuleType.Plugin && !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
-        } else if (
-            moduleType == Enum.ModuleType.FunctionHandler &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
-        }
-
-        listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleType);
-        emit ModuleAdded(module);
+    function addModule(address module, uint8 moduleType) external override {
+        _addModule(module, moduleType);
     }
 }

@@ -5,6 +5,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
 import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "./interfaces/Modules.sol";
+import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER} from "./common/Constants.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => ModuleInfo) public listedModules;
@@ -12,7 +13,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     struct ModuleInfo {
         uint64 listedAt;
         uint64 flaggedAt;
-        Enum.ModuleType moduleType;
+        uint8 moduleTypes;
     }
 
     error CannotFlagModule(address module);
@@ -44,21 +45,24 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
      * @param module Address of the module
      * @param moduleType Enum.ModuleType indicating the type of module
      */
-    function addModule(address module, Enum.ModuleType moduleType) external virtual onlyOwner {
+    function addModule(address module, uint8 moduleType) external virtual onlyOwner {
+        _addModule(module, moduleType);
+    }
+
+    function _addModule(address module, uint8 moduleType) internal {
         ModuleInfo memory moduleInfo = listedModules[module];
 
-        if (moduleInfo.listedAt != 0) {
+        if (moduleInfo.listedAt != 0 && moduleInfo.moduleTypes & moduleType == moduleType) {
             revert CannotAddModule(module);
         }
 
         // Check if module supports expected interface
-        if (moduleType == Enum.ModuleType.Hooks && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
+        if (moduleType == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
-        } else if (moduleType == Enum.ModuleType.Plugin && !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)) {
+        } else if (moduleType == MODULE_TYPE_PLUGIN && !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
         } else if (
-            moduleType == Enum.ModuleType.FunctionHandler &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
+            moduleType == MODULE_TYPE_FUNCTION_HANDLER && !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
         ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
         }
@@ -80,7 +84,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert CannotFlagModule(module);
         }
 
-        listedModules[module] = ModuleInfo(moduleInfo.listedAt, uint64(block.timestamp), moduleInfo.moduleType);
+        listedModules[module] = ModuleInfo(moduleInfo.listedAt, uint64(block.timestamp), moduleInfo.moduleTypes);
         emit ModuleFlagged(module);
     }
 
