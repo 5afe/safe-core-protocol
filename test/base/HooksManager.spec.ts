@@ -20,28 +20,28 @@ describe("HooksManager", async () => {
             await hre.ethers.getContractFactory("SafeProtocolManager")
         ).deploy(owner.address, await safeProtocolRegistry.getAddress());
 
-        const safe = await hre.ethers.deployContract("TestExecutor", [hooksManager.target], { signer: deployer });
+        const account = await hre.ethers.deployContract("TestExecutor", [hooksManager.target], { signer: deployer });
         const hooks = await getHooksWithPassingChecks();
         await safeProtocolRegistry.connect(owner).addModule(hooks.target, ModuleType.Hooks);
 
-        return { hooksManager, hooks, safe, safeProtocolRegistry };
+        return { hooksManager, hooks, account, safeProtocolRegistry };
     });
 
     it("Should emit HooksChanged event when hooks are enabled", async () => {
-        const { hooksManager, hooks, safe } = await setupTests();
+        const { hooksManager, hooks, account } = await setupTests();
 
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
 
-        expect(await safe.exec(safe.target, 0n, calldata))
+        expect(await account.exec(account.target, 0n, calldata))
             .to.emit(hooksManager, "HooksChanged")
-            .withArgs(safe.target, hooks.target);
+            .withArgs(account.target, hooks.target);
     });
 
     it("Should return correct hooks address", async () => {
-        const { hooksManager, hooks, safe } = await setupTests();
+        const { hooksManager, hooks, account } = await setupTests();
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-        await safe.exec(safe.target, 0n, calldata);
-        expect(await hooksManager.getEnabledHooks(safe.target)).to.be.equal(hooks.target);
+        await account.exec(account.target, 0n, calldata);
+        expect(await hooksManager.getEnabledHooks(account.target)).to.be.equal(hooks.target);
     });
 
     it("Should return zero address if hooks are not enabled", async () => {
@@ -50,15 +50,15 @@ describe("HooksManager", async () => {
     });
 
     it("Should return zero address if hooks address is reset to zero address", async () => {
-        const { hooksManager, hooks, safe } = await setupTests();
+        const { hooksManager, hooks, account } = await setupTests();
 
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [hooks.target]);
-        await safe.exec(safe.target, 0n, calldata);
+        await account.exec(account.target, 0n, calldata);
 
         const calldata2 = hooksManager.interface.encodeFunctionData("setHooks", [ZeroAddress]);
-        await safe.exec(safe.target, 0n, calldata2);
+        await account.exec(account.target, 0n, calldata2);
 
-        expect(await hooksManager.getEnabledHooks(safe.target)).to.be.equal(hre.ethers.ZeroAddress);
+        expect(await hooksManager.getEnabledHooks(account.target)).to.be.equal(hre.ethers.ZeroAddress);
     });
 
     it("Should revert if user attempts to set random address as hooks", async () => {
@@ -68,14 +68,14 @@ describe("HooksManager", async () => {
     });
 
     it("Should revert ContractDoesNotImplementValidInterfaceId if user attempts address does not implement Hooks interface", async () => {
-        const { hooksManager, safe, safeProtocolRegistry } = await setupTests();
+        const { hooksManager, account, safeProtocolRegistry } = await setupTests();
         const contractNotImplementingHooksInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", true);
         await safeProtocolRegistry.connect(owner).addModule(contractNotImplementingHooksInterface.target, ModuleType.Hooks);
 
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", false);
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [contractNotImplementingHooksInterface.target]);
-        await expect(safe.exec(safe.target, 0n, calldata)).to.be.revertedWithCustomError(
+        await expect(account.exec(account.target, 0n, calldata)).to.be.revertedWithCustomError(
             hooksManager,
             "ContractDoesNotImplementValidInterfaceId",
         );

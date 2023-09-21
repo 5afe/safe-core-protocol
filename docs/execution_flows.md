@@ -6,19 +6,19 @@ The below sections provide a high-level overview of the execution different flow
 
 ```mermaid
 ---
-title: Safe{Core} Protocol High-level execution flow for enabling Module
+title: Safe{Core} Protocol High-level execution flow for enabling a Module
 ---
 flowchart TD;
 subgraph Users
    User(User)
 end
 
-subgraph SafeAccounts
-   User(User) -->|Call manager to enable Sample Plugin| SafeAccount
+subgraph Accounts
+   User(User) -->|Call manager to enable Sample Plugin| Account
 end
 
 subgraph SafeProtocolManager
-    SafeAccount -->|Enable Sample Plugin Tx| Enable_Module(Enable Module on a Safe)
+    Account -->|Enable Sample Plugin Tx| Enable_Module(Enable Module on a Safe)
     Enable_Plugin --> Validator{Is Sample Module trusted?<br>Call SafeProtocolRegistry}
     Validator -- Yes --> C(Sample Module enabled on Safe)
     Validator -- No ----> E(Revert transaction)
@@ -35,19 +35,19 @@ title: Safe{Core} Protocol High-level Plugin execution flow
 ---
 flowchart TD;
    TxExecuteFromPlugin(Call to Plugin to execute tx ) --> ExamplePlugin1
-   Safe --> Execute_Transaction_From_Plugin(Execute transaction)
-   Validate_ExecuteFromPluginFlow -- Yes --> Safe(Safe Account)
+   Account --> Execute_Transaction_From_Plugin(Execute transaction)
+   Validate_ExecuteFromPluginFlow -- Yes --> Account("Safe{Core} Protocol Account")
 subgraph Plugins
    ExamplePlugin1(Sample Plugin)
 end
 
 subgraph SafeProtocolManager
-    ExamplePlugin1 -->|Execute tx for a Safe through Plugin| Execute_Transaction(Execute transaction from a Plugin) --> Validate_ExecuteFromPluginFlow{Is Plugin Enabled?<br>Call SafeProtocolRegistry<br>and validate if Plugin trusted}
+    ExamplePlugin1 -->|Execute tx for an Account through Plugin| Execute_Transaction(Execute transaction from a Plugin) --> Validate_ExecuteFromPluginFlow{Is Plugin Enabled?<br>Call SafeProtocolRegistry<br>and validate if Plugin trusted}
     Validate_ExecuteFromPluginFlow -- No ----> E(Revert transaction) 
 end
 ```
 
-## Safe transaction execution with Hooks
+## Account transaction execution with Hooks
 
 ```mermaid
 ---
@@ -58,14 +58,14 @@ subgraph Users
    User(User)
 end
 
-subgraph SafeAccounts
-   User(User) -->|Execute Safe Tx| SafeAccount
+subgraph Accounts
+   User(User) -->|Execute Tx| Account
    End
 end
 
-subgraph SafeAccount [Safe with SafeProtocolManager enabled as Hook]
+subgraph SafeAccount [Account with SafeProtocolManager enabled as Hook]
    PreCheck_Hook
-   PreCheck_Hook("Pre-check Hook") -->|On passing pre-checks| ExecuteTx(Execute Safe Transaction)
+   PreCheck_Hook("Pre-check Hook") -->|On passing pre-checks| ExecuteTx(Execute Account Transaction)
    ExecuteTx -->|On successful execution| PostCheckHook(Post-check hook)
    PostCheckHook -->|On passing post checks| End
 end
@@ -111,11 +111,11 @@ subgraph SignatureValidator [Signature validator enabled for the given Safe]
 end
 
 Sign_Transaction --> RequestToValidate
-RequestToValidate(Call to validate a Signature for given Safe) --> SafeProtocolManager
+RequestToValidate(Call to validate a Signature for a given Account) --> SafeProtocolManager
 
 SafeProtocolManager --> isValidSignature{isValidSignature}
 
 isValidSignature --> |Yes| ExecuteTx(Continue transaction execution)
 
-User("`Users(s)`") --> |Generate a Safe signature| Sign_Transaction
+User("`Users(s)`") --> |Generate an Account signature| Sign_Transaction
 ```
