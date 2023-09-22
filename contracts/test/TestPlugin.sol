@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 
-import {ISafe} from "../interfaces/Accounts.sol";
+import {IAccount} from "../interfaces/Accounts.sol";
 import {ISafeProtocolPlugin} from "../interfaces/Modules.sol";
 import {ISafeProtocolManager} from "../interfaces/Manager.sol";
 import {SafeTransaction, SafeRootAccess} from "../DataTypes.sol";
@@ -34,10 +34,10 @@ contract TestPlugin is BaseTestPlugin {
 
     function executeFromPlugin(
         ISafeProtocolManager manager,
-        ISafe safe,
+        address account,
         SafeTransaction calldata safetx
     ) external returns (bytes[] memory data) {
-        (data) = manager.executeTransaction(safe, safetx);
+        (data) = manager.executeTransaction(account, safetx);
     }
 }
 
@@ -48,9 +48,9 @@ contract TestPluginWithRootAccess is TestPlugin {
 
     function executeRootAccessTxFromPlugin(
         ISafeProtocolManager manager,
-        ISafe safe,
+        address account,
         SafeRootAccess calldata safeRootAccesstx
     ) external returns (bytes memory data) {
-        (data) = manager.executeRootAccess(safe, safeRootAccesstx);
+        (data) = manager.executeRootAccess(account, safeRootAccesstx);
     }
 }
