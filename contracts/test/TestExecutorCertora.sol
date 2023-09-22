@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafe} from "../interfaces/Accounts.sol";
+import {IAccount} from "../interfaces/Accounts.sol";
 
-contract TestExecutorCertora is ISafe {
+contract TestExecutorCertora is IAccount {
     bool public called;
     address public module;
     address[] public owners;
@@ -33,21 +33,16 @@ contract TestExecutorCertora is ISafe {
         }
     }
 
-    function execTransactionFromModule(
-        address payable to,
-        uint256 value,
-        bytes calldata data,
-        uint8 operation
-    ) external returns (bool success) {
+    function execTransactionFromModule(address payable, uint256, bytes calldata, uint8) external returns (bool success) {
         called = true;
         success = true;
     }
 
     function execTransactionFromModuleReturnData(
-        address to,
-        uint256 value,
-        bytes memory data,
-        uint8 operation
+        address,
+        uint256,
+        bytes memory,
+        uint8
     ) public returns (bool success, bytes memory returnData) {
         called = true;
         success = true;
@@ -57,7 +52,7 @@ contract TestExecutorCertora is ISafe {
     function executeCallViaMock(
         address payable to,
         uint256 value,
-        bytes memory data,
+        bytes memory,
         uint256 gas
     ) external returns (bool success, bytes memory response) {
         (success, response) = to.call{value: value, gas: gas}(data);

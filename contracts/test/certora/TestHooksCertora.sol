@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
 import {ISafeProtocolHooks} from "../../interfaces/Modules.sol";
-import {ISafe} from "../../interfaces/Accounts.sol";
+import {IAccount} from "../../interfaces/Accounts.sol";
 import {SafeProtocolAction, SafeTransaction, SafeRootAccess} from "../../DataTypes.sol";
 
 contract TestHooksCertora is ISafeProtocolHooks {
@@ -9,17 +9,17 @@ contract TestHooksCertora is ISafeProtocolHooks {
 
     function supportsInterface(bytes4 interfaceId) external view override returns (bool) {}
 
-    function preCheck(ISafe, SafeTransaction calldata, uint256, bytes calldata) external override returns (bytes memory) {
+    function preCheck(address, SafeTransaction calldata, uint256, bytes calldata) external override returns (bytes memory) {
         called = true;
         return "";
     }
 
-    function preCheckRootAccess(ISafe, SafeRootAccess calldata, uint256, bytes calldata) external override returns (bytes memory) {
+    function preCheckRootAccess(address, SafeRootAccess calldata, uint256, bytes calldata) external override returns (bytes memory) {
         called = true;
         return "";
     }
 
-    function postCheck(ISafe, bool, bytes calldata) external override {
+    function postCheck(address, bool, bytes calldata) external override {
         called = true;
     }
 }
