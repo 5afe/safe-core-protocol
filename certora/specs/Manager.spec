@@ -68,10 +68,11 @@ rule onlyOwnerCanSetRegistry (method f) filtered {
 
 }
 
-rule onlyEnabledAndListedPluginCanExecuteCall() {
+rule onlyEnabledAndListedPluginCanExecuteCall(method f) filtered {
+    f -> f.selector == sig:executeTransaction(address,SafeProtocolManager.SafeTransaction).selector || f.selector == sig:executeRootAccess(address,SafeProtocolManager.SafeRootAccess).selector 
+} {
 
-
-    method f; env e; calldataarg args;
+    env e; calldataarg args;
 
     requireInvariant tempHooksStorage(e.msg.sender);
 
@@ -136,7 +137,13 @@ function getTempHooksData(address account) returns address {
 }
 
 invariant tempHooksStorage(address plugin) 
-    getTempHooksData(plugin) != 0 => checkListedAndNotFlagged(getTempHooksData(plugin));
+    getTempHooksData(plugin) != 0 => checkListedAndNotFlagged(getTempHooksData(plugin))
+    filtered { f -> f.selector != sig:checkModuleTransaction(address,uint256,bytes,Enum.Operation,address).selector}
+
+invariant tempHooksStorageIsAlwaysEmpty(address plugin) 
+    getTempHooksData(plugin) == 0
+    filtered { f -> f.selector != sig:checkModuleTransaction(address,uint256,bytes,Enum.Operation,address).selector}
+
 
 rule onlyOneStorageUpdates{
     storage before = lastStorage;

@@ -142,6 +142,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         if (areHooksEnabled) {
             // execution metadata for transaction execution through plugin is encoded address of the plugin i.e. msg.sender.
             // executionType = 1 for plugin flow
+            // should check below exist here?
+            checkPermittedModule(hooksAddress);
             preCheckData = ISafeProtocolHooks(hooksAddress).preCheckRootAccess(account, rootAccess, 1, abi.encode(msg.sender));
         }
 

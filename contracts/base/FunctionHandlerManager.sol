@@ -63,12 +63,13 @@ abstract contract FunctionHandlerManager is RegistryManager {
         bytes4 functionSelector = bytes4(msg.data);
 
         address functionHandler = functionHandlers[account][functionSelector];
-        checkPermittedModule(functionHandler);
 
         // Revert if functionHandler is not set
         if (functionHandler == address(0)) {
             revert FunctionHandlerNotSet(account, functionSelector);
         }
+
+        checkPermittedModule(functionHandler);
 
         address sender;
         // solhint-disable-next-line no-inline-assembly
