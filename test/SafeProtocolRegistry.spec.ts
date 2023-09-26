@@ -17,6 +17,9 @@ describe("SafeProtocolRegistry", async () => {
         return { safeProtocolRegistry, mockFunctionHandlerAddress };
     });
 
+    // A helper function to convert a number to a bytes32 value
+    const numberToBytes32 = (value: bigint) => hre.ethers.zeroPadValue(hre.ethers.toBeHex(value), 32);
+
     it("Should allow adding a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
@@ -34,24 +37,23 @@ describe("SafeProtocolRegistry", async () => {
         const mockModule = await (await hre.ethers.getContractFactory("MockContract")).deploy();
         await mockModule.givenMethodReturnBool("0x01ffc9a7", true);
 
-        await safeProtocolRegistry.connect(owner).addModule(mockModule, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER);
-
-        const [listedAt, flaggedAt, moduleTypes] = await safeProtocolRegistry.check.staticCall(mockModule.target);
-        expect(listedAt).to.be.greaterThan(0);
-        expect(flaggedAt).to.be.equal(0);
-        expect(moduleTypes).to.be.equal(MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER);
-
-        const mockModule2 = await (await hre.ethers.getContractFactory("MockContract")).deploy();
-        await mockModule2.givenMethodReturnBool("0x01ffc9a7", true);
-
         await safeProtocolRegistry
             .connect(owner)
-            .addModule(mockModule2, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
+            .addModule(mockModule, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
+        const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(
+            mockModule.target,
+            numberToBytes32(MODULE_TYPE_FUNCTION_HANDLER),
+        );
+        expect(listedAt).to.be.greaterThan(0);
+        expect(flaggedAt).to.be.equal(0);
 
-        const [listedAt2, flaggedAt2, moduleTypes2] = await safeProtocolRegistry.check.staticCall(mockModule2.target);
+        const [listedAt2, flaggedAt2] = await safeProtocolRegistry.check.staticCall(mockModule.target, numberToBytes32(MODULE_TYPE_PLUGIN));
         expect(listedAt2).to.be.greaterThan(0);
         expect(flaggedAt2).to.be.equal(0);
-        expect(moduleTypes2).to.be.equal(MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
+
+        const [listedAt3, flaggedAt3] = await safeProtocolRegistry.check.staticCall(mockModule.target, numberToBytes32(MODULE_TYPE_HOOKS));
+        expect(listedAt3).to.be.greaterThan(0);
+        expect(flaggedAt3).to.be.equal(0);
     });
 
     it("Should not allow adding a module with invalid moduleTypes", async () => {
@@ -89,7 +91,8 @@ describe("SafeProtocolRegistry", async () => {
 
         expect(await safeProtocolRegistry.connect(owner).flagModule(mockHookAddress));
 
-        const [flaggedAt] = await safeProtocolRegistry.check.staticCall(mockHookAddress);
+        const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(mockHookAddress, numberToBytes32(MODULE_TYPE_HOOKS));
+        expect(listedAt).to.be.gt(0);
         expect(flaggedAt).to.be.gt(0);
     });
 
@@ -111,16 +114,27 @@ describe("SafeProtocolRegistry", async () => {
 
     it("Should return (0,0,0) for non-listed module", async () => {
         const { safeProtocolRegistry } = await setupTests();
-        const [listedAt, flaggedAt, moduleTypes] = await safeProtocolRegistry.check.staticCall(AddressZero);
+
+        const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(AddressZero, numberToBytes32(MODULE_TYPE_PLUGIN));
         expect(listedAt).to.be.equal(0);
         expect(flaggedAt).to.be.equal(0);
-        expect(moduleTypes).to.be.equal(0);
+
+        const [listedAt2, flaggedAt2] = await safeProtocolRegistry.check.staticCall(
+            AddressZero,
+            numberToBytes32(MODULE_TYPE_FUNCTION_HANDLER),
+        );
+        expect(listedAt2).to.be.equal(0);
+        expect(flaggedAt2).to.be.equal(0);
+
+        const [listedAt3, flaggedAt3] = await safeProtocolRegistry.check.staticCall(AddressZero, numberToBytes32(MODULE_TYPE_HOOKS));
+        expect(listedAt3).to.be.equal(0);
+        expect(flaggedAt3).to.be.equal(0);
     });
 
     it("Should return true when valid interfaceId is passed", async () => {
         const { safeProtocolRegistry } = await setupTests();
         expect(await safeProtocolRegistry.supportsInterface.staticCall("0x01ffc9a7")).to.be.true;
-        expect(await safeProtocolRegistry.supportsInterface.staticCall("0xc23697a8")).to.be.true;
+        expect(await safeProtocolRegistry.supportsInterface.staticCall("0x253bd7b7")).to.be.true;
     });
 
     it("Should return false when invalid interfaceId is passed", async () => {

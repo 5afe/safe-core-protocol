@@ -100,10 +100,10 @@ describe("FunctionHandler", async () => {
 
         await expect(account.executeCallViaMock(account.target, 0, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
-            .withArgs(user1.address, 0, 0, 0);
+            .withArgs(user1.address, 0, 0, 2);
     });
 
-    it("Should not allow invalid module type as function handler", async () => {
+    it("Should not allow hooks module type as function handler", async () => {
         const { functionHandlerManager, safeProtocolRegistry, account } = await setupTests();
         const module = await getHooksWithPassingChecks();
         await safeProtocolRegistry.connect(owner).addModule(module.target, MODULE_TYPE_HOOKS);
@@ -113,11 +113,14 @@ describe("FunctionHandler", async () => {
             module.target,
         ]);
 
-        const moduleInfo = await safeProtocolRegistry.check(module.target);
+        const moduleInfo = await safeProtocolRegistry.check(
+            module.target,
+            hre.ethers.encodeBytes32String(MODULE_TYPE_FUNCTION_HANDLER.toString()),
+        );
 
         await expect(account.executeCallViaMock(account.target, 0, dataSetFunctionHandler, MaxUint256))
             .to.be.revertedWithCustomError(functionHandlerManager, "ModuleNotPermitted")
-            .withArgs(module.target, moduleInfo.listedAt, 0, MODULE_TYPE_HOOKS);
+            .withArgs(module.target, moduleInfo.listedAt, 0, MODULE_TYPE_FUNCTION_HANDLER);
     });
 
     it("Should revert with FunctionHandlerNotSet when function handler is not enabled", async () => {

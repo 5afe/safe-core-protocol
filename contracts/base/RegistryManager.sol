@@ -10,7 +10,7 @@ contract RegistryManager is Ownable2Step, OnlyAccountCallable {
 
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
 
-    error ModuleNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt, uint8 moduleTypes);
+    error ModuleNotPermitted(address plugin, uint64 listedAt, uint64 flaggedAt, uint8 moduleType);
     error ContractDoesNotImplementValidInterfaceId(address account);
 
     modifier onlyPermittedModule(address module, uint8 moduleType) {
@@ -39,9 +39,9 @@ contract RegistryManager is Ownable2Step, OnlyAccountCallable {
      */
     function checkPermittedModule(address module, uint8 moduleType) internal view {
         // Only allow registered and non-flagged modules
-        (uint64 listedAt, uint64 flaggedAt, uint8 allowedModuleType) = ISafeProtocolRegistry(registry).check(module);
-        if (listedAt == 0 || flaggedAt != 0 || allowedModuleType & moduleType != moduleType) {
-            revert ModuleNotPermitted(module, listedAt, flaggedAt, allowedModuleType);
+        (uint64 listedAt, uint64 flaggedAt) = ISafeProtocolRegistry(registry).check(module, bytes32(uint256(moduleType)));
+        if (listedAt == 0 || flaggedAt != 0) {
+            revert ModuleNotPermitted(module, listedAt, flaggedAt, moduleType);
         }
     }
 
