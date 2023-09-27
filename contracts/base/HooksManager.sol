@@ -4,6 +4,7 @@ import {ISafeProtocolHooks} from "../interfaces/Modules.sol";
 
 import {RegistryManager} from "./RegistryManager.sol";
 import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
+import {MODULE_TYPE_HOOKS} from "../common/Constants.sol";
 
 abstract contract HooksManager is RegistryManager {
     mapping(address => address) public enabledHooks;
@@ -36,7 +37,7 @@ abstract contract HooksManager is RegistryManager {
      */
     function setHooks(address hooks) external onlyAccount {
         if (hooks != address(0)) {
-            checkPermittedModule(hooks);
+            checkPermittedModule(hooks, MODULE_TYPE_HOOKS);
             if (!ISafeProtocolHooks(hooks).supportsInterface(type(ISafeProtocolHooks).interfaceId))
                 revert ContractDoesNotImplementValidInterfaceId(hooks);
         }
