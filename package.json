@@ -1,6 +1,6 @@
 {
   "name": "@safe-global/safe-core-protocol",
-  "version": "0.2.1-alpha.0",
+  "version": "0.3.0-alpha.0",
   "description": "Safe{Core} Protocol contracts",
   "main": "dist/deployments.js",
   "repository": {
