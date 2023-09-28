@@ -1,6 +1,6 @@
 {
   "name": "@safe-global/safe-core-protocol",
-  "version": "0.3.0-alpha.0",
+  "version": "0.3.0-alpha.1",
   "description": "Safe{Core} Protocol contracts",
   "main": "dist/deployments.js",
   "repository": {
@@ -19,7 +19,7 @@
   ],
   "homepage": "https://github.com/safe-global/safe-core-protocol",
   "scripts": {
-    "build": "hardhat compile",
+    "build": "hardhat compile && npm run build:ts",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
     "fmt:sol": "prettier 'contracts/**/*.sol' -w",
