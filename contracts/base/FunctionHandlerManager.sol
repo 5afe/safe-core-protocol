@@ -5,6 +5,7 @@ import {ISafeProtocolFunctionHandler} from "../interfaces/Modules.sol";
 
 import {RegistryManager} from "./RegistryManager.sol";
 import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
+import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
 
 /**
  * @title FunctionHandlerManager
@@ -41,7 +42,7 @@ abstract contract FunctionHandlerManager is RegistryManager {
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
         if (functionHandler != address(0)) {
-            checkPermittedModule(functionHandler);
+            checkPermittedModule(functionHandler, MODULE_TYPE_FUNCTION_HANDLER);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
                 revert ContractDoesNotImplementValidInterfaceId(functionHandler);
         }

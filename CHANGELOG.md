@@ -2,6 +2,16 @@
 
 This changelog contains changes starting from version v0.1.0
 
+# Version 0.3.0 Alpha
+
+## Safe{Core} Protocol contracts
+
+### Changes
+
+- A module can only be registered once with a single type [#103](https://github.com/safe-global/safe-core-protocol/issues/103)
+
+  Update registry interface so that a contract can be added as multiple types
+
 # Version 0.2.1 Alpha
 
 ## Safe{Core} Protocol contracts

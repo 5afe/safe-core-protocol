@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { getHooksWithPassingChecks } from "../utils/mockHooksBuilder";
 import { ZeroAddress } from "ethers";
-import { ModuleType } from "../utils/constants";
+import { MODULE_TYPE_HOOKS } from "../../src/utils/constants";
 
 describe("HooksManager", async () => {
     let deployer: SignerWithAddress, user1: SignerWithAddress, owner: SignerWithAddress;
@@ -22,7 +22,7 @@ describe("HooksManager", async () => {
 
         const account = await hre.ethers.deployContract("TestExecutor", [hooksManager.target], { signer: deployer });
         const hooks = await getHooksWithPassingChecks();
-        await safeProtocolRegistry.connect(owner).addModule(hooks.target, ModuleType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(hooks.target, MODULE_TYPE_HOOKS);
 
         return { hooksManager, hooks, account, safeProtocolRegistry };
     });
@@ -71,7 +71,7 @@ describe("HooksManager", async () => {
         const { hooksManager, account, safeProtocolRegistry } = await setupTests();
         const contractNotImplementingHooksInterface = await (await hre.ethers.getContractFactory("MockContract")).deploy();
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", true);
-        await safeProtocolRegistry.connect(owner).addModule(contractNotImplementingHooksInterface.target, ModuleType.Hooks);
+        await safeProtocolRegistry.connect(owner).addModule(contractNotImplementingHooksInterface.target, MODULE_TYPE_HOOKS);
 
         await contractNotImplementingHooksInterface.givenMethodReturnBool("0x01ffc9a7", false);
         const calldata = hooksManager.interface.encodeFunctionData("setHooks", [contractNotImplementingHooksInterface.target]);
