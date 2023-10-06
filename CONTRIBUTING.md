@@ -15,6 +15,7 @@ If you are submitting a feature request, please:
   * Examples of how it should be implemented along with alternatives are welcome.
 
 If you are submitting a bug report, please:
+  * Refer to [Bug bounty program](https://docs.safe.global/safe-smart-account/security/bug-bounty-program) before creating submitting issue.
   * Include the steps to reproduce the bug.
   * Include the expected behavior.
   * Possible solutions to fix the bug are welcome.
@@ -34,7 +35,7 @@ Always write a clear log message for your commits. The commit message should loo
 
 Steps to be taken before submitting a pull request to be considered for review:
 - Documentation reflects the changes
-- Make sure test coverage is 100%
+- Make sure test coverage is close to 100%
 - Make sure all tests are passing
 - Make sure there are no linting errors
 
