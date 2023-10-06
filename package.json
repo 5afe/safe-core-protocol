@@ -12,8 +12,6 @@
   "files": [
     "contracts",
     "dist",
-    "scripts",
-    "test",
     "artifacts",
     "deployments.ts"
   ],
