@@ -9,3 +9,9 @@
 | SafeProtocolRegistry | <a href="https://goerli.etherscan.io/address/0xb83C63558FDF574101628B49c4610EdC32D038D4" target="_blank">0xb83C63558FDF574101628B49c4610EdC32D038D4</a> |
 | SafeProtocolManager | <a href="https://goerli.etherscan.io/address/0x2926dd0F729C0ac112BE7dde5f806D8d4E609529" target="_blank">0x2926dd0F729C0ac112BE7dde5f806D8d4E609529</a> |
 
+## Network: scroll-sepolia
+
+| Contract Name | Address (click to view on Scrollscan) |
+| -------------- | -------------------------------- |
+| TestSafeProtocolManager | <a href="https://sepolia.scrollscan.dev/address/0xf599c63d27dbf097219bca88b20d548b111272c3" target="_blank">0xf599c63D27DBF097219BcA88b20d548b111272c3</a> |
+| TestSafeProtocolRegistryUnrestricted | <a href="https://sepolia.scrollscan.dev/address/0x572Db1B95bf3B39096Ba169AC5EB624bdD2b3F77" target="_blank">0x572Db1B95bf3B39096Ba169AC5EB624bdD2b3F77</a> |
