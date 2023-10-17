@@ -30,3 +30,16 @@ interface ISafeProtocolManager {
      */
     function executeRootAccess(address account, SafeRootAccess calldata rootAccess) external returns (bytes memory data);
 }
+
+interface ISafeProtocolSignatureValidatorManager {
+    /**
+     * @param domainSeparator bytes32 containing the domain for which Signature Validator contract should be used
+     * @param signatureValidatorContract Address of the Signature Validator Contract implementing ISafeProtocolSignatureValidator interface
+     */
+    function setSignatureValidator(bytes32 domainSeparator, address signatureValidatorContract) external;
+
+    /**
+     * @param signatureValidatorHooksContract Address of the contract to be used as Hooks for Signature Validator implementing ISignatureValidatorHook interface
+     */
+    function setSignatureValidatorHooks(address signatureValidatorHooksContract) external;
+}

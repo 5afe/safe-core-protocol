@@ -19,3 +19,7 @@ interface IAccount {
         uint8 operation
     ) external returns (bool success, bytes memory returnData);
 }
+
+interface ISafeAccount is IAccount {
+    function checkSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures) external view;
+}

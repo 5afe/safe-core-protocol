@@ -159,4 +159,19 @@ interface ISafeProtocol712SignatureValidator is IERC165 {
     ) external view returns (bytes4 magic);
 }
 
-interface ISafeProtocolSignatureValidatorHooks is IERC165 {}
+interface ISafeProtocolSignatureValidatorHooks is IERC165 {
+    /**
+     * @param account Address of the account for which signature is being validated
+     * @param validator Address of the validator contract to be used for signature validation. This address will be account address in case of default signature validation flow is used.
+     * @param payload The payload provided for the validation
+     * @return result bytes containing the result
+     */
+    function preValidationHook(address account, address validator, bytes calldata payload) external returns (bytes memory result);
+
+    /**
+     * @param account Address of the account for which signature is being validated
+     * @param preValidationData Data returned by preValidationHook
+     * @return result bytes containing the result
+     */
+    function postValidationHook(address account, bytes calldata preValidationData) external returns (bytes memory result);
+}
