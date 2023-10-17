@@ -143,20 +143,20 @@ interface ISafeProtocol712SignatureValidator is IERC165 {
     /**
      * @param account The account that has delegated the signature verification
      * @param sender The address that originally called the Safe's `isValidSignature` method
-     * @param _hash The EIP-712 hash whose signature will be verified
+     * @param structHash The EIP-712 hash whose signature will be verified
      * @param domainSeparator The EIP-712 domainSeparator
-     * @param typeHash The EIP-712 typeHash
-     * @param encodedData The EIP-712 encoded data
+     * @param structHash The EIP-712 structHash
      * @param payload An arbitrary payload that can be used to pass additional data to the validator
      * @return magic The magic value that should be returned if the signature is valid (0x1626ba7e)
      */
     function isValidSignature(
         address account,
         address sender,
-        bytes32 _hash,
+        bytes32 messageHash,
         bytes32 domainSeparator,
-        bytes32 typeHash,
-        bytes calldata encodedData,
+        bytes32 structHash,
         bytes calldata payload
     ) external view returns (bytes4 magic);
 }
+
+interface ISafeProtocolSignatureValidatorHooks is IERC165 {}

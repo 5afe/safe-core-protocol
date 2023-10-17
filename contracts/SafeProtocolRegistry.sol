@@ -4,8 +4,8 @@ import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
-import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "./interfaces/Modules.sol";
-import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER} from "./common/Constants.sol";
+import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin, ISafeProtocol712SignatureValidator, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
+import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS, MODULE_TYPE_SIGNATURE_VALIDATOR} from "./common/Constants.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => ModuleInfo) public listedModules;
@@ -59,8 +59,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         ModuleInfo memory moduleInfo = listedModules[module];
 
         // Check if module is already listed or if moduleTypes is greater than 8.
-        // Maximum allowed value of moduleTypes is 7. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks)
-        if (moduleInfo.listedAt != 0 || moduleTypes > 7) {
+        // Maximum allowed value of moduleTypes is 31. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks) + 2^3 (Signature Validator hooks) + 2^4 (Signature Validator)
+        if (moduleInfo.listedAt != 0 || moduleTypes > 31) {
             revert CannotAddModule(module, moduleTypes);
         }
 
@@ -83,6 +83,20 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
         ) {
             revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
+        }
+
+        if (
+            moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR == MODULE_TYPE_SIGNATURE_VALIDATOR &&
+            !IERC165(module).supportsInterface(type(ISafeProtocol712SignatureValidator).interfaceId)
+        ) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
+        }
+
+        if (
+            moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS == MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS &&
+            !IERC165(module).supportsInterface(type(ISafeProtocolSignatureValidatorHooks).interfaceId)
+        ) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolSignatureValidatorHooks).interfaceId);
         }
 
         listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleTypes);
