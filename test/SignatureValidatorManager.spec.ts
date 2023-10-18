@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments } from "hardhat";
 import { getRegistry, getSafeProtocolManager, getSignatureValidatorManager } from "./utils/contracts";
-import { MaxUint256, toUtf8Bytes } from "ethers";
+import { MaxUint256, ZeroAddress, toUtf8Bytes } from "ethers";
 import {
     MODULE_TYPE_FUNCTION_HANDLER,
     MODULE_TYPE_SIGNATURE_VALIDATOR,
@@ -10,7 +10,7 @@ import {
 import { expect } from "chai";
 import { getMockSignatureValidationHooks } from "./utils/mockValidationHooksBuilder";
 
-describe("SignatureValidatorManager", () => {
+describe.only("SignatureValidatorManager", () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
     const SIGNATURE_SELECTOR = hre.ethers.keccak256(toUtf8Bytes("Account712Signature(bytes32,bytes32,bytes)")).slice(0, 10); // 0xb5c726cb
 
@@ -28,6 +28,66 @@ describe("SignatureValidatorManager", () => {
         await safeProtocolRegistry.connect(owner).addModule(safeProtocolSignatureValidatorManager.target, MODULE_TYPE_FUNCTION_HANDLER);
 
         return { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry };
+    });
+
+    it("should allow to remove signature validator", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // set up mock contract as a signature validator
+        const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR);
+
+        const domainSeparator = hre.ethers.randomBytes(32);
+
+        const dataSetValidator = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidator", [
+            domainSeparator,
+            mockContract.target,
+        ]);
+
+        await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidator, MaxUint256);
+
+        expect(await safeProtocolSignatureValidatorManager.signatureValidators(account.target, domainSeparator)).to.be.equal(
+            mockContract.target,
+        );
+
+        const dataResetValidator = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidator", [
+            domainSeparator,
+            hre.ethers.ZeroAddress,
+        ]);
+
+        await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataResetValidator, MaxUint256);
+        expect(await safeProtocolSignatureValidatorManager.signatureValidators(account.target, domainSeparator)).to.be.equal(ZeroAddress);
+    });
+
+    it("should allow to remove signature validator hooks", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // set up mock contract as a signature validator
+        const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+
+        const dataSetValidatorHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidatorHooks", [
+            mockContract.target,
+        ]);
+
+        await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidatorHooks, MaxUint256);
+
+        expect(await safeProtocolSignatureValidatorManager.signatureValidatorHooks(account.target)).to.be.equal(mockContract.target);
+
+        const dataResetValidator = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidatorHooks", [
+            hre.ethers.ZeroAddress,
+        ]);
+
+        await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataResetValidator, MaxUint256);
+        expect(await safeProtocolSignatureValidatorManager.signatureValidatorHooks(account.target)).to.be.equal(ZeroAddress);
     });
 
     it("Should revert if signature validator is not registered", async () => {
@@ -179,6 +239,74 @@ describe("SignatureValidatorManager", () => {
         expect(await account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.deep.equal([
             true,
             signatureValidatorReturnValue,
+        ]);
+    });
+
+    it("Should call default signature validator without validation hooks", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // 1. Set fallback handler
+        await account.setFallbackHandler(safeProtocolManager.target);
+
+        // 2. Set function handler
+        const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
+            "0x1626ba7e",
+            safeProtocolSignatureValidatorManager.target,
+        ]);
+
+        await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
+
+        const isValidSignatureInterface = new hre.ethers.Interface([
+            "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
+        ]);
+
+        const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
+            hre.ethers.randomBytes(32),
+            hre.ethers.randomBytes(65),
+        ]);
+
+        expect(await account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.deep.equal([
+            true,
+            "0x000000000000000000000000000000000000000000000000000000001626ba7e",
+        ]);
+    });
+
+    it("Should call default signature validator with validation hooks", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // 1. Set fallback handler
+        await account.setFallbackHandler(safeProtocolManager.target);
+
+        // 2. Set function handler
+        const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
+            "0x1626ba7e",
+            safeProtocolSignatureValidatorManager.target,
+        ]);
+
+        // 3. Set validation hooks
+        const mockSignatureValidatorHooks = await getMockSignatureValidationHooks();
+        const dataSetValidationHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidatorHooks", [
+            mockSignatureValidatorHooks.target,
+        ]);
+        await safeProtocolRegistry.connect(owner).addModule(mockSignatureValidatorHooks.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+        await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidationHooks, MaxUint256);
+
+        await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
+
+        const isValidSignatureInterface = new hre.ethers.Interface([
+            "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
+        ]);
+
+        const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
+            hre.ethers.randomBytes(32),
+            hre.ethers.randomBytes(65),
+        ]);
+
+        expect(await account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.deep.equal([
+            true,
+            "0x000000000000000000000000000000000000000000000000000000001626ba7e",
         ]);
     });
 });

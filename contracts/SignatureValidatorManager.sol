@@ -20,19 +20,19 @@ import {ISafeProtocolSignatureValidatorManager} from "./interfaces/Manager.sol";
 contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHandler, ISafeProtocolSignatureValidatorManager {
     constructor(address _registry, address _initialOwner) RegistryManager(_registry, _initialOwner) {}
 
-    // Signature selector 0x990cfdb9
+    // Signature selector 0xb5c726cb
     bytes4 public constant SIGNATURE_VALIDATOR_SELECTOR = bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)"));
 
     // Storage
     /**
      * @notice Mapping to account address => domain separator => signature validator contract
      */
-    mapping(address => mapping(bytes32 => address)) public signatureValdiators;
+    mapping(address => mapping(bytes32 => address)) public signatureValidators;
 
     /**
      * @notice Mapping to account address => signature validator hooks contract
      */
-    mapping(address => address) public signatureValdiatorHooks;
+    mapping(address => address) public signatureValidatorHooks;
 
     // Events
     event SignatureValidatorChanged(address indexed account, bytes32 indexed domainSeparator, address indexed signatureValidator);
@@ -55,7 +55,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
                 )
             ) revert ContractDoesNotImplementValidInterfaceId(signatureValidator);
         }
-        signatureValdiators[msg.sender][domainSeparator] = signatureValidator;
+        signatureValidators[msg.sender][domainSeparator] = signatureValidator;
 
         // Only one type of event is emitted for simplicity rather one for each individual
         // case: remvoing, updating, adding new signature validator.
@@ -64,23 +64,23 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
 
     /**
      * @notice Sets the signature validator hooks for an account
-     * @param signatureValidatorHooks Address of the signature validator hooks contract
+     * @param signatureValidatorHooksAddress Address of the signature validator hooks contract
      */
-    function setSignatureValidatorHooks(address signatureValidatorHooks) external override {
-        if (signatureValidatorHooks != address(0)) {
-            checkPermittedModule(signatureValidatorHooks, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+    function setSignatureValidatorHooks(address signatureValidatorHooksAddress) external override {
+        if (signatureValidatorHooksAddress != address(0)) {
+            checkPermittedModule(signatureValidatorHooksAddress, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
 
             if (
-                !ISafeProtocolSignatureValidatorHooks(signatureValidatorHooks).supportsInterface(
+                !ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).supportsInterface(
                     type(ISafeProtocolSignatureValidatorHooks).interfaceId
                 )
-            ) revert ContractDoesNotImplementValidInterfaceId(signatureValidatorHooks);
+            ) revert ContractDoesNotImplementValidInterfaceId(signatureValidatorHooksAddress);
         }
-        signatureValdiatorHooks[msg.sender] = signatureValidatorHooks;
+        signatureValidatorHooks[msg.sender] = signatureValidatorHooksAddress;
 
         // Only one type of event is emitted for simplicity rather one for each individual
         // case: remvoing, updating, adding new signature validator.
-        emit SignatureValidatorHooksChanged(msg.sender, signatureValidatorHooks);
+        emit SignatureValidatorHooksChanged(msg.sender, signatureValidatorHooksAddress);
     }
 
     function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
@@ -96,27 +96,31 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
     function handle(address account, address sender, uint256 /* value */, bytes calldata data) external override returns (bytes memory) {
         (bytes32 messageHash, bytes memory signatureData) = abi.decode(data[4:], (bytes32, bytes));
 
-        address signatureValidatorHooks = signatureValdiatorHooks[account];
+        address signatureValidatorHooksAddress = signatureValidatorHooks[account];
         bytes memory prevalidationData;
         bytes memory returnData;
 
-        if (signatureValidatorHooks != address(0)) {
-            checkPermittedModule(signatureValidatorHooks, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
-            prevalidationData = ISafeProtocolSignatureValidatorHooks(signatureValidatorHooks).preValidationHook(account, sender, data);
+        if (signatureValidatorHooksAddress != address(0)) {
+            checkPermittedModule(signatureValidatorHooksAddress, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+            prevalidationData = ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).preValidationHook(
+                account,
+                sender,
+                data
+            );
         }
 
         if (bytes4(data[100:104]) == SIGNATURE_VALIDATOR_SELECTOR) {
             returnData = abi.encode(validateWith712SignatureValdiator(account, sender, messageHash, data[104:]));
 
-            if (signatureValidatorHooks != address(0)) {
-                ISafeProtocolSignatureValidatorHooks(signatureValidatorHooks).postValidationHook(account, prevalidationData);
+            if (signatureValidatorHooksAddress != address(0)) {
+                ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).postValidationHook(account, prevalidationData);
             }
             return returnData;
         }
 
         returnData = defaultValidator(account, messageHash, signatureData);
-        if (signatureValidatorHooks != address(0)) {
-            ISafeProtocolSignatureValidatorHooks(signatureValidatorHooks).postValidationHook(account, prevalidationData);
+        if (signatureValidatorHooksAddress != address(0)) {
+            ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).postValidationHook(account, prevalidationData);
         }
         return returnData;
     }
@@ -135,7 +139,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
     ) private returns (bytes4) {
         (bytes32 domainSeparator, bytes32 structHash, bytes memory signatures) = abi.decode(data, (bytes32, bytes32, bytes));
 
-        address signatureValidator = signatureValdiators[account][domainSeparator];
+        address signatureValidator = signatureValidators[account][domainSeparator];
         if (signatureValidator == address(0)) {
             revert SignatureValidatorNotSet(account);
         }
