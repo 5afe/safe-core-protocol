@@ -10,7 +10,7 @@ import {
 import { expect } from "chai";
 import { getMockSignatureValidationHooks } from "./utils/mockValidationHooksBuilder";
 
-describe.only("SignatureValidatorManager", () => {
+describe("SignatureValidatorManager", () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
     const SIGNATURE_SELECTOR = hre.ethers.keccak256(toUtf8Bytes("Account712Signature(bytes32,bytes32,bytes)")).slice(0, 10); // 0xb5c726cb
 
@@ -28,6 +28,31 @@ describe.only("SignatureValidatorManager", () => {
         await safeProtocolRegistry.connect(owner).addModule(safeProtocolSignatureValidatorManager.target, MODULE_TYPE_FUNCTION_HANDLER);
 
         return { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry };
+    });
+
+    it("should revert when enabling a signature validator not implementing ISafeProtocol712SignatureValidator interface", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // set up mock contract as a signature validator
+        const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR);
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", false);
+
+        const domainSeparator = hre.ethers.randomBytes(32);
+
+        const dataSetValidator = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidator", [
+            domainSeparator,
+            mockContract.target,
+        ]);
+
+        await expect(account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidator, MaxUint256))
+            .to.be.revertedWithCustomError(safeProtocolSignatureValidatorManager, "ContractDoesNotImplementValidInterfaceId")
+            .withArgs(mockContract.target);
     });
 
     it("should allow to remove signature validator", async () => {
@@ -61,6 +86,28 @@ describe.only("SignatureValidatorManager", () => {
 
         await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataResetValidator, MaxUint256);
         expect(await safeProtocolSignatureValidatorManager.signatureValidators(account.target, domainSeparator)).to.be.equal(ZeroAddress);
+    });
+
+    it("should revert when enabling a signature validator hooks not implementing ISafeProtocolSignatureValidatorHooks interface", async () => {
+        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+        // set up mock contract as a signature validator
+        const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
+
+        await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", false);
+
+        const dataSetValidatorHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidatorHooks", [
+            mockContract.target,
+        ]);
+
+        await expect(account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidatorHooks, MaxUint256))
+            .to.be.revertedWithCustomError(safeProtocolSignatureValidatorManager, "ContractDoesNotImplementValidInterfaceId")
+            .withArgs(mockContract.target);
     });
 
     it("should allow to remove signature validator hooks", async () => {
@@ -308,5 +355,10 @@ describe.only("SignatureValidatorManager", () => {
             true,
             "0x000000000000000000000000000000000000000000000000000000001626ba7e",
         ]);
+    });
+
+    it("call metadataProvider() for increasing coverage", async () => {
+        const { safeProtocolSignatureValidatorManager } = await setupTests();
+        expect(await safeProtocolSignatureValidatorManager.metadataProvider());
     });
 });

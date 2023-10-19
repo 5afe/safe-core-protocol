@@ -89,7 +89,7 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR == MODULE_TYPE_SIGNATURE_VALIDATOR &&
             !IERC165(module).supportsInterface(type(ISafeProtocol712SignatureValidator).interfaceId)
         ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocol712SignatureValidator).interfaceId);
         }
 
         if (
