@@ -18,9 +18,7 @@ import { SIGNATURE_VALIDATOR_SELECTOR } from "../src/utils/constants";
 describe("SignatureValidatorManager", () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
 
-    const isValidSignatureInterface = new hre.ethers.Interface([
-        "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
-    ]);
+    const isValidSignatureInterface = new hre.ethers.Interface(["function isValidSignature(bytes32,bytes) public view returns (bytes4)"]);
 
     before(async () => {
         [deployer, owner] = await hre.ethers.getSigners();
@@ -41,7 +39,7 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should revert when enabling a signature validator not implementing ISafeProtocolSignatureValidator interface", async () => {
-        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
@@ -64,7 +62,7 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should allow to remove signature validator", async () => {
-        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
@@ -95,7 +93,7 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should revert when enabling a signature validator hooks not implementing ISafeProtocolSignatureValidatorHooks interface", async () => {
-        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
@@ -115,7 +113,7 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should allow to remove signature validator hooks", async () => {
-        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
@@ -391,7 +389,6 @@ describe("SignatureValidatorManager", () => {
         });
 
         describe("Validation with Hooks", async () => {
-
             const setupHooksTests = deployments.createFixture(async () => {
                 const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
