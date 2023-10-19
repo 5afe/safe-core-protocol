@@ -43,6 +43,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
 
     // Errors
     error SignatureValidatorNotSet(address account);
+    error InvalidMessageHash(bytes32 messageHash);
 
     /**
      * @notice Sets the signature validator contract for an account
@@ -167,6 +168,10 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         bytes calldata data
     ) internal view returns (bytes4) {
         (bytes32 domainSeparator, bytes32 structHash, bytes memory signatures) = abi.decode(data, (bytes32, bytes32, bytes));
+
+        if (keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, structHash)) != messageHash) {
+            revert InvalidMessageHash(messageHash);
+        }
 
         address signatureValidator = signatureValidators[account][domainSeparator];
         if (signatureValidator == address(0)) {

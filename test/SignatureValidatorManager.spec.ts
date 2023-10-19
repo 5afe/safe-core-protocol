@@ -150,10 +150,11 @@ describe("SignatureValidatorManager", () => {
                 "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
             ]);
 
-            const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
-                hre.ethers.keccak256(encodeDataWithSelector),
-                encodeDataWithSelector,
-            ]);
+            const messageHash = hre.ethers.keccak256(
+                hre.ethers.solidityPacked(["bytes1", "bytes1", "bytes32", "bytes32"], ["0x19", "0x01", domainSeparator, structHash]),
+            );
+
+            const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [messageHash, encodeDataWithSelector]);
 
             return data;
         };
@@ -270,6 +271,50 @@ describe("SignatureValidatorManager", () => {
                 signatureValidatorReturnValue,
             ]);
         });
+
+        it("Should revert if invalid message hash is passed", async () => {
+            const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
+            const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+
+            // 1. Set fallback handler
+            await account.setFallbackHandler(safeProtocolManager.target);
+
+            // 2. Set function handler
+            const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
+                "0x1626ba7e",
+                safeProtocolSignatureValidatorManager.target,
+            ]);
+
+            await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
+
+            // set up mock contract as a signature validator
+            const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
+            // 0x38c8d4e6  =>  isValidSignature(address,address,bytes32,bytes32,bytes32,bytes)
+            const signatureValidatorReturnValue = new hre.ethers.AbiCoder().encode(["bytes4"], ["0x12345678"]);
+            await mockContract.givenMethodReturn("0x38c8d4e6", signatureValidatorReturnValue);
+
+            await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
+
+            await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR);
+
+            const domainSeparator = hre.ethers.randomBytes(32);
+
+            // 3. Set validator for domain separator
+            const dataSetValidatorManager = safeProtocolSignatureValidatorManager.interface.encodeFunctionData("setSignatureValidator", [
+                domainSeparator,
+                mockContract.target,
+            ]);
+
+            await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidatorManager, MaxUint256);
+
+            let data = createPayloadWithSelector(domainSeparator, hre.ethers.randomBytes(32), hre.ethers.randomBytes(64));
+            // replace the message hash
+            data = data.substring(0, 10) + hre.ethers.hexlify(hre.ethers.randomBytes(32)).slice(2) + data.substring(74);
+            await expect(account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.revertedWithCustomError(
+                safeProtocolSignatureValidatorManager,
+                "InvalidMessageHash",
+            );
+        });
     });
 
     describe("default signature validation flow", async () => {
@@ -346,5 +391,19 @@ describe("SignatureValidatorManager", () => {
     it("call metadataProvider() for increasing coverage", async () => {
         const { safeProtocolSignatureValidatorManager } = await setupTests();
         expect(await safeProtocolSignatureValidatorManager.metadataProvider());
+    });
+
+    it("Should return true when valid interfaceId is passed", async () => {
+        const { safeProtocolSignatureValidatorManager } = await setupTests();
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0x01ffc9a7")).to.be.true;
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0x86080c7a")).to.be.true;
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0xf601ad15")).to.be.true;
+    });
+
+    it("Should return false when invalid interfaceId is passed", async () => {
+        const { safeProtocolSignatureValidatorManager } = await setupTests();
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0x00000000")).to.be.false;
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0xbaddad42")).to.be.false;
+        expect(await safeProtocolSignatureValidatorManager.supportsInterface.staticCall("0xffffffff")).to.be.false;
     });
 });
