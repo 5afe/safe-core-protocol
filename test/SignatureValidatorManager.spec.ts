@@ -9,7 +9,7 @@ import {
 } from "../src/utils/constants";
 import { expect } from "chai";
 import { getMockSignatureValidationHooks } from "./utils/mockValidationHooksBuilder";
-import { SIGNATURE_SELECTOR } from "../src/utils/constants";
+import { SIGNATURE_VALIDATOR_SELECTOR } from "../src/utils/constants";
 
 describe("SignatureValidatorManager", () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
@@ -138,13 +138,13 @@ describe("SignatureValidatorManager", () => {
     });
 
     describe("signature validation per domain separator", async () => {
-        const createPayloadWithSelector = (domainSeparator: Uint8Array, messageHash: Uint8Array, signatures: Uint8Array) => {
+        const createPayloadWithSelector = (domainSeparator: Uint8Array, structHash: Uint8Array, signatures: Uint8Array) => {
             const encodedData = new hre.ethers.AbiCoder().encode(
                 ["bytes32", "bytes32", "bytes"],
-                [domainSeparator, messageHash, signatures],
+                [domainSeparator, structHash, signatures],
             );
 
-            const encodeDataWithSelector = hre.ethers.solidityPacked(["bytes4", "bytes"], [SIGNATURE_SELECTOR, encodedData]);
+            const encodeDataWithSelector = hre.ethers.solidityPacked(["bytes4", "bytes"], [SIGNATURE_VALIDATOR_SELECTOR, encodedData]);
 
             const isValidSignatureInterface = new hre.ethers.Interface([
                 "function isValidSignature(bytes32,bytes) public view returns (bytes4)",

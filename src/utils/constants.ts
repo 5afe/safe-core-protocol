@@ -12,4 +12,4 @@ export const MODULE_TYPE_SIGNATURE_VALIDATOR = 16n;
 
 // solidity: bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)"));
 // javascript: hre.ethers.keccak256(toUtf8Bytes("Account712Signature(bytes32,bytes32,bytes)")).slice(0, 10);
-export const SIGNATURE_SELECTOR =  "0xb5c726cb"; 
+export const SIGNATURE_VALIDATOR_SELECTOR =  "0xb5c726cb"; 
