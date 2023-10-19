@@ -87,9 +87,20 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @notice A non-view function that the Manager will call when an account has enabled this contract as a function handler in the Manager
      * @param account Address of the account whose signature validator is to be used
      * @param sender Address requesting signature validation
-     * @param data Calldata containing the function selector, signature hash, domain separator, type hash, encoded data and payload forwarded by the Manager
+     * @param data Calldata containing the 4 bytes function selector, 32 bytes message hash and payload.
+     *             Layout of data:
+     *             0x00 to 0x04 - 4 bytes function selector for with the this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
+     *             0x04 to 0x24 - 32 bytes hash of the signed message
+     *             0x24 to end - bytes containing signatures or signatureData either one of the below:
+     *             If first 4 bytes of signatureData are 0xb5c726cb i.e. bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)")); then it will be interpreted as follows:
+     *                  payload = abi.encodeWithSelector(0xb5c726cb, abi.encode(domainSeparator, structHash, signatures)
+     *             Else:
+     *                 bytes containing signature data
+     *                 default validation flow will be used which will depend on the account implementation
+     *
      */
     function handle(address account, address sender, uint256 /* value */, bytes calldata data) external override returns (bytes memory) {
+        // Skip first 4 bytes of data as it contains function selector
         (bytes32 messageHash, bytes memory signatureData) = abi.decode(data[4:], (bytes32, bytes));
 
         address signatureValidatorHooksAddress = signatureValidatorHooks[account];
