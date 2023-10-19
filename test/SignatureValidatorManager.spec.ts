@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import hre, { deployments } from "hardhat";
-import { getInstance, getRegistry, getSafeProtocolManager, getSignatureValidatorManager } from "./utils/contracts";
+import { getRegistry, getSafeProtocolManager, getSignatureValidatorManager } from "./utils/contracts";
 import { MaxUint256, ZeroAddress } from "ethers";
 import {
     MODULE_TYPE_FUNCTION_HANDLER,
@@ -14,10 +14,13 @@ import {
     getMockSignatureValidationHooksWithFailingPreValidationHook,
 } from "./utils/mockValidationHooksBuilder";
 import { SIGNATURE_VALIDATOR_SELECTOR } from "../src/utils/constants";
-import { MockContract } from "../typechain-types";
 
 describe("SignatureValidatorManager", () => {
     let deployer: SignerWithAddress, owner: SignerWithAddress;
+
+    const isValidSignatureInterface = new hre.ethers.Interface([
+        "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
+    ]);
 
     before(async () => {
         [deployer, owner] = await hre.ethers.getSigners();
@@ -38,12 +41,10 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should revert when enabling a signature validator not implementing ISafeProtocolSignatureValidator interface", async () => {
-        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
-
         await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
 
         await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR);
@@ -63,12 +64,10 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should allow to remove signature validator", async () => {
-        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
-
         await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
 
         await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR);
@@ -96,12 +95,10 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should revert when enabling a signature validator hooks not implementing ISafeProtocolSignatureValidatorHooks interface", async () => {
-        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
-
         await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
 
         await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
@@ -118,12 +115,10 @@ describe("SignatureValidatorManager", () => {
     });
 
     it("should allow to remove signature validator hooks", async () => {
-        const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-        const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+        const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
         // set up mock contract as a signature validator
         const mockContract = await hre.ethers.deployContract("MockContract", { signer: deployer });
-
         await mockContract.givenMethodReturnBool("0x01ffc9a7", true);
 
         await safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
@@ -153,10 +148,6 @@ describe("SignatureValidatorManager", () => {
 
             const encodeDataWithSelector = hre.ethers.solidityPacked(["bytes4", "bytes"], [SIGNATURE_VALIDATOR_SELECTOR, encodedData]);
 
-            const isValidSignatureInterface = new hre.ethers.Interface([
-                "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
-            ]);
-
             const messageHash = hre.ethers.keccak256(
                 hre.ethers.solidityPacked(["bytes1", "bytes1", "bytes32", "bytes32"], ["0x19", "0x01", domainSeparator, structHash]),
             );
@@ -167,8 +158,8 @@ describe("SignatureValidatorManager", () => {
         };
 
         it("Should revert if signature validator is not registered", async () => {
-            const { safeProtocolSignatureValidatorManager, safeProtocolManager } = await setupTests();
-            const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+            const { account, safeProtocolSignatureValidatorManager, safeProtocolManager } = await setupTests();
+
             await account.setFallbackHandler(safeProtocolManager.target);
 
             const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
@@ -185,8 +176,7 @@ describe("SignatureValidatorManager", () => {
         });
 
         it("Should call signature validator without validation hooks", async () => {
-            const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-            const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+            const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
             // 1. Set fallback handler
             await account.setFallbackHandler(safeProtocolManager.target);
@@ -228,8 +218,7 @@ describe("SignatureValidatorManager", () => {
         });
 
         it("Should revert if invalid message hash is passed", async () => {
-            const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-            const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+            const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
             // 1. Set fallback handler
             await account.setFallbackHandler(safeProtocolManager.target);
@@ -390,10 +379,6 @@ describe("SignatureValidatorManager", () => {
 
             await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
 
-            const isValidSignatureInterface = new hre.ethers.Interface([
-                "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
-            ]);
-
             const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
                 hre.ethers.randomBytes(32),
                 hre.ethers.randomBytes(65),
@@ -405,43 +390,98 @@ describe("SignatureValidatorManager", () => {
             ]);
         });
 
-        it("Should call default signature validator with validation hooks", async () => {
-            const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
-            const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
+        describe("Validation with Hooks", async () => {
 
-            // 1. Set fallback handler
-            await account.setFallbackHandler(safeProtocolManager.target);
+            const setupHooksTests = deployments.createFixture(async () => {
+                const { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
 
-            // 2. Set function handler
-            const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
-                "0x1626ba7e",
-                safeProtocolSignatureValidatorManager.target,
-            ]);
+                // 1. Set fallback handler
+                await account.setFallbackHandler(safeProtocolManager.target);
 
-            // 3. Set validation hooks
-            const mockSignatureValidatorHooks = await getMockSignatureValidationHooks();
-            const dataSetValidationHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData(
-                "setSignatureValidatorHooks",
-                [mockSignatureValidatorHooks.target],
-            );
-            await safeProtocolRegistry.connect(owner).addModule(mockSignatureValidatorHooks.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
-            await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidationHooks, MaxUint256);
+                // 2. Set function handler
+                const setFunctionHandlerData = safeProtocolManager.interface.encodeFunctionData("setFunctionHandler", [
+                    "0x1626ba7e",
+                    safeProtocolSignatureValidatorManager.target,
+                ]);
+                await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
 
-            await account.executeCallViaMock(account.target, 0, setFunctionHandlerData, MaxUint256);
+                // 3. Set validation hooks
+                const mockSignatureValidatorHooks = await getMockSignatureValidationHooks();
+                await safeProtocolRegistry
+                    .connect(owner)
+                    .addModule(mockSignatureValidatorHooks.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
 
-            const isValidSignatureInterface = new hre.ethers.Interface([
-                "function isValidSignature(bytes32,bytes) public view returns (bytes4)",
-            ]);
+                const dataSetValidationHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData(
+                    "setSignatureValidatorHooks",
+                    [mockSignatureValidatorHooks.target],
+                );
+                await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidationHooks, MaxUint256);
 
-            const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
-                hre.ethers.randomBytes(32),
-                hre.ethers.randomBytes(65),
-            ]);
+                return { account, safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry };
+            });
 
-            expect(await account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.deep.equal([
-                true,
-                "0x000000000000000000000000000000000000000000000000000000001626ba7e",
-            ]);
+            it("Should call default signature validator with validation hooks", async () => {
+                const { account } = await setupHooksTests();
+
+                const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
+                    hre.ethers.randomBytes(32),
+                    hre.ethers.randomBytes(65),
+                ]);
+
+                expect(await account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.deep.equal([
+                    true,
+                    "0x000000000000000000000000000000000000000000000000000000001626ba7e",
+                ]);
+            });
+
+            it("Should revert if pre-validation fails", async () => {
+                const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupHooksTests();
+
+                // Set validation hooks
+                const mockSignatureValidatorHooks = await getMockSignatureValidationHooksWithFailingPreValidationHook();
+                const dataSetValidationHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData(
+                    "setSignatureValidatorHooks",
+                    [mockSignatureValidatorHooks.target],
+                );
+
+                await safeProtocolRegistry
+                    .connect(owner)
+                    .addModule(mockSignatureValidatorHooks.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+                await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidationHooks, MaxUint256);
+
+                const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
+                    hre.ethers.randomBytes(32),
+                    hre.ethers.randomBytes(65),
+                ]);
+
+                await expect(account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.revertedWith(
+                    "Pre-validation failed",
+                );
+            });
+
+            it("Should revert if post-validation fails", async () => {
+                const { account, safeProtocolSignatureValidatorManager, safeProtocolRegistry } = await setupHooksTests();
+
+                // Set validation hooks
+                const mockSignatureValidatorHooks = await getMockSignatureValidationHooksWithFailingPostValidationHook();
+                const dataSetValidationHooks = safeProtocolSignatureValidatorManager.interface.encodeFunctionData(
+                    "setSignatureValidatorHooks",
+                    [mockSignatureValidatorHooks.target],
+                );
+                await safeProtocolRegistry
+                    .connect(owner)
+                    .addModule(mockSignatureValidatorHooks.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS);
+                await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidationHooks, MaxUint256);
+
+                const data = isValidSignatureInterface.encodeFunctionData("isValidSignature", [
+                    hre.ethers.randomBytes(32),
+                    hre.ethers.randomBytes(65),
+                ]);
+
+                await expect(account.executeCallViaMock.staticCall(account.target, 0, data, MaxUint256)).to.be.revertedWith(
+                    "Post-validation failed",
+                );
+            });
         });
     });
 
