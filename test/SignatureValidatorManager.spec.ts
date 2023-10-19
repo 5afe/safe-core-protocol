@@ -30,7 +30,7 @@ describe("SignatureValidatorManager", () => {
         return { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry };
     });
 
-    it("should revert when enabling a signature validator not implementing ISafeProtocol712SignatureValidator interface", async () => {
+    it("should revert when enabling a signature validator not implementing ISafeProtocolSignatureValidator interface", async () => {
         const { safeProtocolSignatureValidatorManager, safeProtocolManager, safeProtocolRegistry } = await setupTests();
         const account = await hre.ethers.deployContract("TestExecutor", [safeProtocolManager.target], { signer: deployer });
 

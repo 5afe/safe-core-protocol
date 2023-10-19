@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.18;
-import {ISafeProtocol712SignatureValidator} from "./interfaces/Modules.sol";
+import {ISafeProtocolSignatureValidator} from "./interfaces/Modules.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {ISafeProtocolFunctionHandler, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
 import {MODULE_TYPE_SIGNATURE_VALIDATOR, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS} from "./common/Constants.sol";
 import {ISafeAccount} from "./interfaces/Accounts.sol";
 import {ISafeProtocolSignatureValidatorManager} from "./interfaces/Manager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title SignatureValidatorManager
- * @notice This contract maintains the signature validator(s) per account. Accounts can set separate signature validators for each domain separator.
+ * @notice This contract facilitates signature validation. It maintains the signature validator(s) per account per domain or uses a default validation scheme based on the content of the data passed.
+ *         This contract follows the Safe{Core} Protocol specification for signature validation. For more details on specification refer to https://github.com/safe-global/safe-core-protocol-specs.
  *         Implementaion of this contract is inspired by this pull request: https://github.com/rndlabs/safe-contracts/pull/1/files.
- *         TODO: SignatureValidatorManager inherits RegistryManager leading to possible state drift of Registry address.
- *              This should be fixed by moving RegistryManager to a separate contract and inheriting it in SignatureValidatorManager and FunctionHandlerManager.
- *         TODO: Evalute if default signature validator should be used in case if signature validator for a domain does not exist.
- *         Do not set this contract as a fallback handler of a Safe account. Why? To do
+ *         Expected setup to use this contract for signature validation is as follows:
+ *                  - Account enables SafeProtocolManager as a fallback handler
+ *                  - Account sets SignatureValidatorManager as a function handler for a function selector e.g. 0x1626ba7e i.e. bytes4(keccak256("isValidSignature(bytes32,bytes)")
+ * @dev SignatureValidatorManager inherits RegistryManager leading to possible state drift of Registry address with the SafeProtocolManager contract.
+ *      Do not set this contract as a fallback handler of a Safe account. Using this as a fallback handler would allow unauthorised setting of signature validator and signature validator hooks.
  */
 
 contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHandler, ISafeProtocolSignatureValidatorManager {
@@ -49,11 +52,8 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         if (signatureValidator != address(0)) {
             checkPermittedModule(signatureValidator, MODULE_TYPE_SIGNATURE_VALIDATOR);
 
-            if (
-                !ISafeProtocol712SignatureValidator(signatureValidator).supportsInterface(
-                    type(ISafeProtocol712SignatureValidator).interfaceId
-                )
-            ) revert ContractDoesNotImplementValidInterfaceId(signatureValidator);
+            if (!ISafeProtocolSignatureValidator(signatureValidator).supportsInterface(type(ISafeProtocolSignatureValidator).interfaceId))
+                revert ContractDoesNotImplementValidInterfaceId(signatureValidator);
         }
         signatureValidators[msg.sender][domainSeparator] = signatureValidator;
 
@@ -83,10 +83,6 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         emit SignatureValidatorHooksChanged(msg.sender, signatureValidatorHooksAddress);
     }
 
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
-        return interfaceId == type(ISafeProtocolFunctionHandler).interfaceId;
-    }
-
     /**
      * @notice A non-view function that the Manager will call when an account has enabled this contract as a function handler in the Manager
      * @param account Address of the account whose signature validator is to be used
@@ -110,7 +106,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         }
 
         if (bytes4(data[100:104]) == SIGNATURE_VALIDATOR_SELECTOR) {
-            returnData = abi.encode(validateWith712SignatureValdiator(account, sender, messageHash, data[104:]));
+            returnData = abi.encode(validateWithSignatureValdiator(account, sender, messageHash, data[104:]));
 
             if (signatureValidatorHooksAddress != address(0)) {
                 ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).postValidationHook(account, prevalidationData);
@@ -125,18 +121,31 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         return returnData;
     }
 
-    function defaultValidator(address account, bytes32 hash, bytes memory signatures) internal returns (bytes memory) {
+    /**
+     * @notice A view function for default signature validation flow.
+     * @param account Address of the account whose signature is to be validated. Account should support function `checkSignatures(bytes32, bytes, bytes)`
+     * @param hash bytes32 hash of the data that is signed
+     * @param signatures Arbitrary length bytes array containing the signatures
+     */
+    function defaultValidator(address account, bytes32 hash, bytes memory signatures) internal view returns (bytes memory) {
         ISafeAccount(account).checkSignatures(hash, "", signatures);
         // bytes4(keccak256("isValidSignature(bytes32,bytes)")
         return abi.encode(0x1626ba7e);
     }
 
-    function validateWith712SignatureValdiator(
+    /**
+     *
+     * @param account Address of the account whose signature is to be validated
+     * @param sender Address of the entitty that requested for signature validation
+     * @param messageHash Hash of the message that is signed
+     * @param data Arbitrary length bytes array containing the domain separator, struct hash and signatures
+     */
+    function validateWithSignatureValdiator(
         address account,
         address sender,
         bytes32 messageHash,
         bytes calldata data
-    ) private returns (bytes4) {
+    ) internal view returns (bytes4) {
         (bytes32 domainSeparator, bytes32 structHash, bytes memory signatures) = abi.decode(data, (bytes32, bytes32, bytes));
 
         address signatureValidator = signatureValidators[account][domainSeparator];
@@ -147,7 +156,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         checkPermittedModule(signatureValidator, MODULE_TYPE_SIGNATURE_VALIDATOR);
 
         return
-            ISafeProtocol712SignatureValidator(signatureValidator).isValidSignature(
+            ISafeProtocolSignatureValidator(signatureValidator).isValidSignature(
                 account,
                 sender,
                 messageHash,
@@ -157,5 +166,21 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
             );
     }
 
+    /**
+     * @notice A function that returns module information.
+     * @return providerType uint256 Type of metadata provider
+     * @return location Arbitrary length bytes data containing the location of the metadata provider
+     */
     function metadataProvider() external view override returns (uint256 providerType, bytes memory location) {}
+
+    /**
+     * @param interfaceId bytes4 interface id to be checked
+     * @return true if interface is supported
+     */
+    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+        return
+            interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(ISafeProtocolSignatureValidatorManager).interfaceId ||
+            interfaceId == type(ISafeProtocolFunctionHandler).interfaceId;
+    }
 }

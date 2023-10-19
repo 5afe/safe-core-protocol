@@ -4,7 +4,7 @@ import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
-import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin, ISafeProtocol712SignatureValidator, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
+import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin, ISafeProtocolSignatureValidator, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
 import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS, MODULE_TYPE_SIGNATURE_VALIDATOR} from "./common/Constants.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
@@ -87,9 +87,9 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
 
         if (
             moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR == MODULE_TYPE_SIGNATURE_VALIDATOR &&
-            !IERC165(module).supportsInterface(type(ISafeProtocol712SignatureValidator).interfaceId)
+            !IERC165(module).supportsInterface(type(ISafeProtocolSignatureValidator).interfaceId)
         ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocol712SignatureValidator).interfaceId);
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolSignatureValidator).interfaceId);
         }
 
         if (

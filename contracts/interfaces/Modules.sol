@@ -139,7 +139,7 @@ interface ISafeProtocolPlugin is IERC165 {
     function requiresPermissions() external view returns (uint8 permissions);
 }
 
-interface ISafeProtocol712SignatureValidator is IERC165 {
+interface ISafeProtocolSignatureValidator is IERC165 {
     /**
      * @param account The account that has delegated the signature verification
      * @param sender The address that originally called the Safe's `isValidSignature` method
