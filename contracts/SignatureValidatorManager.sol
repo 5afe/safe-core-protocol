@@ -38,7 +38,14 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
     mapping(address => address) public signatureValidatorHooks;
 
     // Events
+    /**
+     * @notice Only one type of event is emitted for simplicity rather one for each individual case: remvoing, updating, adding new signature validator.
+     */
     event SignatureValidatorChanged(address indexed account, bytes32 indexed domainSeparator, address indexed signatureValidator);
+
+    /**
+     * @notice Only one type of event is emitted for simplicity rather one for each individual case: remvoing, updating, adding new signature validator hooks.
+     */
     event SignatureValidatorHooksChanged(address indexed account, address indexed signatureValidatorHooks);
 
     // Errors
@@ -58,8 +65,6 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         }
         signatureValidators[msg.sender][domainSeparator] = signatureValidator;
 
-        // Only one type of event is emitted for simplicity rather one for each individual
-        // case: remvoing, updating, adding new signature validator.
         emit SignatureValidatorChanged(msg.sender, domainSeparator, signatureValidator);
     }
 
@@ -79,8 +84,6 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
         }
         signatureValidatorHooks[msg.sender] = signatureValidatorHooksAddress;
 
-        // Only one type of event is emitted for simplicity rather one for each individual
-        // case: remvoing, updating, adding new signature validator.
         emit SignatureValidatorHooksChanged(msg.sender, signatureValidatorHooksAddress);
     }
 
