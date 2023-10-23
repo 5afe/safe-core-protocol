@@ -97,13 +97,13 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param sender Address requesting signature validation
      * @param data Calldata containing the 4 bytes function selector, 32 bytes message hash and payload.
      *             Layout of data:
-     *             0x00 to 0x04 - 4 bytes function selector for with the this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
+     *             0x00 to 0x04 - 4 bytes function selector when this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
      *             0x04 to 0x24 - 32 bytes hash of the signed message
      *             0x24 to end - bytes containing signatures or signatureData either one of the below:
      *             If first 4 bytes of signatureData are 0xb5c726cb i.e. bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)")); then it will be interpreted as follows:
      *                  payload = abi.encodeWithSelector(0xb5c726cb, abi.encode(domainSeparator, structHash, signatures)
      *                  Layout of `data` parameter in this case:
-     *                  0x00 to 0x04 - 4 bytes function selector for with the this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
+     *                  0x00 to 0x04 - 4 bytes function selector when this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
      *                  0x04 to 0x24 - 32 bytes hash of the signed message
      *                  0x24 to 0x44 - 32 bytes offset to the start of `bytes` parameter
      *                  0x44 to 0x64 - 32 bytes length of `bytes` parameter
