@@ -4,7 +4,7 @@ import {ISafeProtocolSignatureValidator} from "./interfaces/Modules.sol";
 import {RegistryManager} from "./base/RegistryManager.sol";
 import {ISafeProtocolFunctionHandler, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
 import {MODULE_TYPE_SIGNATURE_VALIDATOR, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS} from "./common/Constants.sol";
-import {ISafeAccount} from "./interfaces/Accounts.sol";
+import {IAccount} from "./interfaces/Accounts.sol";
 import {ISafeProtocolSignatureValidatorManager} from "./interfaces/Manager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -152,7 +152,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param signatures Arbitrary length bytes array containing the signatures
      */
     function defaultValidator(address account, bytes32 hash, bytes memory signatures) internal view returns (bytes memory) {
-        ISafeAccount(account).checkSignatures(hash, "", signatures);
+        IAccount(account).checkSignatures(hash, "", signatures);
         // bytes4(keccak256("isValidSignature(bytes32,bytes)")
         return abi.encode(0x1626ba7e);
     }
