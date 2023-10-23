@@ -98,7 +98,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param data Calldata containing the 4 bytes function selector, 32 bytes message hash and payload.
      *             Layout of data:
      *             0x00 to 0x04 - 4 bytes function selector when this contract is set as a function handler in the SafeProtocolManager i.e. 0x1626ba7e
-     *             0x04 to 0x24 - 32 bytes hash of the signed message
+     *             0x04 to 0x24 - 32 bytes hash of the message used for signing
      *             0x24 to end - bytes containing signatures or signatureData either one of the below:
      *             If first 4 bytes of signatureData are 0xb5c726cb i.e. bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)")); then it will be interpreted as follows:
      *                  payload = abi.encodeWithSelector(0xb5c726cb, abi.encode(domainSeparator, structHash, signatures)
@@ -135,14 +135,10 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
 
         if (bytes4(data[0x64:0x68]) == SIGNATURE_VALIDATOR_SELECTOR) {
             returnData = abi.encode(validateWithSignatureValdiator(account, sender, messageHash, data[0x68:]));
-
-            if (signatureValidatorHooksAddress != address(0)) {
-                ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).postValidationHook(account, prevalidationData);
-            }
-            return returnData;
+        } else {
+            returnData = defaultValidator(account, messageHash, signatureData);
         }
 
-        returnData = defaultValidator(account, messageHash, signatureData);
         if (signatureValidatorHooksAddress != address(0)) {
             ISafeProtocolSignatureValidatorHooks(signatureValidatorHooksAddress).postValidationHook(account, prevalidationData);
         }
