@@ -182,7 +182,7 @@ describe("SafeProtocolManager", async () => {
                 // As SafeProtocolManager is a fallback handler on a contract, call to enablePlugin(...) function will be
                 // forwarded for SafeProtocolManager. Direct calls to SafeProtocolManager to enable plugin are intentionally blocked.
                 await account.exec(account.target, 0, data);
-                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                     SENTINEL_MODULES,
                 ]);
@@ -202,7 +202,7 @@ describe("SafeProtocolManager", async () => {
                     safeProtocolManager,
                     "PluginPermissionsMismatch",
                 );
-                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_NONE,
                     ZeroAddress,
                 ]);
@@ -270,14 +270,14 @@ describe("SafeProtocolManager", async () => {
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                 ]);
                 await account.exec(accountAddress, 0, data);
-                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                     SENTINEL_MODULES,
                 ]);
 
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
                 await account.exec(accountAddress, 0, data2);
-                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_NONE,
                     ZeroAddress,
                 ]);
@@ -294,7 +294,7 @@ describe("SafeProtocolManager", async () => {
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                 ]);
                 await account.exec(account.target, 0, data);
-                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(account.target, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                     SENTINEL_MODULES,
                 ]);
@@ -453,14 +453,14 @@ describe("SafeProtocolManager", async () => {
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                 ]);
                 await account.exec(account.target, 0, data);
-                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_EXECUTE_CALL,
                     SENTINEL_MODULES,
                 ]);
 
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [SENTINEL_MODULES, pluginAddress]);
                 await account.exec(account.target, 0, data2);
-                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(accountAddress, pluginAddress)).to.deep.equal([
                     PLUGIN_PERMISSION_NONE,
                     ZeroAddress,
                 ]);
@@ -505,7 +505,7 @@ describe("SafeProtocolManager", async () => {
                 // Disable plugin 2
                 const data2 = safeProtocolManager.interface.encodeFunctionData("disablePlugin", [plugin3.target, plugin2.target]);
                 await account.exec(account.target, 0, data2);
-                expect(await safeProtocolManager.getPluginInfo(account.target, plugin2.target)).to.eql([
+                expect(await safeProtocolManager.getPluginInfo(account.target, plugin2.target)).to.deep.equal([
                     PLUGIN_PERMISSION_NONE,
                     ZeroAddress,
                 ]);
