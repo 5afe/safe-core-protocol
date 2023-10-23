@@ -23,8 +23,12 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHandler, ISafeProtocolSignatureValidatorManager {
     constructor(address _registry, address _initialOwner) RegistryManager(_registry, _initialOwner) {}
 
+    // constants
     // Signature selector 0xb5c726cb
     bytes4 public constant SIGNATURE_VALIDATOR_SELECTOR = bytes4(keccak256("Account712Signature(bytes32,bytes32,bytes)"));
+
+    // keccak256("AccountMessage(bytes message)");
+    bytes32 private constant ACCOUNT_MSG_TYPEHASH = 0x82cac545155fcbf147f2a9013809613677ac7d65498556e6d19ce43bcbf6c284;
 
     // Storage
     /**
@@ -152,7 +156,15 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param signatures Arbitrary length bytes array containing the signatures
      */
     function defaultValidator(address account, bytes32 hash, bytes memory signatures) internal view returns (bytes memory) {
-        IAccount(account).checkSignatures(hash, "", signatures);
+        bytes memory messageData = abi.encodePacked(
+            bytes1(0x19),
+            bytes1(0x01),
+            IAccount(account).domainSeparator(),
+            ACCOUNT_MSG_TYPEHASH,
+            abi.encode(keccak256(abi.encode(hash)))
+        );
+        bytes32 messageHash = keccak256(messageData);
+        IAccount(account).checkSignatures(messageHash, messageData, signatures);
         // bytes4(keccak256("isValidSignature(bytes32,bytes)")
         return abi.encode(0x1626ba7e);
     }

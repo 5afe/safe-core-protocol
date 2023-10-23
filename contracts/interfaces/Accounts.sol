@@ -20,4 +20,6 @@ interface IAccount {
     ) external returns (bool success, bytes memory returnData);
 
     function checkSignatures(bytes32 dataHash, bytes memory data, bytes memory signatures) external view;
+
+    function domainSeparator() external view returns (bytes32);
 }
