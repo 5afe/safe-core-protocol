@@ -132,8 +132,4 @@ contract TestExecutor is IAccount {
     }
 
     receive() external payable {}
-
-    function domainSeparator() external view override returns (bytes32) {
-        return 0x0000000000000000000000000000000000000000000000000000000000000000;
-    }
 }
