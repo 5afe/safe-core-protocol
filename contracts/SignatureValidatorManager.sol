@@ -157,7 +157,12 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param signatures Arbitrary length bytes array containing the signatures
      */
     function defaultValidator(address account, bytes32 hash, bytes memory signatures) internal view returns (bytes memory) {
-        bytes memory messageData = abi.encodePacked(bytes1(0x19), bytes1(0x01), DOMAIN_SEPARATOR_TYPEHASH, ACCOUNT_MSG_TYPEHASH, hash);
+        bytes memory messageData = abi.encodePacked(
+            bytes1(0x19),
+            bytes1(0x01),
+            keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, block.chainid, account)),
+            keccak256(abi.encode(ACCOUNT_MSG_TYPEHASH, keccak256(abi.encode(hash))))
+       );
         bytes32 messageHash = keccak256(messageData);
         IAccount(account).checkSignatures(messageHash, messageData, signatures);
         // bytes4(keccak256("isValidSignature(bytes32,bytes)")
