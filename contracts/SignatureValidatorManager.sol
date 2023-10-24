@@ -162,7 +162,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
             bytes1(0x01),
             keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, block.chainid, account)),
             keccak256(abi.encode(ACCOUNT_MSG_TYPEHASH, keccak256(abi.encode(hash))))
-       );
+        );
         bytes32 messageHash = keccak256(messageData);
         IAccount(account).checkSignatures(messageHash, messageData, signatures);
         // bytes4(keccak256("isValidSignature(bytes32,bytes)")
