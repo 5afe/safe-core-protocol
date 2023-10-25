@@ -97,7 +97,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
     }
 
     /**
-     * @notice A non-view function that the Manager will call when an account has enabled this contract as a function handler in the Manager
+     * @notice A view function that the Manager will call when an account has enabled this contract as a function handler in the Manager
      * @param account Address of the account whose signature validator is to be used
      * @param sender Address requesting signature validation
      * @param data Calldata containing the 4 bytes function selector, 32 bytes message hash and payload.
@@ -121,7 +121,12 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      *                 default validation flow will be used which will depend on the account implementation
      *
      */
-    function handle(address account, address sender, uint256 /* value */, bytes calldata data) external override returns (bytes memory) {
+    function handle(
+        address account,
+        address sender,
+        uint256 /* value */,
+        bytes calldata data
+    ) external view override returns (bytes memory) {
         // Skip first 4 bytes of data as it contains function selector
         (bytes32 messageHash, bytes memory signatureData) = abi.decode(data[0x4:], (bytes32, bytes));
 

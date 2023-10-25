@@ -166,12 +166,12 @@ interface ISafeProtocolSignatureValidatorHooks is IERC165 {
      * @param payload The payload provided for the validation
      * @return result bytes containing the result
      */
-    function preValidationHook(address account, address validator, bytes calldata payload) external returns (bytes memory result);
+    function preValidationHook(address account, address validator, bytes calldata payload) external view returns (bytes memory result);
 
     /**
      * @param account Address of the account for which signature is being validated
      * @param preValidationData Data returned by preValidationHook
      * @return result bytes containing the result
      */
-    function postValidationHook(address account, bytes calldata preValidationData) external returns (bytes memory result);
+    function postValidationHook(address account, bytes calldata preValidationData) external view returns (bytes memory result);
 }
