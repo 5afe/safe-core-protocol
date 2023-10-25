@@ -69,43 +69,37 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
             revert InvalidModuleType(module, moduleTypes);
         }
 
-        // Check if module supports expected interface
-        if (
-            moduleTypes & MODULE_TYPE_HOOKS == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
-        }
-
-        if (
-            moduleTypes & MODULE_TYPE_PLUGIN == MODULE_TYPE_PLUGIN &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
-        }
-
-        if (
-            moduleTypes & MODULE_TYPE_FUNCTION_HANDLER == MODULE_TYPE_FUNCTION_HANDLER &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
-        }
-
-        if (
-            moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR == MODULE_TYPE_SIGNATURE_VALIDATOR &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolSignatureValidator).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolSignatureValidator).interfaceId);
-        }
-
-        if (
-            moduleTypes & MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS == MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolSignatureValidatorHooks).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolSignatureValidatorHooks).interfaceId);
-        }
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_PLUGIN, type(ISafeProtocolPlugin).interfaceId);
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_FUNCTION_HANDLER, type(ISafeProtocolFunctionHandler).interfaceId);
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_HOOKS, type(ISafeProtocolHooks).interfaceId);
+        optionalCheckInterfaceSupport(
+            module,
+            moduleTypes,
+            MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS,
+            type(ISafeProtocolSignatureValidatorHooks).interfaceId
+        );
+        optionalCheckInterfaceSupport(
+            module,
+            moduleTypes,
+            MODULE_TYPE_SIGNATURE_VALIDATOR,
+            type(ISafeProtocolSignatureValidator).interfaceId
+        );
 
         listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleTypes);
         emit ModuleAdded(module);
+    }
+
+    /**
+     * @notice This function checks if module supports expected interfaceId. This function will revert if module does not support expected interfaceId.
+     * @param module Address of the module
+     * @param moduleTypes uint8 representing the types of module
+     * @param moduleTypeToCheck uint8 representing the type of module to check
+     * @param interfaceId bytes4 representing the interfaceId to check
+     */
+    function optionalCheckInterfaceSupport(address module, uint8 moduleTypes, uint8 moduleTypeToCheck, bytes4 interfaceId) internal view {
+        if (moduleTypes & moduleTypeToCheck == moduleTypeToCheck && !IERC165(module).supportsInterface(interfaceId)) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, interfaceId);
+        }
     }
 
     /**
