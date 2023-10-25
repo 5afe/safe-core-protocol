@@ -17,7 +17,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     }
 
     error CannotFlagModule(address module);
-    error CannotAddModule(address module, uint8 moduleTypes);
+    error ModuleAlreadyListed(address module);
+    error InvalidModuleType(address module, uint8 givenModuleType);
     error ModuleDoesNotSupportExpectedInterfaceId(address module, bytes4 expectedInterfaceId);
 
     event ModuleAdded(address indexed module);
@@ -59,9 +60,13 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         ModuleInfo memory moduleInfo = listedModules[module];
 
         // Check if module is already listed or if moduleTypes is greater than 8.
+        if (moduleInfo.listedAt != 0) {
+            revert ModuleAlreadyListed(module);
+        }
+
         // Maximum allowed value of moduleTypes is 31. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks) + 2^3 (Signature Validator hooks) + 2^4 (Signature Validator)
-        if (moduleInfo.listedAt != 0 || moduleTypes > 31) {
-            revert CannotAddModule(module, moduleTypes);
+        if (moduleTypes > 31) {
+            revert InvalidModuleType(module, moduleTypes);
         }
 
         // Check if module supports expected interface

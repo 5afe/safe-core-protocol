@@ -24,7 +24,7 @@ describe("SafeProtocolRegistry", async () => {
     });
 
     // A helper function to convert a number to a bytes32 value
-    const numberToBytes32 = (value: bigint) => hre.ethers.zeroPadValue(hre.ethers.toBeHex(value), 32);
+    const numberToBytes32 = (value: number) => hre.ethers.zeroPadValue(hre.ethers.toBeHex(value), 32);
 
     it("Should allow adding a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
@@ -33,7 +33,7 @@ describe("SafeProtocolRegistry", async () => {
         await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS);
         await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
-            "CannotAddModule",
+            "ModuleAlreadyListed",
         );
     });
 
@@ -90,7 +90,7 @@ describe("SafeProtocolRegistry", async () => {
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
         await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, 32))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotAddModule")
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "InvalidModuleType")
             .withArgs(mockHookAddress, 32);
     });
 
