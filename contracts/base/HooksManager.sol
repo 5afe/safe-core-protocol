@@ -16,7 +16,7 @@ abstract contract HooksManager is RegistryManager {
     /// @notice This variable should store the address of the hooks contract whenever
     /// checkTransaction(...) is called and use it in checkAfterExecution(...) to avoid
     /// any side effects of changed hooks address inbetween transaction.
-    mapping(address => TempHooksInfo) public tempHooksData;
+    // mapping(address => TempHooksInfo) public tempHooksData;
 
     // Events
     event HooksChanged(address indexed account, address indexed hooksAddress);
