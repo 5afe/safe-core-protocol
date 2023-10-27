@@ -12,7 +12,7 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  * @notice This contract manages the function handlers for an Account. The contract stores the
  *        information about an account, bytes4 function selector and the function handler contract address.
  */
-contract FunctionHandlerManager is RegistryManager {
+abstract contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about an account, function selector, and address of the account.
      */
@@ -20,9 +20,6 @@ contract FunctionHandlerManager is RegistryManager {
 
     mapping(address => address) public validateUserOpHandler;
     bytes4 constant validateUserOpSelector = bytes4(0x3a871cdd);
-
-    constructor(address registry, address initialOwner) RegistryManager(registry, initialOwner) {
-    }
 
     // Events
     event FunctionHandlerChanged(address indexed account, bytes4 indexed selector, address indexed functionHandler);
@@ -47,7 +44,6 @@ contract FunctionHandlerManager is RegistryManager {
      * @param functionHandler Address of the contract to be set as a function handler
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
-
         if (selector == validateUserOpSelector) {
             validateUserOpHandler[msg.sender] = functionHandler;
             emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
