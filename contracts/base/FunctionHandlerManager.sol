@@ -18,12 +18,10 @@ contract FunctionHandlerManager is RegistryManager {
      */
     mapping(address => mapping(bytes4 => address)) public functionHandlers;
 
-    mapping(address => bool) public isValidateUserOpHandlerEnabled;
-    address public validateUserOpHandler;
+    mapping(address => address) public validateUserOpHandler;
     bytes4 constant validateUserOpSelector = bytes4(0x3a871cdd);
 
-    constructor(address _validateUserOpHandler, address registry, address initialOwner) RegistryManager(registry, initialOwner) {
-        validateUserOpHandler = _validateUserOpHandler;
+    constructor(address registry, address initialOwner) RegistryManager(registry, initialOwner) {
     }
 
     // Events
@@ -49,6 +47,12 @@ contract FunctionHandlerManager is RegistryManager {
      * @param functionHandler Address of the contract to be set as a function handler
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
+
+        if (selector == validateUserOpSelector) {
+            validateUserOpHandler[msg.sender] = functionHandler;
+            emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
+            return;
+        }
         if (functionHandler != address(0)) {
             checkPermittedModule(functionHandler, MODULE_TYPE_FUNCTION_HANDLER);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
@@ -58,14 +62,6 @@ contract FunctionHandlerManager is RegistryManager {
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.
         functionHandlers[msg.sender][selector] = functionHandler;
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
-    }
-
-    function setValidateUserOpHandler(address newHandler) external onlyOwner {
-        validateUserOpHandler = newHandler;
-    }
-
-    function enableUserOpValidator() external onlyAccount {
-        isValidateUserOpHandlerEnabled[msg.sender] = true;
     }
 
     /**
@@ -85,8 +81,8 @@ contract FunctionHandlerManager is RegistryManager {
             sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
-        if (validateUserOpSelector == functionSelector && isValidateUserOpHandlerEnabled[account]) {
-            return ISafeProtocolFunctionHandler(validateUserOpHandler).handle(account, sender, 0, msg.data);
+        if (validateUserOpSelector == functionSelector && validateUserOpHandler[account] != address(0)) {
+            return ISafeProtocolFunctionHandler(validateUserOpHandler[account]).handle(account, sender, 0, msg.data);
         }
 
         address functionHandler = functionHandlers[account][functionSelector];
