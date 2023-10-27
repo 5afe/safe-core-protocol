@@ -19,10 +19,9 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         deterministicDeployment: true,
     });
 
-
     await deploy("FunctionHandlerManager", {
         from: deployer,
-        args: [userOpValidatorHandler, registry.address, owner],
+        args: [registry.address, owner],
         log: true,
         deterministicDeployment: true,
     });

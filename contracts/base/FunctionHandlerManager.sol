@@ -12,7 +12,7 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  * @notice This contract manages the function handlers for an Account. The contract stores the
  *        information about an account, bytes4 function selector and the function handler contract address.
  */
-abstract contract FunctionHandlerManager is RegistryManager {
+contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about an account, function selector, and address of the account.
      */
@@ -26,6 +26,8 @@ abstract contract FunctionHandlerManager is RegistryManager {
 
     // Errors
     error FunctionHandlerNotSet(address account, bytes4 functionSelector);
+
+    constructor(address registryAddress, address _initialOwner) RegistryManager(registryAddress, _initialOwner) {}
 
     /**
      * @notice Returns the function handler for an account and function selector.
