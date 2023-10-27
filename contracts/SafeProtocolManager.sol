@@ -19,7 +19,7 @@ import {MODULE_TYPE_PLUGIN} from "./common/Constants.sol";
  *        plugins through a Manager rather than directly enabling plugins in their Account.
  *        Users have to first enable SafeProtocolManager as a plugin on their Account and then enable other plugins through the manager.
  */
-contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, FunctionHandlerManager, IERC165 {
+contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksManager, IERC165 {
     address internal constant SENTINEL_MODULES = address(0x1);
 
     /**

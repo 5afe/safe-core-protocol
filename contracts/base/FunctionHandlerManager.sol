@@ -12,11 +12,19 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  * @notice This contract manages the function handlers for an Account. The contract stores the
  *        information about an account, bytes4 function selector and the function handler contract address.
  */
-abstract contract FunctionHandlerManager is RegistryManager {
+contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about an account, function selector, and address of the account.
      */
     mapping(address => mapping(bytes4 => address)) public functionHandlers;
+
+    mapping(address => bool) public isValidateUserOpHandlerEnabled;
+    address public validateUserOpHandler;
+    bytes4 constant validateUserOpSelector = bytes4(0x3a871cdd);
+
+    constructor(address _validateUserOpHandler, address registry, address initialOwner) RegistryManager(registry, initialOwner) {
+        validateUserOpHandler = _validateUserOpHandler;
+    }
 
     // Events
     event FunctionHandlerChanged(address indexed account, bytes4 indexed selector, address indexed functionHandler);
@@ -52,6 +60,14 @@ abstract contract FunctionHandlerManager is RegistryManager {
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
+    function setValidateUserOpHandler(address newHandler) external onlyOwner {
+        validateUserOpHandler = newHandler;
+    }
+
+    function enableUserOpValidator() external onlyAccount {
+        isValidateUserOpHandlerEnabled[msg.sender] = true;
+    }
+
     /**
      * @notice This fallback handler function checks if an account (msg.sender) has a function handler enabled.
      *         If enabled, calls handle function and returns the result back.
@@ -63,17 +79,21 @@ abstract contract FunctionHandlerManager is RegistryManager {
         address account = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
 
+        address sender;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            sender := shr(96, calldataload(sub(calldatasize(), 20)))
+        }
+
+        if (validateUserOpSelector == functionSelector && isValidateUserOpHandlerEnabled[account]) {
+            return ISafeProtocolFunctionHandler(validateUserOpHandler).handle(account, sender, 0, msg.data);
+        }
+
         address functionHandler = functionHandlers[account][functionSelector];
 
         // Revert if functionHandler is not set
         if (functionHandler == address(0)) {
             revert FunctionHandlerNotSet(account, functionSelector);
-        }
-
-        address sender;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
         // With a Safe{Core} Account v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.
