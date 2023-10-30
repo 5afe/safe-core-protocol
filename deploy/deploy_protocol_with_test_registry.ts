@@ -3,7 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployments, getNamedAccounts } = hre;
-    const { deployer, owner } = await getNamedAccounts();
+    const { deployer, owner, userOpValidatorHandler } = await getNamedAccounts();
     const { deploy } = deployments;
     const testRegistry = await deploy("TestSafeProtocolRegistryUnrestricted", {
         from: deployer,
@@ -15,6 +15,13 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await deploy("TestSafeProtocolManager", {
         from: deployer,
         args: [owner, testRegistry.address],
+        log: true,
+        deterministicDeployment: true,
+    });
+
+    await deploy("FunctionHandlerManager", {
+        from: deployer,
+        args: [testRegistry.address, owner],
         log: true,
         deterministicDeployment: true,
     });

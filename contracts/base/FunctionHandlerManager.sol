@@ -12,17 +12,22 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  * @notice This contract manages the function handlers for an Account. The contract stores the
  *        information about an account, bytes4 function selector and the function handler contract address.
  */
-abstract contract FunctionHandlerManager is RegistryManager {
+contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about an account, function selector, and address of the account.
      */
     mapping(address => mapping(bytes4 => address)) public functionHandlers;
+
+    mapping(address => address) public validateUserOpHandler;
+    bytes4 constant validateUserOpSelector = bytes4(0x3a871cdd);
 
     // Events
     event FunctionHandlerChanged(address indexed account, bytes4 indexed selector, address indexed functionHandler);
 
     // Errors
     error FunctionHandlerNotSet(address account, bytes4 functionSelector);
+
+    constructor(address registryAddress, address _initialOwner) RegistryManager(registryAddress, _initialOwner) {}
 
     /**
      * @notice Returns the function handler for an account and function selector.
@@ -41,6 +46,11 @@ abstract contract FunctionHandlerManager is RegistryManager {
      * @param functionHandler Address of the contract to be set as a function handler
      */
     function setFunctionHandler(bytes4 selector, address functionHandler) external onlyAccount {
+        if (selector == validateUserOpSelector) {
+            validateUserOpHandler[msg.sender] = functionHandler;
+            emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
+            return;
+        }
         if (functionHandler != address(0)) {
             checkPermittedModule(functionHandler, MODULE_TYPE_FUNCTION_HANDLER);
             if (!ISafeProtocolFunctionHandler(functionHandler).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId))
@@ -63,17 +73,21 @@ abstract contract FunctionHandlerManager is RegistryManager {
         address account = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
 
+        address sender;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            sender := shr(96, calldataload(sub(calldatasize(), 20)))
+        }
+
+        if (validateUserOpSelector == functionSelector && validateUserOpHandler[account] != address(0)) {
+            return ISafeProtocolFunctionHandler(validateUserOpHandler[account]).handle(account, sender, 0, msg.data);
+        }
+
         address functionHandler = functionHandlers[account][functionSelector];
 
         // Revert if functionHandler is not set
         if (functionHandler == address(0)) {
             revert FunctionHandlerNotSet(account, functionSelector);
-        }
-
-        address sender;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            sender := shr(96, calldataload(sub(calldatasize(), 20)))
         }
 
         // With a Safe{Core} Account v1.x, msg.data contains 20 bytes of sender address. Read the sender address by loading last 20 bytes.

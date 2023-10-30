@@ -7,7 +7,7 @@ import { HttpNetworkUserConfig } from "hardhat/types";
 import "hardhat-deploy";
 import { DeterministicDeploymentInfo } from "hardhat-deploy/dist/types";
 import { getSingletonFactoryInfo } from "@safe-global/safe-singleton-factory";
-import { ethers } from "ethers";
+import { ZeroAddress, ethers } from "ethers";
 import "./src/tasks/generate_deployments_markdown";
 import "./src/tasks/show_codesize";
 
@@ -22,7 +22,7 @@ const argv : any = yargs
     .help(false)
     .version(false).argv;
 
-const { NODE_URL, MNEMONIC, INFURA_KEY, ETHERSCAN_API_KEY, SAFE_CORE_PROTOCOL_OWNER_ADDRESS } = process.env;
+const { NODE_URL, MNEMONIC, INFURA_KEY, ETHERSCAN_API_KEY, SAFE_CORE_PROTOCOL_OWNER_ADDRESS, SAFE_CORE_PROTOCOL_4337_USER_OP_VALIDATOR_HANDLER_ADDRESS } = process.env;
 
 const deterministicDeployment = (network: string): DeterministicDeploymentInfo => {
   const info = getSingletonFactoryInfo(parseInt(network));
@@ -52,10 +52,19 @@ sharedNetworkConfig.accounts = {
 }
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+  solidity: {
+    version: "0.8.18",
+      settings: { 
+        optimizer: {
+          enabled: true,
+          runs: 2000
+        },
+      }
+  },
   gasReporter: {
     enabled: (process.env.REPORT_GAS) ? true : false
   },
+
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
@@ -109,6 +118,9 @@ const config: HardhatUserConfig = {
     },
     owner: {
       default: SAFE_CORE_PROTOCOL_OWNER_ADDRESS || 1
+    },
+    userOpValidatorHandler: {
+      default: SAFE_CORE_PROTOCOL_4337_USER_OP_VALIDATOR_HANDLER_ADDRESS || ZeroAddress
     }
   }
 };
