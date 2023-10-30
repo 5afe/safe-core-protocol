@@ -4,8 +4,8 @@ import {ISafeProtocolRegistry} from "./interfaces/Registry.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Enum} from "./common/Enum.sol";
-import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin} from "./interfaces/Modules.sol";
-import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER} from "./common/Constants.sol";
+import {ISafeProtocolFunctionHandler, ISafeProtocolHooks, ISafeProtocolPlugin, ISafeProtocolSignatureValidator, ISafeProtocolSignatureValidatorHooks} from "./interfaces/Modules.sol";
+import {MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS, MODULE_TYPE_SIGNATURE_VALIDATOR} from "./common/Constants.sol";
 
 contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     mapping(address => ModuleInfo) public listedModules;
@@ -17,7 +17,8 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
     }
 
     error CannotFlagModule(address module);
-    error CannotAddModule(address module, uint8 moduleTypes);
+    error ModuleAlreadyListed(address module);
+    error InvalidModuleType(address module, uint8 givenModuleType);
     error ModuleDoesNotSupportExpectedInterfaceId(address module, bytes4 expectedInterfaceId);
 
     event ModuleAdded(address indexed module);
@@ -59,34 +60,46 @@ contract SafeProtocolRegistry is ISafeProtocolRegistry, Ownable2Step {
         ModuleInfo memory moduleInfo = listedModules[module];
 
         // Check if module is already listed or if moduleTypes is greater than 8.
-        // Maximum allowed value of moduleTypes is 7. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks)
-        if (moduleInfo.listedAt != 0 || moduleTypes > 7) {
-            revert CannotAddModule(module, moduleTypes);
+        if (moduleInfo.listedAt != 0) {
+            revert ModuleAlreadyListed(module);
         }
 
-        // Check if module supports expected interface
-        if (
-            moduleTypes & MODULE_TYPE_HOOKS == MODULE_TYPE_HOOKS && !IERC165(module).supportsInterface(type(ISafeProtocolHooks).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolHooks).interfaceId);
+        // Maximum allowed value of moduleTypes is 31. i.e. 2^0 (Plugin) + 2^1 (Function Handler) + 2^2 (Hooks) + 2^3 (Signature Validator hooks) + 2^4 (Signature Validator)
+        if (moduleTypes > 31) {
+            revert InvalidModuleType(module, moduleTypes);
         }
 
-        if (
-            moduleTypes & MODULE_TYPE_PLUGIN == MODULE_TYPE_PLUGIN &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolPlugin).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolPlugin).interfaceId);
-        }
-
-        if (
-            moduleTypes & MODULE_TYPE_FUNCTION_HANDLER == MODULE_TYPE_FUNCTION_HANDLER &&
-            !IERC165(module).supportsInterface(type(ISafeProtocolFunctionHandler).interfaceId)
-        ) {
-            revert ModuleDoesNotSupportExpectedInterfaceId(module, type(ISafeProtocolFunctionHandler).interfaceId);
-        }
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_PLUGIN, type(ISafeProtocolPlugin).interfaceId);
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_FUNCTION_HANDLER, type(ISafeProtocolFunctionHandler).interfaceId);
+        optionalCheckInterfaceSupport(module, moduleTypes, MODULE_TYPE_HOOKS, type(ISafeProtocolHooks).interfaceId);
+        optionalCheckInterfaceSupport(
+            module,
+            moduleTypes,
+            MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS,
+            type(ISafeProtocolSignatureValidatorHooks).interfaceId
+        );
+        optionalCheckInterfaceSupport(
+            module,
+            moduleTypes,
+            MODULE_TYPE_SIGNATURE_VALIDATOR,
+            type(ISafeProtocolSignatureValidator).interfaceId
+        );
 
         listedModules[module] = ModuleInfo(uint64(block.timestamp), 0, moduleTypes);
         emit ModuleAdded(module);
+    }
+
+    /**
+     * @notice This function checks if module supports expected interfaceId. This function will revert if module does not support expected interfaceId.
+     * @param module Address of the module
+     * @param moduleTypes uint8 representing the types of module
+     * @param moduleTypeToCheck uint8 representing the type of module to check
+     * @param interfaceId bytes4 representing the interfaceId to check
+     */
+    function optionalCheckInterfaceSupport(address module, uint8 moduleTypes, uint8 moduleTypeToCheck, bytes4 interfaceId) internal view {
+        if (moduleTypes & moduleTypeToCheck == moduleTypeToCheck && !IERC165(module).supportsInterface(interfaceId)) {
+            revert ModuleDoesNotSupportExpectedInterfaceId(module, interfaceId);
+        }
     }
 
     /**

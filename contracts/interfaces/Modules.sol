@@ -138,3 +138,40 @@ interface ISafeProtocolPlugin is IERC165 {
      */
     function requiresPermissions() external view returns (uint8 permissions);
 }
+
+interface ISafeProtocolSignatureValidator is IERC165 {
+    /**
+     * @param account The account that has delegated the signature verification
+     * @param sender The address that originally called the Safe's `isValidSignature` method
+     * @param structHash The EIP-712 hash whose signature will be verified
+     * @param domainSeparator The EIP-712 domainSeparator
+     * @param structHash The EIP-712 structHash
+     * @param payload An arbitrary payload that can be used to pass additional data to the validator
+     * @return magic The magic value that should be returned if the signature is valid (0x1626ba7e)
+     */
+    function isValidSignature(
+        address account,
+        address sender,
+        bytes32 messageHash,
+        bytes32 domainSeparator,
+        bytes32 structHash,
+        bytes calldata payload
+    ) external view returns (bytes4 magic);
+}
+
+interface ISafeProtocolSignatureValidatorHooks is IERC165 {
+    /**
+     * @param account Address of the account for which signature is being validated
+     * @param validator Address of the validator contract to be used for signature validation. This address will be account address in case of default signature validation flow is used.
+     * @param payload The payload provided for the validation
+     * @return result bytes containing the result
+     */
+    function preValidationHook(address account, address validator, bytes calldata payload) external view returns (bytes memory result);
+
+    /**
+     * @param account Address of the account for which signature is being validated
+     * @param preValidationData Data returned by preValidationHook
+     * @return result bytes containing the result
+     */
+    function postValidationHook(address account, bytes calldata preValidationData) external view returns (bytes memory result);
+}

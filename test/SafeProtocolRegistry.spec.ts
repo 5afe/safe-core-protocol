@@ -2,7 +2,13 @@ import hre, { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 import { AddressZero } from "@ethersproject/constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { MODULE_TYPE_PLUGIN, MODULE_TYPE_HOOKS, MODULE_TYPE_FUNCTION_HANDLER } from "../src/utils/constants";
+import {
+    MODULE_TYPE_PLUGIN,
+    MODULE_TYPE_HOOKS,
+    MODULE_TYPE_FUNCTION_HANDLER,
+    MODULE_TYPE_SIGNATURE_VALIDATOR,
+    MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS,
+} from "../src/utils/constants";
 import { getHooksWithPassingChecks, getHooksWithFailingCallToSupportsInterfaceMethod } from "./utils/mockHooksBuilder";
 import { getPluginWithFailingCallToSupportsInterfaceMethod } from "./utils/mockPluginBuilder";
 import { getFunctionHandlerWithFailingCallToSupportsInterfaceMethod } from "./utils/mockFunctionHandlerBuilder";
@@ -18,7 +24,7 @@ describe("SafeProtocolRegistry", async () => {
     });
 
     // A helper function to convert a number to a bytes32 value
-    const numberToBytes32 = (value: bigint) => hre.ethers.zeroPadValue(hre.ethers.toBeHex(value), 32);
+    const numberToBytes32 = (value: number) => hre.ethers.zeroPadValue(hre.ethers.toBeHex(value), 32);
 
     it("Should allow adding a module only once", async () => {
         const { safeProtocolRegistry } = await setupTests();
@@ -27,7 +33,7 @@ describe("SafeProtocolRegistry", async () => {
         await safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS);
         await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, MODULE_TYPE_HOOKS)).to.be.revertedWithCustomError(
             safeProtocolRegistry,
-            "CannotAddModule",
+            "ModuleAlreadyListed",
         );
     });
 
@@ -39,11 +45,20 @@ describe("SafeProtocolRegistry", async () => {
 
         await safeProtocolRegistry
             .connect(owner)
-            .addModule(mockModule, MODULE_TYPE_PLUGIN + MODULE_TYPE_FUNCTION_HANDLER + MODULE_TYPE_HOOKS);
+            .addModule(
+                mockModule,
+                MODULE_TYPE_PLUGIN +
+                    MODULE_TYPE_FUNCTION_HANDLER +
+                    MODULE_TYPE_HOOKS +
+                    MODULE_TYPE_SIGNATURE_VALIDATOR +
+                    MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS,
+            );
+
         const [listedAt, flaggedAt] = await safeProtocolRegistry.check.staticCall(
             mockModule.target,
             numberToBytes32(MODULE_TYPE_FUNCTION_HANDLER),
         );
+
         expect(listedAt).to.be.greaterThan(0);
         expect(flaggedAt).to.be.equal(0);
 
@@ -54,15 +69,29 @@ describe("SafeProtocolRegistry", async () => {
         const [listedAt3, flaggedAt3] = await safeProtocolRegistry.check.staticCall(mockModule.target, numberToBytes32(MODULE_TYPE_HOOKS));
         expect(listedAt3).to.be.greaterThan(0);
         expect(flaggedAt3).to.be.equal(0);
+
+        const [listedAt4, flaggedAt4] = await safeProtocolRegistry.check.staticCall(
+            mockModule.target,
+            numberToBytes32(MODULE_TYPE_SIGNATURE_VALIDATOR),
+        );
+        expect(listedAt4).to.be.greaterThan(0);
+        expect(flaggedAt4).to.be.equal(0);
+
+        const [listedAt5, flaggedAt5] = await safeProtocolRegistry.check.staticCall(
+            mockModule.target,
+            numberToBytes32(MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS),
+        );
+        expect(listedAt5).to.be.greaterThan(0);
+        expect(flaggedAt5).to.be.equal(0);
     });
 
     it("Should not allow adding a module with invalid moduleTypes", async () => {
         const { safeProtocolRegistry } = await setupTests();
         const mockHookAddress = (await getHooksWithPassingChecks()).target;
 
-        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, 8))
-            .to.be.revertedWithCustomError(safeProtocolRegistry, "CannotAddModule")
-            .withArgs(mockHookAddress, 8);
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockHookAddress, 32))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "InvalidModuleType")
+            .withArgs(mockHookAddress, 32);
     });
 
     it("Should not allow non-owner to add a module", async () => {
@@ -165,5 +194,25 @@ describe("SafeProtocolRegistry", async () => {
         await expect(safeProtocolRegistry.connect(owner).addModule(mockFunctionHandlerAddress, MODULE_TYPE_FUNCTION_HANDLER))
             .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
             .withArgs(mockFunctionHandlerAddress, "0xf601ad15");
+    });
+
+    it("Should revert when signature validator hooks not supporting expected interfaceId", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+        const mockContract = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", false);
+
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR_HOOKS))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
+            .withArgs(mockContract.target, "0xd340d5af");
+    });
+
+    it("Should revert when signature validator not supporting expected interfaceId", async () => {
+        const { safeProtocolRegistry } = await setupTests();
+        const mockContract = await (await hre.ethers.getContractFactory("MockContract")).deploy();
+        await mockContract.givenMethodReturnBool("0x01ffc9a7", false);
+
+        await expect(safeProtocolRegistry.connect(owner).addModule(mockContract.target, MODULE_TYPE_SIGNATURE_VALIDATOR))
+            .to.be.revertedWithCustomError(safeProtocolRegistry, "ModuleDoesNotSupportExpectedInterfaceId")
+            .withArgs(mockContract.target, "0x38c8d4e6");
     });
 });

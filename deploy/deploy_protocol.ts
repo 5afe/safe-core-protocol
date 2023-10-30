@@ -18,6 +18,13 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         log: true,
         deterministicDeployment: true,
     });
+
+    await deploy("SignatureValidatorManager", {
+        from: deployer,
+        args: [registry.address, owner],
+        log: true,
+        deterministicDeployment: true,
+    });
 };
 
 deploy.tags = ["protocol"];

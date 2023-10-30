@@ -127,5 +127,9 @@ contract TestExecutor is IAccount {
         }
     }
 
+    function checkSignatures(bytes32 dataHash, bytes calldata data, bytes calldata signatures) external view {
+        // An empty function used for testing signature validator flow
+    }
+
     receive() external payable {}
 }
