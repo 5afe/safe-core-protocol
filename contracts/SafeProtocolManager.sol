@@ -76,16 +76,16 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      */
     function executeTransaction(
         address account,
-        SafeTransaction calldata transaction
-    ) external override onlyEnabledPlugin(account) onlyPermittedModule(msg.sender, MODULE_TYPE_PLUGIN) returns (bytes[] memory data) {
-        address hooksAddress = enabledHooks[account];
-        bool areHooksEnabled = hooksAddress != address(0);
-        bytes memory preCheckData;
-        if (areHooksEnabled) {
-            // execution metadata for transaction execution through plugin is encoded address of the plugin i.e. msg.sender.
-            // executionType = 1 for plugin flow
-            preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(account, transaction, 1, abi.encode(msg.sender));
-        }
+        SafeTransaction calldata transaction // onlyEnabledPlugin(account) onlyPermittedModule(msg.sender, MODULE_TYPE_PLUGIN)
+    ) external override returns (bytes[] memory data) {
+        // address hooksAddress = enabledHooks[account];
+        // bool areHooksEnabled = hooksAddress != address(0);
+        // bytes memory preCheckData;
+        // if (areHooksEnabled) {
+        //     // execution metadata for transaction execution through plugin is encoded address of the plugin i.e. msg.sender.
+        //     // executionType = 1 for plugin flow
+        //     preCheckData = ISafeProtocolHooks(hooksAddress).preCheck(account, transaction, 1, abi.encode(msg.sender));
+        // }
 
         data = new bytes[](transaction.actions.length);
         uint256 length = transaction.actions.length;
@@ -97,7 +97,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
             } else if (safeProtocolAction.to == account) {
                 checkPermission(account, PLUGIN_PERMISSION_CALL_TO_SELF);
             } else {
-                checkPermission(account, PLUGIN_PERMISSION_EXECUTE_CALL);
+                // checkPermission(account, PLUGIN_PERMISSION_EXECUTE_CALL);
             }
 
             (bool isActionSuccessful, bytes memory resultData) = IAccount(account).execTransactionFromModuleReturnData(
@@ -114,10 +114,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
                 data[i] = resultData;
             }
         }
-        if (areHooksEnabled) {
-            // success = true because if transaction is not revereted till here, all actions executed successfully.
-            ISafeProtocolHooks(hooksAddress).postCheck(account, true, preCheckData);
-        }
+        // if (areHooksEnabled) {
+        //     // success = true because if transaction is not revereted till here, all actions executed successfully.
+        //     ISafeProtocolHooks(hooksAddress).postCheck(account, true, preCheckData);
+        // }
         emit ActionsExecuted(account, transaction.metadataHash, transaction.nonce);
     }
 
@@ -174,7 +174,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     function enablePlugin(
         address plugin,
         uint8 permissions
-    ) external noZeroOrSentinelPlugin(plugin) onlyPermittedModule(plugin, MODULE_TYPE_PLUGIN) {
+    )
+        external
+        noZeroOrSentinelPlugin(plugin) // onlyPermittedModule(plugin, MODULE_TYPE_PLUGIN)
+    {
         // address(0) check omitted because it is not expected to enable it as a plugin and
         // call to it would fail. Additionally, registry should not permit address(0) as an module.
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
