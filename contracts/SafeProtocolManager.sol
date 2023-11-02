@@ -24,9 +24,9 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     /**
      * @notice Mapping of a mapping what stores information about plugins that are enabled per account.
-     *         address (Account address) => address (module address) => EnabledPluginInfo
+     *         address (module address) => address (account address) => EnabledPluginInfo
      */
-    mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
+    mapping(address => mapping(address => PluginAccessInfo)) private _plugins;
     struct PluginAccessInfo {
         uint8 permissions;
         address nextPluginPointer;
@@ -180,8 +180,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
             revert ContractDoesNotImplementValidInterfaceId(plugin);
 
-        PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
-        PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
+        PluginAccessInfo storage senderSentinelPlugin = _plugins[SENTINEL_MODULES][msg.sender];
+        PluginAccessInfo storage senderPlugin = _plugins[plugin][msg.sender];
 
         if (senderPlugin.nextPluginPointer != address(0)) {
             revert PluginAlreadyEnabled(msg.sender, plugin);
@@ -208,8 +208,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin Plugin to be disabled
      */
     function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {
-        PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
-        PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
+        PluginAccessInfo storage prevPluginInfo = _plugins[prevPlugin][msg.sender];
+        PluginAccessInfo storage pluginInfo = _plugins[plugin][msg.sender];
 
         if (prevPluginInfo.nextPluginPointer != plugin) {
             revert InvalidPrevPluginAddress(prevPlugin);
@@ -229,7 +229,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin Address of a plugin
      */
     function getPluginInfo(address account, address plugin) external view returns (PluginAccessInfo memory enabled) {
-        return enabledPlugins[account][plugin];
+        return _plugins[plugin][account];
     }
 
     /**
@@ -239,7 +239,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @return True if the plugin is enabled
      */
     function isPluginEnabled(address account, address plugin) public view returns (bool) {
-        return SENTINEL_MODULES != plugin && enabledPlugins[account][plugin].nextPluginPointer != address(0);
+        return SENTINEL_MODULES != plugin && _plugins[plugin][account].nextPluginPointer != address(0);
     }
 
     /**
@@ -268,10 +268,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
         // Populate return array
         uint256 pluginCount = 0;
-        next = enabledPlugins[account][start].nextPluginPointer;
+        next = _plugins[start][account].nextPluginPointer;
         while (next != address(0) && next != SENTINEL_MODULES && pluginCount < pageSize) {
             array[pluginCount] = next;
-            next = enabledPlugins[account][next].nextPluginPointer;
+            next = _plugins[next][account].nextPluginPointer;
             pluginCount++;
         }
 
@@ -436,7 +436,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     }
 
     function checkOnlyEnabledPlugin(address account) private view {
-        if (enabledPlugins[account][msg.sender].nextPluginPointer == address(0)) {
+        if (_plugins[msg.sender][account].nextPluginPointer == address(0)) {
             revert PluginNotEnabled(msg.sender);
         }
     }
@@ -457,7 +457,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      */
     function checkPermission(address account, uint8 permission) private view {
         // For each action, Manager will read storage and call plugin's requiresPermissions().
-        uint8 givenPermissions = enabledPlugins[account][msg.sender].permissions;
+        uint8 givenPermissions = _plugins[msg.sender][account].permissions;
         uint8 requiresPermissions = ISafeProtocolPlugin(msg.sender).requiresPermissions();
 
         if ((requiresPermissions & givenPermissions & permission) != permission) {
