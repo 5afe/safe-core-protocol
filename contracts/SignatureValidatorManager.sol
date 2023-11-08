@@ -38,6 +38,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
     // Storage
     /**
      * @notice Mapping to domain separator => account address => signature validator contract
+     * @dev The key of the inner-most mapping is the account address, which is required for 4337-compatibility.
      */
     mapping(bytes32 => mapping(address => address)) public signatureValidators;
 

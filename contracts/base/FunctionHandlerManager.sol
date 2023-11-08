@@ -14,7 +14,9 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  */
 abstract contract FunctionHandlerManager is RegistryManager {
     // Storage
-    /** @dev Mapping that stores information about an account, function selector, and address of the account.
+    /**
+     * @notice Mapping that stores information about an account, function selector, and address of the account.
+     * @dev The key of the inner-most mapping is the account address, which is required for 4337-compatibility.
      */
     mapping(bytes4 => mapping(address => address)) public functionHandlers;
 

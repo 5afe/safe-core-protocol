@@ -25,6 +25,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     /**
      * @notice Mapping of a mapping what stores information about plugins that are enabled per account.
      *         address (module address) => address (account address) => EnabledPluginInfo
+     * @dev The key of the inner-most mapping is the account address, which is required for 4337-compatibility.
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
     struct PluginAccessInfo {
