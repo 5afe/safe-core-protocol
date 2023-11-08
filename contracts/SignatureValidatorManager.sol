@@ -37,9 +37,9 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
 
     // Storage
     /**
-     * @notice Mapping to account address => domain separator => signature validator contract
+     * @notice Mapping to domain separator => account address => signature validator contract
      */
-    mapping(address => mapping(bytes32 => address)) public signatureValidators;
+    mapping(bytes32 => mapping(address => address)) public signatureValidators;
 
     /**
      * @notice Mapping to account address => signature validator hooks contract
@@ -72,7 +72,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
             if (!ISafeProtocolSignatureValidator(signatureValidator).supportsInterface(type(ISafeProtocolSignatureValidator).interfaceId))
                 revert ContractDoesNotImplementValidInterfaceId(signatureValidator);
         }
-        signatureValidators[msg.sender][domainSeparator] = signatureValidator;
+        signatureValidators[domainSeparator][msg.sender] = signatureValidator;
 
         emit SignatureValidatorChanged(msg.sender, domainSeparator, signatureValidator);
     }
@@ -193,7 +193,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
             revert InvalidMessageHash(messageHash);
         }
 
-        address signatureValidator = signatureValidators[account][domainSeparator];
+        address signatureValidator = signatureValidators[domainSeparator][account];
         if (signatureValidator == address(0)) {
             revert SignatureValidatorNotSet(account);
         }
