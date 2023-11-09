@@ -465,7 +465,11 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         }
     }
 
-    function transferPrefund(address account, address payable entrypoint, uint256 missingAccountFunds) external override {
+    function transferPrefund(
+        address account,
+        address payable entrypoint,
+        uint256 missingAccountFunds
+    ) external override onlyEnabledPlugin(account) {
         require(functionHandlers[hex"3a871cdd"][account] == msg.sender);
         IAccount(account).execTransactionFromModule(entrypoint, missingAccountFunds, "", 0);
     }
