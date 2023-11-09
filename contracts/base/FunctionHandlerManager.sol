@@ -14,9 +14,11 @@ import {MODULE_TYPE_FUNCTION_HANDLER} from "../common/Constants.sol";
  */
 abstract contract FunctionHandlerManager is RegistryManager {
     // Storage
-    /** @dev Mapping that stores information about an account, function selector, and address of the account.
+    /**
+     * @notice Mapping that stores information about an account, function selector, and address of the account.
+     * @dev The key of the inner-most mapping is the account address, which is required for 4337-compatibility.
      */
-    mapping(address => mapping(bytes4 => address)) public functionHandlers;
+    mapping(bytes4 => mapping(address => address)) public functionHandlers;
 
     // Events
     event FunctionHandlerChanged(address indexed account, bytes4 indexed selector, address indexed functionHandler);
@@ -31,7 +33,7 @@ abstract contract FunctionHandlerManager is RegistryManager {
      * @return functionHandler Address of the contract to be set as a function handler
      */
     function getFunctionHandler(address account, bytes4 selector) external view returns (address functionHandler) {
-        functionHandler = functionHandlers[account][selector];
+        functionHandler = functionHandlers[selector][account];
     }
 
     /**
@@ -48,7 +50,7 @@ abstract contract FunctionHandlerManager is RegistryManager {
         }
 
         // No need to check if functionHandler implements expected interfaceId as check will be done when adding to registry.
-        functionHandlers[msg.sender][selector] = functionHandler;
+        functionHandlers[selector][msg.sender] = functionHandler;
         emit FunctionHandlerChanged(msg.sender, selector, functionHandler);
     }
 
@@ -63,7 +65,7 @@ abstract contract FunctionHandlerManager is RegistryManager {
         address account = msg.sender;
         bytes4 functionSelector = bytes4(msg.data);
 
-        address functionHandler = functionHandlers[account][functionSelector];
+        address functionHandler = functionHandlers[functionSelector][account];
 
         // Revert if functionHandler is not set
         if (functionHandler == address(0)) {

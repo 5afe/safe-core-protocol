@@ -24,7 +24,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
     /**
      * @notice Mapping of a mapping what stores information about plugins that are enabled per account.
-     *         address (Account address) => address (module address) => EnabledPluginInfo
+     *         address (module address) => address (account address) => EnabledPluginInfo
+     * @dev The key of the inner-most mapping is the account address, which is required for 4337-compatibility.
      */
     mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
     struct PluginAccessInfo {
@@ -180,8 +181,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         if (!ISafeProtocolPlugin(plugin).supportsInterface(type(ISafeProtocolPlugin).interfaceId))
             revert ContractDoesNotImplementValidInterfaceId(plugin);
 
-        PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[msg.sender][SENTINEL_MODULES];
-        PluginAccessInfo storage senderPlugin = enabledPlugins[msg.sender][plugin];
+        PluginAccessInfo storage senderSentinelPlugin = enabledPlugins[SENTINEL_MODULES][msg.sender];
+        PluginAccessInfo storage senderPlugin = enabledPlugins[plugin][msg.sender];
 
         if (senderPlugin.nextPluginPointer != address(0)) {
             revert PluginAlreadyEnabled(msg.sender, plugin);
@@ -208,8 +209,8 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin Plugin to be disabled
      */
     function disablePlugin(address prevPlugin, address plugin) external noZeroOrSentinelPlugin(plugin) onlyAccount {
-        PluginAccessInfo storage prevPluginInfo = enabledPlugins[msg.sender][prevPlugin];
-        PluginAccessInfo storage pluginInfo = enabledPlugins[msg.sender][plugin];
+        PluginAccessInfo storage prevPluginInfo = enabledPlugins[prevPlugin][msg.sender];
+        PluginAccessInfo storage pluginInfo = enabledPlugins[plugin][msg.sender];
 
         if (prevPluginInfo.nextPluginPointer != plugin) {
             revert InvalidPrevPluginAddress(prevPlugin);
@@ -229,7 +230,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @param plugin Address of a plugin
      */
     function getPluginInfo(address account, address plugin) external view returns (PluginAccessInfo memory enabled) {
-        return enabledPlugins[account][plugin];
+        return enabledPlugins[plugin][account];
     }
 
     /**
@@ -239,7 +240,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @return True if the plugin is enabled
      */
     function isPluginEnabled(address account, address plugin) public view returns (bool) {
-        return SENTINEL_MODULES != plugin && enabledPlugins[account][plugin].nextPluginPointer != address(0);
+        return SENTINEL_MODULES != plugin && enabledPlugins[plugin][account].nextPluginPointer != address(0);
     }
 
     /**
@@ -268,10 +269,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
         // Populate return array
         uint256 pluginCount = 0;
-        next = enabledPlugins[account][start].nextPluginPointer;
+        next = enabledPlugins[start][account].nextPluginPointer;
         while (next != address(0) && next != SENTINEL_MODULES && pluginCount < pageSize) {
             array[pluginCount] = next;
-            next = enabledPlugins[account][next].nextPluginPointer;
+            next = enabledPlugins[next][account].nextPluginPointer;
             pluginCount++;
         }
 
@@ -282,10 +283,10 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
 
         /**
           Because of the argument validation, we can assume that the loop will always iterate over the valid plugin list values
-          and the `next` variable will either be an enabled plugin or a sentinel address (signalling the end). 
-          
+          and the `next` variable will either be an enabled plugin or a sentinel address (signalling the end).
+
           If we haven't reached the end inside the loop, we need to set the next pointer to the last element of the plugins array
-          because the `next` variable (which is a plugin by itself) acting as a pointer to the start of the next page is neither 
+          because the `next` variable (which is a plugin by itself) acting as a pointer to the start of the next page is neither
           included to the current page, nor will it be included in the next one if you pass it as a start.
         */
         if (next != SENTINEL_MODULES && pluginCount != 0) {
@@ -436,7 +437,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
     }
 
     function checkOnlyEnabledPlugin(address account) private view {
-        if (enabledPlugins[account][msg.sender].nextPluginPointer == address(0)) {
+        if (enabledPlugins[msg.sender][account].nextPluginPointer == address(0)) {
             revert PluginNotEnabled(msg.sender);
         }
     }
@@ -457,7 +458,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      */
     function checkPermission(address account, uint8 permission) private view {
         // For each action, Manager will read storage and call plugin's requiresPermissions().
-        uint8 givenPermissions = enabledPlugins[account][msg.sender].permissions;
+        uint8 givenPermissions = enabledPlugins[msg.sender][account].permissions;
         uint8 requiresPermissions = ISafeProtocolPlugin(msg.sender).requiresPermissions();
 
         if ((requiresPermissions & givenPermissions & permission) != permission) {

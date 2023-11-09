@@ -25,7 +25,7 @@ If you are submitting a bug report, please:
 Please send a [GitHub Pull Request to safe-core-protocol repository](https://github.com/safe-global/safe-core-protocol) with a clear description of the proposed changes. Each pull request should be associated with an issue and should be made against the `main` branch.
 
 Branch naming convention:
-    
+
 - For a new feature, use `feature-<issue-number>-short-description`
 - For a bug fix, use `fix-<issue-number>-short-description`
 

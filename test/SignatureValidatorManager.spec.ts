@@ -79,7 +79,7 @@ describe("SignatureValidatorManager", () => {
 
         await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataSetValidator, MaxUint256);
 
-        expect(await safeProtocolSignatureValidatorManager.signatureValidators(account.target, domainSeparator)).to.be.equal(
+        expect(await safeProtocolSignatureValidatorManager.signatureValidators(domainSeparator, account.target)).to.be.equal(
             mockContract.target,
         );
 
@@ -89,7 +89,7 @@ describe("SignatureValidatorManager", () => {
         ]);
 
         await account.executeCallViaMock(safeProtocolSignatureValidatorManager.target, 0, dataResetValidator, MaxUint256);
-        expect(await safeProtocolSignatureValidatorManager.signatureValidators(account.target, domainSeparator)).to.be.equal(ZeroAddress);
+        expect(await safeProtocolSignatureValidatorManager.signatureValidators(domainSeparator, account.target)).to.be.equal(ZeroAddress);
     });
 
     it("should revert when enabling a signature validator hooks not implementing ISafeProtocolSignatureValidatorHooks interface", async () => {

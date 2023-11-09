@@ -11,7 +11,7 @@ task("generate:deployments", "Generate markdown file with deployed contract addr
       console.error("No deployments file found. Please run the deployment script first.");
       return;
     }
-    
+
     const {default: deployments} = await import("../../deployments");
     const markdownFile = "./docs/deployments.md";
 

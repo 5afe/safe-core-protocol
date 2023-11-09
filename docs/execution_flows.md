@@ -43,7 +43,7 @@ end
 
 subgraph SafeProtocolManager
     ExamplePlugin1 -->|Execute tx for an Account through Plugin| Execute_Transaction(Execute transaction from a Plugin) --> Validate_ExecuteFromPluginFlow{Is Plugin Enabled?<br>Call SafeProtocolRegistry<br>and validate if Plugin trusted}
-    Validate_ExecuteFromPluginFlow -- No ----> E(Revert transaction) 
+    Validate_ExecuteFromPluginFlow -- No ----> E(Revert transaction)
 end
 ```
 
