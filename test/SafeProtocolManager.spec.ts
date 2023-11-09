@@ -48,7 +48,7 @@ describe("SafeProtocolManager", async () => {
             expect(await safeProtocolManager.supportsInterface.staticCall("0x945b8148")).to.be.true;
             expect(await safeProtocolManager.supportsInterface.staticCall("0xe6d7a83a")).to.be.true;
             expect(await safeProtocolManager.supportsInterface.staticCall("0x01ffc9a7")).to.be.true;
-            expect(await safeProtocolManager.supportsInterface.staticCall("0x3f6c68ec")).to.be.true;
+            expect(await safeProtocolManager.supportsInterface.staticCall("0x3cd5a81c")).to.be.true;
         });
 
         it("Should return false when non-supported interfaceId is passed as parameter", async () => {

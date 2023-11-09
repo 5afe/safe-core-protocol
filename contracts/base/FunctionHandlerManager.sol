@@ -16,7 +16,7 @@ abstract contract FunctionHandlerManager is RegistryManager {
     // Storage
     /** @dev Mapping that stores information about an account, function selector, and address of the account.
      */
-    mapping(bytes4 => mapping(address => address)) public functionHandlers;
+    mapping(bytes4 => mapping(address => address)) internal functionHandlers;
 
     // Events
     event FunctionHandlerChanged(address indexed account, bytes4 indexed selector, address indexed functionHandler);

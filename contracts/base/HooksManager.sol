@@ -7,7 +7,7 @@ import {OnlyAccountCallable} from "./OnlyAccountCallable.sol";
 import {MODULE_TYPE_HOOKS} from "../common/Constants.sol";
 
 abstract contract HooksManager is RegistryManager {
-    mapping(address => address) public enabledHooks;
+    mapping(address => address) internal enabledHooks;
 
     struct TempHooksInfo {
         address hooksAddress;

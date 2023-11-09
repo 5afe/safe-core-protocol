@@ -70,14 +70,7 @@ contract SafeProtocol4337Module is ISafeProtocolFunctionHandler, ISafeProtocolPl
         require(bytes4(userOp.callData) == ISafeProtocol4337Handler(account).executeUserOp.selector, "unsupported execution");
 
         if (missingAccountFunds > 0) {
-            SafeTransaction memory transaction;
-            {
-                transaction.actions = new SafeProtocolAction[](1);
-                transaction.actions[0].to = entrypoint;
-                transaction.actions[0].value = missingAccountFunds;
-                transaction.nonce = userOp.nonce;
-            }
-            manager.executeTransaction(account, transaction);
+            manager.transferPrefund(account, entrypoint, missingAccountFunds);
         }
 
         try IAccount(account).checkSignatures(userOpHash, "", userOp.signature) {

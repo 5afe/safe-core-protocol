@@ -29,6 +29,8 @@ interface ISafeProtocolManager {
      *         in case of succcessful execution. Empty if the call failed.
      */
     function executeRootAccess(address account, SafeRootAccess calldata rootAccess) external returns (bytes memory data);
+
+    function transferPrefund(address account, address payable entrypoint, uint256 missingAccountFunds) external;
 }
 
 interface ISafeProtocolSignatureValidatorManager {

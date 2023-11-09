@@ -26,7 +26,7 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
      * @notice Mapping of a mapping what stores information about plugins that are enabled per account.
      *         address (module address) => address (account address) => EnabledPluginInfo
      */
-    mapping(address => mapping(address => PluginAccessInfo)) public enabledPlugins;
+    mapping(address => mapping(address => PluginAccessInfo)) internal enabledPlugins;
     struct PluginAccessInfo {
         uint8 permissions;
         address nextPluginPointer;
@@ -463,5 +463,14 @@ contract SafeProtocolManager is ISafeProtocolManager, RegistryManager, HooksMana
         if ((requiresPermissions & givenPermissions & permission) != permission) {
             revert MissingPluginPermission(msg.sender, requiresPermissions, permission, givenPermissions);
         }
+    }
+
+    function transferPrefund(
+        address account,
+        address payable entrypoint,
+        uint256 missingAccountFunds
+    ) external override {
+        require(functionHandlers[hex"3a871cdd"][account] == msg.sender);
+        IAccount(account).execTransactionFromModule(entrypoint, missingAccountFunds, "", 0);
     }
 }
