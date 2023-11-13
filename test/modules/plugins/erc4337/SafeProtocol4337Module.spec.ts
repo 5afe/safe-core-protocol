@@ -4,7 +4,7 @@ import { ethers, deployments } from "hardhat";
 
 import { MODULE_TYPE_PLUGIN, MODULE_TYPE_FUNCTION_HANDLER, PLUGIN_PERMISSION_EXECUTE_CALL } from "../../../../src/utils/constants";
 
-describe("SafeProtocol4337Module", async () => {
+describe("SafeProtocol4337Module", () => {
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
         const [deployer, owner, user, bundler] = await ethers.getSigners();
