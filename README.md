@@ -117,13 +117,13 @@ yarn
 ### Compile
 
 ```bash
-npx hardhat compile
+yarn hardhat compile
 ```
 
 ### Test
 
 ```bash
-npx hardhat test
+yarn hardhat test
 ```
 
 ### Deploy
