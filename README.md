@@ -1,3 +1,5 @@
+**:warning: This repository is not actively developed at the moment. :warning:**
+
 [![Coverage Status](https://coveralls.io/repos/github/safe-global/safe-core-protocol/badge.svg)](https://coveralls.io/github/safe-global/safe-core-protocol)
 
 # Safe{Core} Protocol
