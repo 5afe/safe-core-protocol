@@ -106,7 +106,7 @@ contract SamplePlugin is ISafeProtocolPlugin {
 }
 ```
 
-For more examples and information on adding Module(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/safe-global/safe-core-protocol-demo/tree/main/contracts)
+For more examples and information on adding Module(s) to the Registry, refer to [Safe{Core} Protocol demo](https://github.com/5afe/safe-core-protocol-demo/tree/main/contracts)
 
 ## Useful commands
 
