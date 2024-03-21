@@ -10,7 +10,7 @@ contract TestFallbackReceiver {
 
     receive() external payable {
         // solhint-disable-next-line no-unused-vars
-        (bool success, bytes memory data) = ethReceiver.call{value: address(this).balance}("");
+        (bool success, ) = ethReceiver.call{value: address(this).balance}("");
         if (!success) {
             revert("Failed to send eth");
         }
