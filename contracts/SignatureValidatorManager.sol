@@ -223,7 +223,7 @@ contract SignatureValidatorManager is RegistryManager, ISafeProtocolFunctionHand
      * @param interfaceId bytes4 interface id to be checked
      * @return true if interface is supported
      */
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
         return
             interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(ISafeProtocolSignatureValidatorManager).interfaceId ||

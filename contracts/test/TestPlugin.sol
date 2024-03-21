@@ -18,7 +18,7 @@ abstract contract BaseTestPlugin is ISafeProtocolPlugin {
         permissions = _requiresPermission;
     }
 
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
         return interfaceId == type(ISafeProtocolPlugin).interfaceId || interfaceId == 0x01ffc9a7;
     }
 
